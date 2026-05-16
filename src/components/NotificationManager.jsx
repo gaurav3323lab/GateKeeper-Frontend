@@ -63,7 +63,7 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
   useEffect(() => {
     if (!user) return;
 
-    const socket = io(API_URL, { transports: ['websocket', 'polling'] });
+    const socket = io(API_URL, { transports: ['polling', 'websocket'] });
     internalSocketRef.current = socket;
 
     // If parent wants access to this socket

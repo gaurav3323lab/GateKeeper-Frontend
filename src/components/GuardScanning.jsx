@@ -7,7 +7,7 @@ import UserProfile from './UserProfile';
 import { Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, ListChecks, CameraOff, User, AlertCircle } from 'lucide-react';
 import { guardAPI, entryAPI } from '../services/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://pink-hornet-399666.hostingersite.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
 const GuardScanning = ({ user, onLogout }) => {
   const { isDark } = useTheme();

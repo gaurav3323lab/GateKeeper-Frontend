@@ -1,0 +1,5 @@
+{
+  "appId": "com.gatekeeper.app",
+  "appName": "GateKeeper",
+  "webDir": "dist"
+}

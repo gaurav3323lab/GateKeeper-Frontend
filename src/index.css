@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  .dark select option {
+    background-color: #1e293b; /* slate-800 */
+    color: #ffffff;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-slate-800/60 backdrop-blur-md border border-slate-700/60 rounded-2xl shadow-xl;
+  }
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+  }
+}

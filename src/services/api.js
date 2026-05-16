@@ -70,6 +70,7 @@ export const entryAPI = {
   sos: (data) => api.post('/api/entry/sos', data),
   manualLog: (data) => api.post('/api/entry/manual-log', data),
   getLogs: () => api.get('/api/entry/logs'),
+  getResidentLogs: () => api.get('/api/entry/resident-logs'),
   getEmergencies: () => api.get('/api/entry/emergencies'),
   resolveEmergency: (id, data) => api.put(`/api/entry/emergencies/${id}/resolve`, data),
 };

@@ -8,14 +8,16 @@ import ServiceRequest from './ServiceRequest';
 import PreApprove from './PreApprove';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
+import ResidentLogs from './ResidentLogs';
 import { entryAPI } from '../services/api';
-import { Home, Car, Wrench, CheckCircle, LogOut, Shield, AlertTriangle, User, Megaphone } from 'lucide-react';
+import { Home, Car, Wrench, CheckCircle, LogOut, Shield, AlertTriangle, User, Megaphone, List } from 'lucide-react';
 
 const NAV_ITEMS = [
   { key: 'flat', label: 'My Flat', icon: Home },
   { key: 'garage', label: 'Garage', icon: Car },
   { key: 'service', label: 'Service', icon: Wrench },
   { key: 'preapprove', label: 'Pre-Approve', icon: CheckCircle },
+  { key: 'logs', label: 'Logs', icon: List },
   { key: 'notices', label: 'Notices', icon: Megaphone },
 ];
 
@@ -109,6 +111,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       case 'garage': return <ResidentGarage />;
       case 'service': return <ServiceRequest user={user} />;
       case 'preapprove': return <PreApprove user={user} />;
+      case 'logs': return <ResidentLogs user={user} />;
       case 'notices': return <AnnouncementBoard user={user} />;
       default: return null;
     }

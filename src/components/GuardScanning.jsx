@@ -4,7 +4,7 @@ import ThemeToggle from './ThemeToggle';
 import ISTClock from './ISTClock';
 import jsQR from 'jsqr';
 import UserProfile from './UserProfile';
-import { Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, ListChecks, CameraOff, User, AlertCircle } from 'lucide-react';
+import { Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, ListChecks, CameraOff, User, AlertCircle, Car, Clock } from 'lucide-react';
 import { guardAPI, entryAPI } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
@@ -208,6 +208,7 @@ const GuardScanning = ({ user, onLogout }) => {
     { key: 'qr', label: 'QR Scan', icon: QrCode },
     { key: 'preapproved', label: `Pre-Approved (${preApproved.filter(p => !enteredIds.includes(p.id)).length})`, icon: ListChecks },
     { key: 'manual', label: 'Manual', icon: PenLine },
+    { key: 'vehicles', label: 'Vehicles', icon: Car },
     { key: 'sos', label: 'SOS List', icon: AlertCircle },
   ];
 
@@ -500,6 +501,11 @@ const GuardScanning = ({ user, onLogout }) => {
         {activeTab === 'sos' && (
           <SOSListTab isDark={isDark} card={card} subtext={subtext} user={user} />
         )}
+
+        {/* ── VEHICLES TAB ── */}
+        {activeTab === 'vehicles' && (
+          <VehicleStatsTab isDark={isDark} card={card} subtext={subtext} />
+        )}
       </div>
 
       <UserProfile isOpen={showProfile} onClose={() => setShowProfile(false)} />
@@ -567,6 +573,84 @@ const SOSListTab = ({ isDark, card, subtext, user }) => {
           ))}
         </div>
       )}
+    </div>
+  );
+};
+
+// Vehicle Stats Component for Guard
+const VehicleStatsTab = ({ isDark, card, subtext }) => {
+  const [statsData, setStatsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchStats = async () => {
+    try {
+      const res = await guardAPI.getVehicleStats();
+      setStatsData(res.data);
+    } catch (err) {
+      console.error('Vehicle stats fetch failed:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchStats(); }, []);
+
+  if (loading) return <div className="flex justify-center py-10"><div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="space-y-4">
+      {/* Overview Cards */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+          <p className={`text-xs font-semibold mb-1 ${subtext}`}>Inside Society</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+              <Car size={16} className="text-emerald-500" />
+            </div>
+            <span className="text-2xl font-black">{statsData?.stats?.inside_count || 0}</span>
+          </div>
+        </div>
+        <div className={`p-4 rounded-2xl border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
+          <p className={`text-xs font-semibold mb-1 ${subtext}`}>Total Registered</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-indigo-500/20 flex items-center justify-center">
+              <ListChecks size={16} className="text-indigo-500" />
+            </div>
+            <span className="text-2xl font-black">{statsData?.stats?.total_count || 0}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Logs */}
+      <div className={`border rounded-2xl p-4 ${card}`}>
+        <h2 className="font-bold mb-3 text-sm flex items-center gap-2">
+          <Clock size={16} className="text-indigo-400" /> Recent Movements
+        </h2>
+        {statsData?.logs?.length === 0 ? (
+          <p className={`text-center py-4 text-sm ${subtext}`}>Koi movement nahi hai</p>
+        ) : (
+          <div className="space-y-3">
+            {statsData?.logs?.map(log => (
+              <div key={log.id} className={`p-3 rounded-xl border flex items-center justify-between ${isDark ? 'bg-slate-700/30 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+                <div>
+                  <p className="font-bold text-sm">{log.vehicle_number}</p>
+                  <p className={`text-xs ${subtext}`}>{log.owner_name} • Flat {log.flat_number}</p>
+                </div>
+                <div className="text-right">
+                  {log.exit_time ? (
+                    <span className="text-xs font-bold text-orange-500 bg-orange-500/10 px-2 py-1 rounded-full">OUT</span>
+                  ) : (
+                    <span className="text-xs font-bold text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-full">IN</span>
+                  )}
+                  <p className={`text-[10px] mt-1 ${subtext}`}>
+                    {new Date(log.exit_time || log.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };

@@ -79,6 +79,7 @@ export const guardAPI = {
   getPreApproved: () => api.get('/api/guard/pre-approved'),
   getEntryLogs: () => api.get('/api/guard/entry-logs'),
   getEmergencies: () => api.get('/api/guard/emergencies'),
+  getVehicleStats: () => api.get('/api/guard/vehicle-stats'),
 };
 
 // ── Societies ────────────────────────────────────────────────

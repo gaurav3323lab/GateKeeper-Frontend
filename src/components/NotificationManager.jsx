@@ -13,7 +13,7 @@ const SOUNDS = {
 
 // Toast notification component
 const Toast = ({ toasts, onDismiss }) => (
-  <div className="fixed top-4 right-4 z-[200] space-y-2 max-w-xs w-full pointer-events-none">
+  <div className="fixed top-4 right-4 space-y-2 max-w-xs w-full pointer-events-none" style={{ zIndex: 9999 }}>
     {toasts.map((t) => (
       <div key={t.id}
         className={`flex items-start gap-3 p-3 rounded-2xl border shadow-2xl pointer-events-auto animate-slide-in
@@ -149,7 +149,7 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
 
       {/* 📞 INCOMING VISITOR GATE CALL MODAL */}
       {activeCall && (
-        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
           <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-indigo-500/20 animate-in zoom-in duration-300">
             {/* Phone Pulse Icon */}
             <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center">

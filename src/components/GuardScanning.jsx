@@ -819,6 +819,66 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       </div>
 
       <UserProfile isOpen={showProfile} onClose={() => setShowProfile(false)} />
+
+      {/* 📞 WAITING FOR RESIDENT APPROVAL OVERLAY */}
+      {waitingForApproval && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-indigo-500/20 animate-in zoom-in duration-300">
+            <div className="w-16 h-16 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+              <Clock size={28} className="animate-spin" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-1">Waiting for Resident Approval...</h3>
+            <p className="text-xs text-slate-400 mb-4">Calling Flat {visitorForm.flat} for verification</p>
+            <div className="bg-slate-800/50 rounded-xl p-3 text-left space-y-1 mb-4 text-xs">
+              <p><span className="text-slate-400">Visitor:</span> <strong className="text-slate-200">{visitorForm.name}</strong></p>
+              <p><span className="text-slate-400">Purpose:</span> <strong className="text-slate-200">{visitorForm.purpose}</strong></p>
+            </div>
+            <button
+              onClick={() => setWaitingForApproval(false)}
+              className="px-4 py-2 border border-slate-700 hover:bg-slate-800 rounded-xl text-xs font-bold text-slate-400 transition-all active:scale-95"
+            >
+              Cancel Call ✖
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Approval Decision Alerts */}
+      {approvalStatus === 'denied' && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="bg-slate-900 border border-red-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-red-500/20 animate-in zoom-in duration-300">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <X size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-red-400 mb-1">Entry Denied! ❌</h3>
+            <p className="text-xs text-slate-400 mb-4">Resident of Flat {visitorForm.flat} rejected this entry.</p>
+            <button
+              onClick={() => setApprovalStatus(null)}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs active:scale-95 transition-all"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {approvalStatus === 'approved' && (
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4" style={{ zIndex: 9999 }}>
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-emerald-500/20 animate-in zoom-in duration-300">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4 animate-bounce">
+              <CheckCircle size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-emerald-400 mb-1">Entry Approved! ✅</h3>
+            <p className="text-xs text-slate-400 mb-4">Resident of Flat {visitorForm.flat} has allowed the guest.</p>
+            <button
+              onClick={() => setApprovalStatus(null)}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs active:scale-95 transition-all"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
@@ -962,65 +1022,6 @@ const VehicleStatsTab = ({ isDark, card, subtext }) => {
         )}
       </div>
 
-      {/* 📞 WAITING FOR RESIDENT APPROVAL OVERLAY */}
-      {waitingForApproval && (
-        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-indigo-500/20 animate-in zoom-in duration-300">
-            <div className="w-16 h-16 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
-              <Clock size={28} className="animate-spin" />
-            </div>
-            <h3 className="text-lg font-bold text-white mb-1">Waiting for Resident Approval...</h3>
-            <p className="text-xs text-slate-400 mb-4">Calling Flat {visitorForm.flat} for verification</p>
-            <div className="bg-slate-800/50 rounded-xl p-3 text-left space-y-1 mb-4 text-xs">
-              <p><span className="text-slate-400">Visitor:</span> <strong className="text-slate-200">{visitorForm.name}</strong></p>
-              <p><span className="text-slate-400">Purpose:</span> <strong className="text-slate-200">{visitorForm.purpose}</strong></p>
-            </div>
-            <button
-              onClick={() => setWaitingForApproval(false)}
-              className="px-4 py-2 border border-slate-700 hover:bg-slate-800 rounded-xl text-xs font-bold text-slate-400 transition-all active:scale-95"
-            >
-              Cancel Call ✖
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Manual Approval Decision Alerts */}
-      {approvalStatus === 'denied' && (
-        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-red-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-red-500/20 animate-in zoom-in duration-300">
-            <div className="w-16 h-16 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
-              <X size={28} />
-            </div>
-            <h3 className="text-lg font-bold text-red-400 mb-1">Entry Denied! ❌</h3>
-            <p className="text-xs text-slate-400 mb-4">Resident of Flat {visitorForm.flat} rejected this entry.</p>
-            <button
-              onClick={() => setApprovalStatus(null)}
-              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs active:scale-95 transition-all"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
-
-      {approvalStatus === 'approved' && (
-        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-emerald-500/20 animate-in zoom-in duration-300">
-            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4 animate-bounce">
-              <CheckCircle size={28} />
-            </div>
-            <h3 className="text-lg font-bold text-emerald-400 mb-1">Entry Approved! ✅</h3>
-            <p className="text-xs text-slate-400 mb-4">Resident of Flat {visitorForm.flat} has allowed the guest.</p>
-            <button
-              onClick={() => setApprovalStatus(null)}
-              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs active:scale-95 transition-all"
-            >
-              Dismiss
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

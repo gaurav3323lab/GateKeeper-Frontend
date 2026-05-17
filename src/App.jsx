@@ -72,7 +72,7 @@ function AppContent() {
 
       {/* Global SOS Alert Modal — shows for Manager & Guard */}
       {globalSOS && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-red-600/20 backdrop-blur-md p-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-red-600/20 backdrop-blur-md p-4" style={{ zIndex: 9999 }}>
           <div className="w-full max-w-sm bg-slate-900 border-4 border-red-500 rounded-3xl p-6 shadow-[0_0_50px_rgba(239,68,68,0.5)] animate-pulse">
             <div className="text-center">
               <div className="w-20 h-20 bg-red-500 rounded-full flex items-center justify-center mx-auto mb-4">

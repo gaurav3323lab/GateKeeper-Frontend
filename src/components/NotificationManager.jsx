@@ -115,6 +115,18 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
       addToast('visitor', '🚪 Visitor Aaya!', `${data.name} — ${data.purpose}`);
     });
 
+    // 3b. Visitor Checked In Check-in (Resident)
+    socket.on('visitor_checked_in', (data) => {
+      playSound('message');
+      addToast('success', '🚪 Checked In! ✅', `${data.visitor_name} ne society me ENTRY le li hai.`);
+    });
+
+    // 3c. Visitor Checked Out Checkout (Resident)
+    socket.on('visitor_checked_out', (data) => {
+      playSound('message');
+      addToast('sos', '🚗 Checked Out! ❌', `${data.visitor_name} ne society se EXIT kar liya hai.`);
+    });
+
     // 4. Account Status Update (Resident)
     socket.on('account_status_update', (data) => {
       addToast(data.status === 'active' ? 'success' : 'sos',

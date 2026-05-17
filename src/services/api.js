@@ -85,6 +85,8 @@ export const guardAPI = {
   getEntryLogs: () => api.get('/api/guard/entry-logs'),
   getEmergencies: () => api.get('/api/guard/emergencies'),
   getVehicleStats: () => api.get('/api/guard/vehicle-stats'),
+  getInsideVisitors: () => api.get('/api/guard/inside-visitors'),
+  checkoutVisitor: (log_id) => api.post('/api/guard/checkout-visitor', { log_id }),
 };
 
 // ── Societies ────────────────────────────────────────────────

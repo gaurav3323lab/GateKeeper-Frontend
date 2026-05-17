@@ -47,6 +47,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [enteredIds, setEnteredIds] = useState([]);
   const [enteredPin, setEnteredPin] = useState('');
   const [matchedGuest, setMatchedGuest] = useState(null);
+  const [insideVisitors, setInsideVisitors] = useState([]);
+  const [insideLoading, setInsideLoading] = useState(false);
 
   const handlePinChange = (val) => {
     if (val.length > 6) return;
@@ -126,6 +128,29 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       setPreApprovedLoading(false);
     }
   }, []);
+
+  const fetchInsideVisitors = useCallback(async () => {
+    setInsideLoading(true);
+    try {
+      const res = await guardAPI.getInsideVisitors();
+      setInsideVisitors(res.data);
+    } catch (err) {
+      console.error('Failed to fetch inside visitors:', err);
+      setInsideVisitors([]);
+    } finally {
+      setInsideLoading(false);
+    }
+  }, []);
+
+  const handleCheckout = async (logId) => {
+    try {
+      await guardAPI.checkoutVisitor(logId);
+      await fetchInsideVisitors();
+      await fetchPreApproved();
+    } catch (err) {
+      console.error('Checkout failed:', err);
+    }
+  };
 
   // Fetch pre-approved on mount
   React.useEffect(() => {
@@ -317,6 +342,9 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     if (key === 'pin' || key === 'preapproved') {
       fetchPreApproved();
     }
+    if (key === 'checkout') {
+      fetchInsideVisitors();
+    }
   };
 
   return (
@@ -457,6 +485,21 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                 <div>
                   <h3 className="font-bold text-sm leading-tight text-red-400">🚨 SOS Alerts</h3>
                   <p className="text-[10px] text-red-400/80 mt-1">Emergency alerts list</p>
+                </div>
+              </button>
+
+              {/* CHECK-OUT CARD */}
+              <button 
+                onClick={() => handleTabChange('checkout')}
+                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:border-sky-500 hover:shadow-lg hover:shadow-sky-500/10
+                  ${isDark ? 'bg-gradient-to-br from-slate-800/80 to-slate-900 border-slate-700/60' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'}`}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
+                  <LogOut size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight text-slate-200">🚪 Check-Out (Exit)</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Visitors ki exit time mark karein</p>
                 </div>
               </button>
             </div>
@@ -840,6 +883,52 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         {/* ── VEHICLES TAB ── */}
         {activeTab === 'vehicles' && (
           <VehicleStatsTab isDark={isDark} card={card} subtext={subtext} />
+        )}
+
+        {/* ── CHECKOUT TAB (VISITORS CURRENTLY INSIDE) ── */}
+        {activeTab === 'checkout' && (
+          <div className={`border rounded-2xl p-5 ${card}`}>
+            <h2 className="font-bold mb-1 text-sm flex items-center gap-2">
+              <LogOut size={16} className="text-sky-400" /> 🚪 Inside Visitors (Checked-In)
+            </h2>
+            <p className={`text-xs mb-4 ${subtext}`}>Society ke andar maujood visitors — exit hone par checkout karein</p>
+            {insideLoading ? (
+              <div className="flex justify-center py-10"><div className="w-8 h-8 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" /></div>
+            ) : insideVisitors.length === 0 ? (
+              <div className="text-center py-8">
+                <CheckCircle size={36} className="mx-auto text-emerald-400 mb-2" />
+                <p className={`text-sm ${subtext}`}>Society me koi visitor inside nahi hai</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {insideVisitors.map(visitor => (
+                  <div key={visitor.log_id} className={`flex items-center justify-between p-4 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{visitor.entity_type === 'delivery' ? '📦' : '🧑'}</span>
+                      <div>
+                        <p className="font-bold text-sm flex items-center gap-2 flex-wrap">
+                          <span>{visitor.name}</span>
+                          {visitor.phone && visitor.phone !== 'N/A' && (
+                            <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-black">
+                              📞 {visitor.phone}
+                            </span>
+                          )}
+                        </p>
+                        <p className={`text-xs ${subtext}`}>
+                          {visitor.entity_type === 'delivery' ? 'Delivery' : 'Guest'} → Flat {visitor.flat}
+                        </p>
+                        <p className={`text-xs ${subtext}`}>Host: {visitor.resident_name || 'Resident'} • In: {new Date(visitor.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => handleCheckout(visitor.log_id)}
+                      className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl text-xs font-extrabold active:scale-95 transition-all shadow-md shadow-red-950/20">
+                      Exit Karein ❌
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 

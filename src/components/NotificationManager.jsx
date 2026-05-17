@@ -5,9 +5,10 @@ import { AlertTriangle, Bell, X, Megaphone } from 'lucide-react';
 const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
 const SOUNDS = {
-  ring: 'https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3',
-  tone: 'https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3',
-  sos:  'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3',
+  ring: 'https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3',      // manager registration chime
+  message: 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3',   // Notice SMS ping
+  sos:  'https://assets.mixkit.co/active_storage/sfx/951/951-preview.mp3',         // SOS Emergency Siren
+  calling: 'https://assets.mixkit.co/active_storage/sfx/2042/2042-preview.mp3',  // Telephone ringtone
 };
 
 // Toast notification component
@@ -42,6 +43,7 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
   const internalSocketRef = useRef(null);
   const audioRef = useRef(new Audio());
   const [toasts, setToasts] = useState([]);
+  const [activeCall, setActiveCall] = useState(null);
 
   const addToast = (type, title, message) => {
     const id = Date.now();
@@ -51,12 +53,22 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
 
   const dismissToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
-  const playSound = (type) => {
+  const playSound = (type, loop = false) => {
     try {
       audioRef.current.src = SOUNDS[type];
+      audioRef.current.loop = loop;
       audioRef.current.play().catch(e => console.warn('Audio play failed:', e));
     } catch (err) {
       console.error('Sound error:', err);
+    }
+  };
+
+  const stopSound = () => {
+    try {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    } catch (err) {
+      console.error('Sound stop error:', err);
     }
   };
 
@@ -97,7 +109,9 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
 
     // 3. Visitor Arrival (Resident)
     socket.on('visitor_notification', (data) => {
-      playSound('tone');
+      // Trigger full screen gate calling modal and ringtone
+      setActiveCall(data);
+      playSound('calling', true);
       addToast('visitor', '🚪 Visitor Aaya!', `${data.name} — ${data.purpose}`);
     });
 
@@ -111,7 +125,7 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
 
     // 5. New Announcement (All users)
     socket.on('new_announcement', (data) => {
-      playSound('tone');
+      playSound('message');
       addToast('announcement', `📢 ${data.category || 'Notice'}`, data.title);
     });
 
@@ -131,6 +145,60 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
   return (
     <>
       <Toast toasts={toasts} onDismiss={dismissToast} />
+
+      {/* 📞 INCOMING VISITOR GATE CALL MODAL */}
+      {activeCall && (
+        <div className="fixed inset-0 z-[300] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-indigo-500/20 animate-in zoom-in duration-300">
+            {/* Phone Pulse Icon */}
+            <div className="relative w-20 h-20 mx-auto mb-6 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-indigo-500/10 animate-ping" />
+              <div className="absolute inset-2 rounded-full bg-indigo-500/20 animate-pulse" />
+              <div className="w-14 h-14 rounded-full bg-indigo-500 text-white flex items-center justify-center shadow-lg">
+                <Bell size={28} className="animate-bounce" />
+              </div>
+            </div>
+
+            <h2 className="text-xl font-extrabold text-white mb-1">Incoming Gate Call</h2>
+            <p className="text-xs text-indigo-400 font-bold uppercase tracking-widest mb-4">Guard Verification Request</p>
+
+            <div className="bg-slate-800/80 border border-slate-700/50 rounded-2xl p-4 mb-6 space-y-2 text-left">
+              <p className="text-xs flex justify-between"><span className="text-slate-400">Visitor:</span> <strong className="font-bold text-slate-100">{activeCall.name}</strong></p>
+              <p className="text-xs flex justify-between"><span className="text-slate-400">Phone:</span> <strong className="font-bold text-slate-100">{activeCall.phone || 'Not provided'}</strong></p>
+              <p className="text-xs flex justify-between"><span className="text-slate-400">Purpose:</span> <strong className="font-bold text-slate-100">{activeCall.purpose}</strong></p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => {
+                  stopSound();
+                  const socket = internalSocketRef.current;
+                  if (socket) {
+                    socket.emit('visitor_decision', { approved: false, flat_number: user.flat_number, visitor_name: activeCall.name });
+                  }
+                  setActiveCall(null);
+                }}
+                className="py-3 bg-red-600 hover:bg-red-700 active:scale-95 text-white font-extrabold text-sm rounded-xl transition-all shadow-lg shadow-red-950/20 animate-in fade-in"
+              >
+                Deny Entry ❌
+              </button>
+              <button
+                onClick={() => {
+                  stopSound();
+                  const socket = internalSocketRef.current;
+                  if (socket) {
+                    socket.emit('visitor_decision', { approved: true, flat_number: user.flat_number, visitor_name: activeCall.name });
+                  }
+                  setActiveCall(null);
+                }}
+                className="py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-extrabold text-sm rounded-xl transition-all shadow-lg shadow-emerald-950/20 animate-in fade-in"
+              >
+                Approve Entry ✅
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

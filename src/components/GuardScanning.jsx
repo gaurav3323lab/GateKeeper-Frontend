@@ -8,10 +8,15 @@ import { guardAPI, entryAPI } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
-const GuardScanning = ({ user, onLogout }) => {
+const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('home');
   const [showProfile, setShowProfile] = useState(false);
+
+  // States for real-time manual approvals
+  const [waitingForApproval, setWaitingForApproval] = useState(false);
+  const [approvalStatus, setApprovalStatus] = useState(null);
+  const [showActivePins, setShowActivePins] = useState(false);
 
   // Camera refs
   const videoRef = useRef(null);
@@ -50,6 +55,45 @@ const GuardScanning = ({ user, onLogout }) => {
   const handleKeypadPress = (num) => {
     if (enteredPin.length < 6) {
       handlePinChange(enteredPin + num);
+    }
+  };
+
+  // Listen for resident real-time decisions
+  React.useEffect(() => {
+    if (!sharedSocket) return;
+    const handleDecision = (data) => {
+      if (waitingForApproval && String(data.flat_number).trim() === String(visitorForm.flat).trim()) {
+        setWaitingForApproval(false);
+        if (data.approved) {
+          setApprovalStatus('approved');
+          // Auto log the entry since resident approved it!
+          handleManualSubmit();
+        } else {
+          setApprovalStatus('denied');
+        }
+      }
+    };
+    sharedSocket.on('visitor_decision_result', handleDecision);
+    return () => {
+      sharedSocket.off('visitor_decision_result', handleDecision);
+    };
+  }, [sharedSocket, waitingForApproval, visitorForm.flat]);
+
+  const askResidentApproval = () => {
+    if (!visitorForm.name || !visitorForm.flat) {
+      alert("Name aur Flat Number likhna zaroori hai!");
+      return;
+    }
+    setWaitingForApproval(true);
+    setApprovalStatus(null);
+    
+    if (sharedSocket) {
+      sharedSocket.emit('visitor_arrival', {
+        name: visitorForm.name,
+        phone: visitorForm.phone || '',
+        flat_number: visitorForm.flat,
+        purpose: visitorForm.purpose || 'Guest'
+      });
     }
   };
 
@@ -588,6 +632,35 @@ const GuardScanning = ({ user, onLogout }) => {
                 Delete
               </button>
             </div>
+
+            {/* 🛠️ Active PINs Debug List (Collapsible) */}
+            <div className="pt-4 border-t border-slate-700/40 animate-in fade-in duration-300">
+              <button 
+                onClick={() => setShowActivePins(!showActivePins)}
+                className={`w-full py-2 px-3 rounded-xl border flex items-center justify-between text-[10px] font-black uppercase tracking-wider transition-all
+                  ${isDark ? 'bg-slate-800/40 border-slate-700/60 text-slate-400 hover:text-white' : 'bg-gray-50 border-gray-200 text-gray-500 hover:text-gray-700'}`}
+              >
+                <span>🛠️ Dev Helper: Active PINs in DB ({preApproved.filter(p => p.type === 'guest').length})</span>
+                <span>{showActivePins ? 'Hide 🔼' : 'Show 🔽'}</span>
+              </button>
+
+              {showActivePins && (
+                <div className="mt-2 p-3 rounded-xl border border-slate-700 bg-slate-900/60 text-left space-y-2 max-h-36 overflow-y-auto">
+                  {preApproved.filter(p => p.type === 'guest').length === 0 ? (
+                    <p className="text-[10px] text-slate-500 text-center">Database me koi active pre-approved guest nahi mila</p>
+                  ) : (
+                    preApproved.filter(p => p.type === 'guest').map(p => (
+                      <div key={p.id} className="flex justify-between items-center text-[10px] border-b border-slate-800/60 pb-1.5 last:border-b-0 last:pb-0">
+                        <span className="text-slate-300 font-bold">{p.name} (Flat {p.flat})</span>
+                        <span className="bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded font-black text-xs select-all">
+                          {p.qr_code}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -637,8 +710,37 @@ const GuardScanning = ({ user, onLogout }) => {
             <h2 className="font-bold text-sm">✍️ Manual Visitor Entry</h2>
             <input placeholder="Visitor ka Naam" value={visitorForm.name} onChange={e => setVisitorForm({...visitorForm, name: e.target.value})}
               className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
-            <input placeholder="Mobile Number" type="tel" value={visitorForm.phone} onChange={e => setVisitorForm({...visitorForm, phone: e.target.value})}
-              className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
+            <div className="relative">
+              <input placeholder="Mobile Number" type="tel" value={visitorForm.phone} onChange={e => setVisitorForm({...visitorForm, phone: e.target.value})}
+                className={`w-full border rounded-xl pl-3 pr-24 py-2.5 text-sm outline-none ${input}`} />
+              <button 
+                type="button" 
+                onClick={async () => {
+                  try {
+                    if (navigator.contacts && navigator.contacts.select) {
+                      const contacts = await navigator.contacts.select(['name', 'tel'], { multiple: false });
+                      if (contacts && contacts.length > 0) {
+                        const contact = contacts[0];
+                        const name = contact.name ? contact.name[0] : '';
+                        const phone = contact.tel ? contact.tel[0].replace(/[^0-9+]/g, '') : '';
+                        setVisitorForm({
+                          ...visitorForm,
+                          name: name || visitorForm.name,
+                          phone: phone || visitorForm.phone
+                        });
+                      }
+                    } else {
+                      alert("Web Contact Picker native prompt is only available in secure mobile webviews. Standard input works perfectly.");
+                    }
+                  } catch (e) {
+                    console.warn("Contact picker error:", e);
+                  }
+                }}
+                className="absolute right-2 top-1.5 bottom-1.5 px-2 bg-indigo-500/20 hover:bg-indigo-500/35 border border-indigo-500/30 rounded-lg text-[10px] font-bold text-indigo-400 transition-all active:scale-95 flex items-center justify-center gap-1 shrink-0"
+              >
+                👤 Contacts
+              </button>
+            </div>
             <input placeholder="Kahan Jaana Hai? (Flat No)" value={visitorForm.flat} onChange={e => setVisitorForm({...visitorForm, flat: e.target.value})}
               className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
             <select value={visitorForm.purpose} onChange={e => setVisitorForm({...visitorForm, purpose: e.target.value})}
@@ -649,8 +751,12 @@ const GuardScanning = ({ user, onLogout }) => {
               <option>Other</option>
             </select>
             <button onClick={handleManualSubmit}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm">
-              Entry Log Karein ✅
+              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl font-bold text-xs transition-all mb-2 flex items-center justify-center gap-1.5">
+              Direct Entry Log Karein ✅
+            </button>
+            <button onClick={askResidentApproval}
+              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-2xl font-black text-xs transition-all shadow-md flex items-center justify-center gap-1.5 animate-pulse">
+              📞 Resident Approval Chahiye (Real-time Call)
             </button>
           </div>
         )}
@@ -855,6 +961,66 @@ const VehicleStatsTab = ({ isDark, card, subtext }) => {
           </div>
         )}
       </div>
+
+      {/* 📞 WAITING FOR RESIDENT APPROVAL OVERLAY */}
+      {waitingForApproval && (
+        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-indigo-500/20 animate-in zoom-in duration-300">
+            <div className="w-16 h-16 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4">
+              <Clock size={28} className="animate-spin" />
+            </div>
+            <h3 className="text-lg font-bold text-white mb-1">Waiting for Resident Approval...</h3>
+            <p className="text-xs text-slate-400 mb-4">Calling Flat {visitorForm.flat} for verification</p>
+            <div className="bg-slate-800/50 rounded-xl p-3 text-left space-y-1 mb-4 text-xs">
+              <p><span className="text-slate-400">Visitor:</span> <strong className="text-slate-200">{visitorForm.name}</strong></p>
+              <p><span className="text-slate-400">Purpose:</span> <strong className="text-slate-200">{visitorForm.purpose}</strong></p>
+            </div>
+            <button
+              onClick={() => setWaitingForApproval(false)}
+              className="px-4 py-2 border border-slate-700 hover:bg-slate-800 rounded-xl text-xs font-bold text-slate-400 transition-all active:scale-95"
+            >
+              Cancel Call ✖
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Manual Approval Decision Alerts */}
+      {approvalStatus === 'denied' && (
+        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-red-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-red-500/20 animate-in zoom-in duration-300">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 text-red-500 border border-red-500/20 flex items-center justify-center mx-auto mb-4">
+              <X size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-red-400 mb-1">Entry Denied! ❌</h3>
+            <p className="text-xs text-slate-400 mb-4">Resident of Flat {visitorForm.flat} rejected this entry.</p>
+            <button
+              onClick={() => setApprovalStatus(null)}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs active:scale-95 transition-all"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
+
+      {approvalStatus === 'approved' && (
+        <div className="fixed inset-0 z-[100] bg-black/75 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-emerald-500/30 rounded-3xl p-6 w-full max-w-sm text-center shadow-2xl shadow-emerald-500/20 animate-in zoom-in duration-300">
+            <div className="w-16 h-16 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 flex items-center justify-center mx-auto mb-4 animate-bounce">
+              <CheckCircle size={28} />
+            </div>
+            <h3 className="text-lg font-bold text-emerald-400 mb-1">Entry Approved! ✅</h3>
+            <p className="text-xs text-slate-400 mb-4">Resident of Flat {visitorForm.flat} has allowed the guest.</p>
+            <button
+              onClick={() => setApprovalStatus(null)}
+              className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-bold text-xs active:scale-95 transition-all"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

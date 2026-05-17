@@ -50,7 +50,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [insideVisitors, setInsideVisitors] = useState([]);
   const [insideLoading, setInsideLoading] = useState(false);
 
-  const handlePinChange = (val) => {
+  const handlePinChange = async (val) => {
     if (val.length > 6) return;
     setEnteredPin(val);
     if (val.length === 6) {
@@ -58,7 +58,17 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       if (match) {
         setMatchedGuest(match);
       } else {
-        setMatchedGuest(null);
+        try {
+          const res = await guardAPI.verifyPin(val);
+          if (res.data) {
+            setMatchedGuest(res.data);
+          } else {
+            setMatchedGuest(null);
+          }
+        } catch (err) {
+          console.warn("Direct PIN database verify failed:", err);
+          setMatchedGuest(null);
+        }
       }
     } else {
       setMatchedGuest(null);

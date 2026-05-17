@@ -73,6 +73,9 @@ export const entryAPI = {
   getResidentLogs: () => api.get('/api/entry/resident-logs'),
   getEmergencies: () => api.get('/api/entry/emergencies'),
   resolveEmergency: (id, data) => api.put(`/api/entry/emergencies/${id}/resolve`, data),
+  getPreApprovals: () => api.get('/api/entry/pre-approvals'),
+  addPreApproval: (data) => api.post('/api/entry/pre-approve', data),
+  removePreApproval: (type, id) => api.delete(`/api/entry/pre-approve/${type}/${id}`),
 };
 
 // ── Guard Panel ──────────────────────────────────────────────

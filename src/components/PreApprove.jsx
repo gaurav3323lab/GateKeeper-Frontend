@@ -1,29 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Package, Plus, CheckCircle, Clock, Truck, X, User } from 'lucide-react';
+import { Package, Plus, CheckCircle, Clock, Truck, X, User, Share2, Loader2 } from 'lucide-react';
+import { entryAPI } from '../services/api';
 
 const PreApprove = ({ user }) => {
   const { isDark } = useTheme();
-  const [approvals, setApprovals] = useState([
-    { id: 1, type: 'delivery', company: 'Amazon', valid_date: '2026-05-10', status: 'active' },
-    { id: 2, type: 'guest', name: 'Rakesh Bhai', purpose: 'Birthday Party', valid_date: '2026-05-12', status: 'active' },
-  ]);
+  const [approvals, setApprovals] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ type: 'delivery', company: '', name: '', purpose: '', valid_date: '' });
+  const [selectedPass, setSelectedPass] = useState(null);
+
+  useEffect(() => {
+    fetchApprovals();
+  }, []);
+
+  const fetchApprovals = async () => {
+    try {
+      const res = await entryAPI.getPreApprovals();
+      setApprovals(res.data);
+    } catch (err) {
+      console.error('Failed to fetch pre-approvals', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200';
   const input = isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-gray-100 border-gray-300 text-gray-800';
   const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (form.type === 'delivery' && !form.company) return;
     if (form.type === 'guest' && !form.name) return;
-    setApprovals([...approvals, { id: Date.now(), ...form, status: 'active' }]);
-    setForm({ type: 'delivery', company: '', name: '', purpose: '', valid_date: '' });
-    setShowForm(false);
+    
+    setActionLoading(true);
+    try {
+      await entryAPI.addPreApproval(form);
+      await fetchApprovals();
+      setForm({ type: 'delivery', company: '', name: '', purpose: '', valid_date: '' });
+      setShowForm(false);
+    } catch (err) {
+      console.error('Failed to add pre-approval', err);
+      alert('Error adding pre-approval');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
-  const handleRemove = (id) => setApprovals(approvals.filter(a => a.id !== id));
+  const handleRemove = async (id, type) => {
+    setActionLoading(true);
+    try {
+      await entryAPI.removePreApproval(type, id);
+      await fetchApprovals();
+    } catch (err) {
+      console.error('Failed to remove pre-approval', err);
+      alert('Error removing pre-approval');
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const deliveryIcons = { Amazon: '📦', Swiggy: '🛵', Zomato: '🍕', Flipkart: '🛍️', Other: '📫' };
 
@@ -83,10 +120,10 @@ const PreApprove = ({ user }) => {
                 className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
 
               <div className="flex gap-2">
-                <button onClick={handleAdd} className="flex-1 bg-emerald-600 text-white py-2 rounded-xl text-sm font-semibold">
-                  Allow Karein ✅
+                <button onClick={handleAdd} disabled={actionLoading} className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white py-2 rounded-xl text-sm font-semibold flex justify-center items-center gap-2">
+                  {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Allow Karein ✅'}
                 </button>
-                <button onClick={() => setShowForm(false)} className={`flex-1 py-2 rounded-xl text-sm border ${isDark ? 'border-slate-600 text-slate-400' : 'border-gray-300 text-gray-500'}`}>
+                <button onClick={() => setShowForm(false)} disabled={actionLoading} className={`flex-1 py-2 rounded-xl text-sm border ${isDark ? 'border-slate-600 text-slate-400' : 'border-gray-300 text-gray-500'}`}>
                   Cancel
                 </button>
               </div>
@@ -95,7 +132,11 @@ const PreApprove = ({ user }) => {
         )}
 
         {/* Active Approvals List */}
-        {approvals.length === 0 ? (
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="animate-spin text-emerald-500" size={32} />
+          </div>
+        ) : approvals.length === 0 ? (
           <div className={`text-center py-8 ${subtext}`}>
             <Package size={36} className="mx-auto mb-2 opacity-30" />
             <p className="text-sm">Koi pre-approval nahi hai abhi</p>
@@ -115,10 +156,13 @@ const PreApprove = ({ user }) => {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button onClick={() => setSelectedPass(a)} className="text-indigo-500 hover:text-indigo-400 p-1 bg-indigo-500/10 rounded-lg">
+                    <Share2 size={16} />
+                  </button>
                   <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-full">
                     ✅ Active
                   </span>
-                  <button onClick={() => handleRemove(a.id)} className="text-red-400 hover:text-red-300 p-1">
+                  <button onClick={() => handleRemove(a.id, a.type)} disabled={actionLoading} className="text-red-400 hover:text-red-300 p-1">
                     <X size={16} />
                   </button>
                 </div>
@@ -127,6 +171,68 @@ const PreApprove = ({ user }) => {
           </div>
         )}
       </div>
+
+      {/* Digital Gate Pass Modal */}
+      {selectedPass && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4" onClick={() => setSelectedPass(null)}>
+          <div className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.2)] animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+            {/* Ticket Top */}
+            <div className={`p-6 text-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-lg">
+                <CheckCircle size={24} className="text-white" />
+              </div>
+              <h2 className="text-2xl font-black uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 mb-1">Gate Pass</h2>
+              <p className={`text-[10px] font-bold tracking-widest uppercase ${subtext}`}>GateKeeper Society</p>
+              
+              <div className="mt-8 text-left space-y-4">
+                <div>
+                  <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Guest / Delivery</p>
+                  <p className="font-bold text-lg">{selectedPass.type === 'delivery' ? selectedPass.company : selectedPass.name}</p>
+                </div>
+                <div className="flex justify-between">
+                  <div>
+                    <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Host (Flat)</p>
+                    <p className="font-bold">{user?.name || 'Resident'} ({user?.flat_number || 'A-101'})</p>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Valid Date</p>
+                    <p className="font-bold">{selectedPass.valid_date || new Date().toISOString().split('T')[0]}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Ticket Divider with dashed line and cutouts */}
+            <div className={`relative h-8 flex items-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+              <div className="absolute -left-4 w-8 h-8 rounded-full bg-black/80"></div>
+              <div className={`w-full border-t-2 border-dashed ${isDark ? 'border-slate-600' : 'border-gray-300'} mx-4`}></div>
+              <div className="absolute -right-4 w-8 h-8 rounded-full bg-black/80"></div>
+            </div>
+
+            {/* Ticket Bottom (QR) */}
+            <div className={`p-6 text-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+              <p className={`text-xs font-bold mb-4 ${subtext}`}>Show this QR code at the Main Gate</p>
+              <div className="bg-white p-3 rounded-3xl inline-block shadow-xl mx-auto mb-6">
+                <img 
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=GUEST_PASS: ${selectedPass.type === 'delivery' ? selectedPass.company : selectedPass.name} (Flat ${user?.flat_number || 'A-101'})`} 
+                  alt="Gate Pass QR" 
+                  className="w-36 h-36 rounded-xl"
+                />
+              </div>
+              
+              <a 
+                href={`whatsapp://send?text=*Digital Gate Pass* 🎫%0A%0AHi ${selectedPass.type === 'delivery' ? selectedPass.company : selectedPass.name},%0AYou are invited to Flat *${user?.flat_number || 'A-101'}*!%0A%0APlease show your QR pass at the security gate for instant entry.`}
+                className="w-full py-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+              >
+                Share on WhatsApp 💬
+              </a>
+              <button onClick={() => setSelectedPass(null)} className={`mt-3 w-full py-3 rounded-xl text-sm font-bold ${isDark ? 'text-slate-400 hover:text-white bg-slate-700/50' : 'text-gray-500 hover:text-black bg-gray-100'}`}>
+                Close Ticket
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

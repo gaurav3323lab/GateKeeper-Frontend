@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Users, Plus, Trash2, User, Phone, Shield, Loader2, PenLine } from 'lucide-react';
-import { familyAPI } from '../services/api';
+import { familyAPI, entryAPI } from '../services/api';
 
 const MyFlat = ({ user }) => {
   const { isDark } = useTheme();
@@ -12,13 +12,29 @@ const MyFlat = ({ user }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
 
+  // Society contacts state
+  const [contacts, setContacts] = useState({ guards: [], helplines: [] });
+  const [contactsLoading, setContactsLoading] = useState(true);
+
   const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200';
   const input = isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-gray-100 border-gray-300 text-gray-800';
   const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
 
   useEffect(() => {
     fetchMembers();
+    fetchContacts();
   }, []);
+
+  const fetchContacts = async () => {
+    try {
+      const res = await entryAPI.getSocietyContacts();
+      setContacts(res.data);
+    } catch (err) {
+      console.error('Failed to fetch society contacts:', err);
+    } finally {
+      setContactsLoading(false);
+    }
+  };
 
   const fetchMembers = async () => {
     try {
@@ -175,6 +191,62 @@ const MyFlat = ({ user }) => {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* 📞 Emergency & Security Contacts Card */}
+      <div className={`border rounded-2xl p-5 ${card}`}>
+        <h3 className="font-bold text-base flex items-center gap-2 mb-4">
+          <Phone size={18} className="text-emerald-400" /> Emergency & Security Helplines
+        </h3>
+
+        {contactsLoading ? (
+          <div className="flex justify-center py-4">
+            <Loader2 className="animate-spin text-emerald-500" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Security Guards Section */}
+            {contacts.guards.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Active Security Guards 🛡️</p>
+                {contacts.guards.map((guard, idx) => (
+                  <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+                    <div>
+                      <p className="font-semibold text-sm">{guard.name}</p>
+                      <p className={`text-xs ${subtext}`}>Active Guard &bull; {guard.phone}</p>
+                    </div>
+                    <a href={`tel:${guard.phone}`} className="w-9 h-9 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all">
+                      <Phone size={16} />
+                    </a>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Active Security Guards 🛡️</p>
+                <div className={`p-3 rounded-xl border text-xs text-center ${subtext} ${isDark ? 'bg-slate-700/20 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+                  No active guards currently logged in. Contact the main office helpline below.
+                </div>
+              </div>
+            )}
+
+            {/* General Helplines Section */}
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Society & Public Emergency Contacts 🚨</p>
+              {contacts.helplines.map((hl, idx) => (
+                <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+                  <div>
+                    <p className="font-semibold text-sm">{hl.name}</p>
+                    <p className={`text-xs ${subtext}`}>Emergency Support &bull; {hl.phone}</p>
+                  </div>
+                  <a href={`tel:${hl.phone}`} className="w-9 h-9 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all">
+                    <Phone size={16} />
+                  </a>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>

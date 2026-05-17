@@ -77,6 +77,7 @@ export const entryAPI = {
   getPreApprovals: () => api.get('/api/entry/pre-approvals'),
   addPreApproval: (data) => api.post('/api/entry/pre-approve', data),
   removePreApproval: (type, id) => api.delete(`/api/entry/pre-approve/${type}/${id}`),
+  getSocietyContacts: () => api.get('/api/entry/society-contacts'),
 };
 
 // ── Guard Panel ──────────────────────────────────────────────

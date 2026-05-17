@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { AlertTriangle, Bell, X, Megaphone } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
 const SOUNDS = {
   ring: 'https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3',

@@ -39,7 +39,7 @@ const Toast = ({ toasts, onDismiss }) => (
   </div>
 );
 
-const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
+const NotificationManager = ({ user, onSOS, setSocket }) => {
   const internalSocketRef = useRef(null);
   const audioRef = useRef(new Audio());
   const [toasts, setToasts] = useState([]);
@@ -78,8 +78,8 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
     const socket = io(API_URL, { transports: ['polling', 'websocket'] });
     internalSocketRef.current = socket;
 
-    // If parent wants access to this socket
-    if (externalSocketRef) externalSocketRef.current = socket;
+    // Share socket state with App content
+    if (setSocket) setSocket(socket);
 
     // ── Join rooms based on role ──
     if (user.role === 'manager' || user.role === 'super_admin') {
@@ -139,6 +139,7 @@ const NotificationManager = ({ user, onSOS, socketRef: externalSocketRef }) => {
 
     return () => {
       socket.disconnect();
+      if (setSocket) setSocket(null);
     };
   }, [user]);
 

@@ -25,8 +25,8 @@ const ROLE_VIEWS = {
 function AppContent() {
   const [user, setUser] = useState(null);
   const [globalSOS, setGlobalSOS] = useState(null);
-  // ✅ Fixed: Single shared socketRef passed down to components
-  const sharedSocketRef = useRef(null);
+  // ✅ Fixed: Single shared socket state to trigger re-renders on connection
+  const [sharedSocket, setSharedSocket] = useState(null);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -67,8 +67,8 @@ function AppContent() {
 
   return (
     <>
-      {/* ✅ Fixed: Single NotificationManager with shared socket ref */}
-      <NotificationManager user={user} onSOS={(data) => setGlobalSOS(data)} socketRef={sharedSocketRef} />
+      {/* ✅ Fixed: Single NotificationManager with shared socket state */}
+      <NotificationManager user={user} onSOS={(data) => setGlobalSOS(data)} setSocket={setSharedSocket} />
 
       {/* Global SOS Alert Modal — shows for Manager & Guard */}
       {globalSOS && (
@@ -93,7 +93,7 @@ function AppContent() {
         </div>
       )}
 
-      <ViewComponent user={user} onLogout={handleLogout} sharedSocket={sharedSocketRef.current} />
+      <ViewComponent user={user} onLogout={handleLogout} sharedSocket={sharedSocket} />
     </>
   );
 }

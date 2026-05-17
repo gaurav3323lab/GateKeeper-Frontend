@@ -36,7 +36,7 @@ const GuardScanning = ({ user, onLogout }) => {
     if (val.length > 6) return;
     setEnteredPin(val);
     if (val.length === 6) {
-      const match = preApproved.find(p => p.qr_code === val);
+      const match = preApproved.find(p => String(p.qr_code).trim() === String(val).trim());
       if (match) {
         setMatchedGuest(match);
       } else {
@@ -59,22 +59,23 @@ const GuardScanning = ({ user, onLogout }) => {
     }
   };
 
+  const fetchPreApproved = useCallback(async () => {
+    setPreApprovedLoading(true);
+    try {
+      const res = await guardAPI.getPreApproved();
+      setPreApproved(res.data);
+    } catch (err) {
+      console.error('Pre-approved fetch failed:', err);
+      setPreApproved([]); // fallback to empty
+    } finally {
+      setPreApprovedLoading(false);
+    }
+  }, []);
+
   // Fetch pre-approved on mount
   React.useEffect(() => {
-    const fetchPreApproved = async () => {
-      setPreApprovedLoading(true);
-      try {
-        const res = await guardAPI.getPreApproved();
-        setPreApproved(res.data);
-      } catch (err) {
-        console.error('Pre-approved fetch failed:', err);
-        setPreApproved([]); // fallback to empty
-      } finally {
-        setPreApprovedLoading(false);
-      }
-    };
     fetchPreApproved();
-  }, []);
+  }, [fetchPreApproved]);
 
   const bg = isDark ? 'bg-[#0f172a] text-white' : 'bg-gray-100 text-gray-800';
   const card = isDark ? 'bg-slate-800/70 border-slate-700' : 'bg-white border-gray-200';
@@ -247,6 +248,9 @@ const GuardScanning = ({ user, onLogout }) => {
     setEnteredPin('');
     setMatchedGuest(null);
     setActiveTab(key);
+    if (key === 'pin' || key === 'preapproved') {
+      fetchPreApproved();
+    }
   };
 
   return (

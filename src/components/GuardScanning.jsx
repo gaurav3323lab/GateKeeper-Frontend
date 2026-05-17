@@ -3,14 +3,14 @@ import { useTheme } from '../context/ThemeContext';
 import ISTClock from './ISTClock';
 import jsQR from 'jsqr';
 import UserProfile from './UserProfile';
-import { Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, ListChecks, CameraOff, User, AlertCircle, Car, Clock } from 'lucide-react';
+import { Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, ListChecks, CameraOff, User, AlertCircle, Car, Clock, ChevronLeft } from 'lucide-react';
 import { guardAPI, entryAPI } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
 const GuardScanning = ({ user, onLogout }) => {
   const { isDark } = useTheme();
-  const [activeTab, setActiveTab] = useState('anpr');
+  const [activeTab, setActiveTab] = useState('home');
   const [showProfile, setShowProfile] = useState(false);
 
   // Camera refs
@@ -282,16 +282,138 @@ const GuardScanning = ({ user, onLogout }) => {
       <canvas ref={canvasRef} className="hidden" />
 
       <div className="p-4 max-w-md mx-auto space-y-4">
-        {/* Tabs */}
-        <div className={`flex overflow-x-auto gap-1 rounded-2xl p-1 border ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
-          {TABS.map(({ key, label, icon: Icon }) => (
-            <button key={key} onClick={() => handleTabChange(key)}
-              className={`flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all
-                ${activeTab === key ? 'bg-indigo-600 text-white shadow' : isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500'}`}>
-              <Icon size={12} /> {label}
-            </button>
-          ))}
-        </div>
+        {/* Render big home menu ONLY when activeTab is 'home' */}
+        {activeTab === 'home' ? (
+          <div className="space-y-6 animate-in fade-in duration-300">
+            {/* Quick Status Stats */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className={`p-4 rounded-2xl border text-center ${card}`}>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Total Pre-Approved</p>
+                <p className="text-2xl font-black text-emerald-400 mt-1">
+                  {preApproved.filter(p => !enteredIds.includes(`${p.type}-${p.id}`)).length}
+                </p>
+              </div>
+              <div className={`p-4 rounded-2xl border text-center ${card}`}>
+                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Logged Entries</p>
+                <p className="text-2xl font-black text-indigo-400 mt-1">
+                  {enteredIds.length}
+                </p>
+              </div>
+            </div>
+
+            {/* Menu Grid */}
+            <h2 className="font-extrabold text-sm mb-2 px-1 text-slate-400 uppercase tracking-wider">Gate Operations</h2>
+            <div className="grid grid-cols-2 gap-3">
+              {/* PIN VERIFY CARD */}
+              <button 
+                onClick={() => handleTabChange('pin')}
+                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10
+                  ${isDark ? 'bg-gradient-to-br from-slate-800/80 to-slate-900 border-slate-700/60' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'}`}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+                  <QrCode size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight text-slate-200">🔐 PIN Verify</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Guest entry code check karein</p>
+                </div>
+              </button>
+
+              {/* ANPR CARD */}
+              <button 
+                onClick={() => handleTabChange('anpr')}
+                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:border-blue-500 hover:shadow-lg hover:shadow-blue-500/10
+                  ${isDark ? 'bg-gradient-to-br from-slate-800/80 to-slate-900 border-slate-700/60' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'}`}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                  <Camera size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight text-slate-200">📸 ANPR Scan</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Gaadi plate auto-scan</p>
+                </div>
+              </button>
+
+              {/* PRE-APPROVED CARD */}
+              <button 
+                onClick={() => handleTabChange('preapproved')}
+                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/10
+                  ${isDark ? 'bg-gradient-to-br from-slate-800/80 to-slate-900 border-slate-700/60' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'}`}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                  <ListChecks size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight text-slate-200">📋 Pre-Approved</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Aaj ke pre-approvals list</p>
+                </div>
+              </button>
+
+              {/* MANUAL VISITOR CARD */}
+              <button 
+                onClick={() => handleTabChange('manual')}
+                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:border-amber-500 hover:shadow-lg hover:shadow-amber-500/10
+                  ${isDark ? 'bg-gradient-to-br from-slate-800/80 to-slate-900 border-slate-700/60' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'}`}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                  <PenLine size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight text-slate-200">✍️ Manual Entry</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Visitor details khud likhein</p>
+                </div>
+              </button>
+
+              {/* VEHICLE LOGS CARD */}
+              <button 
+                onClick={() => handleTabChange('vehicles')}
+                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/10
+                  ${isDark ? 'bg-gradient-to-br from-slate-800/80 to-slate-900 border-slate-700/60' : 'bg-gradient-to-br from-white to-gray-50 border-gray-200'}`}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
+                  <Car size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight text-slate-200">🚘 Vehicles List</h3>
+                  <p className="text-[10px] text-slate-400 mt-1">Society ki registered gaadiyan</p>
+                </div>
+              </button>
+
+              {/* SOS LIST CARD */}
+              <button 
+                onClick={() => handleTabChange('sos')}
+                className={`p-5 rounded-3xl border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:border-red-500 hover:shadow-lg hover:shadow-red-500/10 animate-pulse
+                  ${isDark ? 'bg-gradient-to-br from-red-950/20 to-slate-900 border-red-500/20' : 'bg-gradient-to-br from-red-50 to-white border-red-200'}`}
+              >
+                <div className="w-10 h-10 rounded-2xl bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/30">
+                  <AlertCircle size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm leading-tight text-red-400">🚨 SOS Alerts</h3>
+                  <p className="text-[10px] text-red-400/80 mt-1">Emergency alerts list</p>
+                </div>
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* Show back banner when inside an active tab */
+          <button 
+            onClick={() => handleTabChange('home')}
+            className={`w-full py-3 px-4 rounded-2xl border flex items-center justify-between font-bold text-xs transition-all active:scale-95 shadow-sm
+              ${isDark ? 'bg-slate-800/80 border-slate-700/60 text-slate-300 hover:text-white hover:bg-slate-800' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'}`}
+          >
+            <span className="flex items-center gap-1.5">
+              <ChevronLeft size={16} className="text-indigo-400" /> ← Main Menu par Wapas Jayein
+            </span>
+            <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider
+              ${activeTab === 'anpr' ? 'bg-blue-500/10 text-blue-400' :
+                activeTab === 'pin' ? 'bg-indigo-500/10 text-indigo-400' :
+                activeTab === 'preapproved' ? 'bg-emerald-500/10 text-emerald-400' :
+                activeTab === 'manual' ? 'bg-amber-500/10 text-amber-400' : 'bg-slate-500/10 text-slate-400'}`}>
+              {activeTab === 'anpr' ? 'ANPR' : activeTab === 'pin' ? 'PIN Verify' : activeTab === 'preapproved' ? 'Pre-Approved' : activeTab === 'manual' ? 'Manual' : activeTab}
+            </span>
+          </button>
+        )}
 
         {/* ── ANPR TAB ── */}
         {activeTab === 'anpr' && (

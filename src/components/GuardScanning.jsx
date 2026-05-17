@@ -271,9 +271,20 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     }
   };
 
-  const handlePreEntry = (item) => {
-    setEnteredIds(prev => [...prev, `${item.type}-${item.id}`]);
-    setScanResult({ type: 'success', title: 'Pre-Approved Entry ✅', detail: `${item.name} — Flat ${item.flat} (${item.resident_name || 'Resident'})`, time: nowIST() });
+  const handlePreEntry = async (item) => {
+    try {
+      await entryAPI.logPreApproved({
+        entity_type: item.type,
+        entity_id: item.id,
+        guard_id: user?.id
+      });
+      setEnteredIds(prev => [...prev, `${item.type}-${item.id}`]);
+      setScanResult({ type: 'success', title: 'Pre-Approved Entry ✅', detail: `${item.name} — Flat ${item.flat} (${item.resident_name || 'Resident'})`, time: nowIST() });
+    } catch (err) {
+      console.warn("Failed to log preapproved entry in DB, logging locally:", err);
+      setEnteredIds(prev => [...prev, `${item.type}-${item.id}`]);
+      setScanResult({ type: 'success', title: 'Pre-Approved Entry ✅', detail: `${item.name} — Flat ${item.flat} (${item.resident_name || 'Resident'})`, time: nowIST() });
+    }
   };
 
   const TABS = [
@@ -750,12 +761,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               <option>Service</option>
               <option>Other</option>
             </select>
-            <button onClick={handleManualSubmit}
-              className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white rounded-2xl font-bold text-xs transition-all mb-2 flex items-center justify-center gap-1.5">
-              Direct Entry Log Karein ✅
-            </button>
             <button onClick={askResidentApproval}
-              className="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-2xl font-black text-xs transition-all shadow-md flex items-center justify-center gap-1.5 animate-pulse">
+              className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-2xl font-black text-sm transition-all shadow-lg flex items-center justify-center gap-1.5 animate-pulse">
               📞 Resident Approval Chahiye (Real-time Call)
             </button>
           </div>

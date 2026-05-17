@@ -69,6 +69,7 @@ export const entryAPI = {
   scanPlate: (data) => api.post('/api/entry/scan-plate', data),
   sos: (data) => api.post('/api/entry/sos', data),
   manualLog: (data) => api.post('/api/entry/manual-log', data),
+  logPreApproved: (data) => api.post('/api/entry/log-preapproved', data),
   getLogs: () => api.get('/api/entry/logs'),
   getResidentLogs: () => api.get('/api/entry/resident-logs'),
   getEmergencies: () => api.get('/api/entry/emergencies'),

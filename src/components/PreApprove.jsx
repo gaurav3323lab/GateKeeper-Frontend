@@ -9,7 +9,7 @@ const PreApprove = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ type: 'delivery', company: '', name: '', purpose: '', valid_date: '' });
+  const [form, setForm] = useState({ type: 'delivery', company: '', name: '', phone: '', purpose: '', valid_date: '' });
   const [selectedPass, setSelectedPass] = useState(null);
 
   useEffect(() => {
@@ -39,7 +39,7 @@ const PreApprove = ({ user }) => {
     try {
       await entryAPI.addPreApproval(form);
       await fetchApprovals();
-      setForm({ type: 'delivery', company: '', name: '', purpose: '', valid_date: '' });
+      setForm({ type: 'delivery', company: '', name: '', phone: '', purpose: '', valid_date: '' });
       setShowForm(false);
     } catch (err) {
       console.error('Failed to add pre-approval', err);
@@ -111,6 +111,8 @@ const PreApprove = ({ user }) => {
                 <>
                   <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
                     placeholder="Guest ka Naam" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
+                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                    placeholder="Guest ka Mobile Number" type="tel" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
                   <input value={form.purpose} onChange={e => setForm({...form, purpose: e.target.value})}
                     placeholder="Aane ka Maqsad" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
                 </>
@@ -158,6 +160,7 @@ const PreApprove = ({ user }) => {
                     </p>
                     <p className={`text-xs ${subtext}`}>
                       {a.type === 'delivery' ? 'Delivery' : a.purpose || 'Guest'}
+                      {a.phone && ` • 📞 ${a.phone}`}
                       {a.valid_date && ` • Valid: ${a.valid_date}`}
                     </p>
                   </div>

@@ -112,7 +112,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       case 'garage': return <ResidentGarage />;
       case 'service': return <ServiceRequest user={user} />;
       case 'preapprove': return <PreApprove user={user} />;
-      case 'logs': return <ResidentLogs user={user} />;
+      case 'logs': return <ResidentLogs user={user} sharedSocket={sharedSocket} />;
       case 'notices': return <AnnouncementBoard user={user} />;
       default: return null;
     }

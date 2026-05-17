@@ -3,7 +3,7 @@ import { entryAPI } from '../services/api';
 import { useTheme } from '../context/ThemeContext';
 import { Clock, Car, Package, User } from 'lucide-react';
 
-const ResidentLogs = () => {
+const ResidentLogs = ({ sharedSocket }) => {
   const { isDark } = useTheme();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,19 @@ const ResidentLogs = () => {
 
   useEffect(() => {
     fetchLogs();
-  }, []);
+
+    if (sharedSocket) {
+      sharedSocket.on('entry_log_created', () => {
+        fetchLogs();
+      });
+    }
+
+    return () => {
+      if (sharedSocket) {
+        sharedSocket.off('entry_log_created');
+      }
+    };
+  }, [sharedSocket]);
 
   const card = isDark ? 'bg-slate-800/70 border-slate-700' : 'bg-white border-gray-200';
   const subtext = isDark ? 'text-slate-400' : 'text-gray-500';

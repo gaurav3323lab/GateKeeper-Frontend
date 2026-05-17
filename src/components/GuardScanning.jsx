@@ -693,7 +693,14 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{item.type === 'delivery' ? '📦' : '🧑'}</span>
                       <div>
-                        <p className="font-bold text-sm">{item.name}</p>
+                        <p className="font-bold text-sm flex items-center gap-2 flex-wrap">
+                          <span>{item.name}</span>
+                          {item.phone && (
+                            <span className="text-[9px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-black">
+                              📞 {item.phone}
+                            </span>
+                          )}
+                        </p>
                         <p className={`text-xs ${subtext}`}>
                           {item.type === 'delivery' ? 'Delivery' : item.purpose || 'Guest'} → Flat {item.flat}
                         </p>

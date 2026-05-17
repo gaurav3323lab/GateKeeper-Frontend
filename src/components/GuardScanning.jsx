@@ -13,6 +13,17 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [activeTab, setActiveTab] = useState('home');
   const [showProfile, setShowProfile] = useState(false);
 
+  const formatDateTime = (dtStr) => {
+    if (!dtStr) return 'Today';
+    try {
+      const d = new Date(dtStr);
+      if (isNaN(d.getTime())) return dtStr;
+      return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    } catch(e) {
+      return dtStr;
+    }
+  };
+
   // States for real-time manual approvals
   const [waitingForApproval, setWaitingForApproval] = useState(false);
   const [approvalStatus, setApprovalStatus] = useState(null);
@@ -704,7 +715,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                         <p className={`text-xs ${subtext}`}>
                           {item.type === 'delivery' ? 'Delivery' : item.purpose || 'Guest'} → Flat {item.flat}
                         </p>
-                        <p className={`text-xs ${subtext}`}>{item.resident_name || 'Resident'} • Valid: {item.valid_date ? item.valid_date.split('T')[0] : 'Today'}</p>
+                        <p className={`text-xs ${subtext}`}>{item.resident_name || 'Resident'} • Valid: {formatDateTime(item.valid_date)}</p>
                       </div>
                     </div>
                     {entered ? (

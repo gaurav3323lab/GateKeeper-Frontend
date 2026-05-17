@@ -12,6 +12,17 @@ const PreApprove = ({ user }) => {
   const [form, setForm] = useState({ type: 'delivery', company: '', name: '', phone: '', purpose: '', valid_date: '' });
   const [selectedPass, setSelectedPass] = useState(null);
 
+  const formatDateTime = (dtStr) => {
+    if (!dtStr) return 'Today';
+    try {
+      const d = new Date(dtStr);
+      if (isNaN(d.getTime())) return dtStr;
+      return d.toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    } catch(e) {
+      return dtStr;
+    }
+  };
+
   useEffect(() => {
     fetchApprovals();
   }, []);
@@ -118,8 +129,11 @@ const PreApprove = ({ user }) => {
                 </>
               )}
 
-              <input type="date" value={form.valid_date} onChange={e => setForm({...form, valid_date: e.target.value})}
-                className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold block text-indigo-400 pl-1 uppercase tracking-wider">📅 Kab tak valid rakhna hai? (Date & Time)</label>
+                <input type="datetime-local" value={form.valid_date} onChange={e => setForm({...form, valid_date: e.target.value})}
+                  className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
+              </div>
 
               <div className="flex gap-2">
                 <button onClick={handleAdd} disabled={actionLoading} className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white py-2 rounded-xl text-sm font-semibold flex justify-center items-center gap-2">
@@ -161,7 +175,7 @@ const PreApprove = ({ user }) => {
                     <p className={`text-xs ${subtext}`}>
                       {a.type === 'delivery' ? 'Delivery' : a.purpose || 'Guest'}
                       {a.phone && ` • 📞 ${a.phone}`}
-                      {a.valid_date && ` • Valid: ${a.valid_date}`}
+                      {a.valid_date && ` • Valid: ${formatDateTime(a.valid_date)}`}
                     </p>
                   </div>
                 </div>
@@ -206,7 +220,7 @@ const PreApprove = ({ user }) => {
                   </div>
                   <div className="text-right">
                     <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Valid Date</p>
-                    <p className="font-bold">{selectedPass.valid_date || new Date().toISOString().split('T')[0]}</p>
+                    <p className="font-bold text-xs">{formatDateTime(selectedPass.valid_date)}</p>
                   </div>
                 </div>
               </div>

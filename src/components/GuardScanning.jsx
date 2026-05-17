@@ -29,6 +29,35 @@ const GuardScanning = ({ user, onLogout }) => {
   const [preApproved, setPreApproved] = useState([]);
   const [preApprovedLoading, setPreApprovedLoading] = useState(false);
   const [enteredIds, setEnteredIds] = useState([]);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [matchedGuest, setMatchedGuest] = useState(null);
+
+  const handlePinChange = (val) => {
+    if (val.length > 6) return;
+    setEnteredPin(val);
+    if (val.length === 6) {
+      const match = preApproved.find(p => p.qr_code === val);
+      if (match) {
+        setMatchedGuest(match);
+      } else {
+        setMatchedGuest(null);
+      }
+    } else {
+      setMatchedGuest(null);
+    }
+  };
+
+  const handleKeypadPress = (num) => {
+    if (enteredPin.length < 6) {
+      handlePinChange(enteredPin + num);
+    }
+  };
+
+  const handleKeypadDelete = () => {
+    if (enteredPin.length > 0) {
+      handlePinChange(enteredPin.slice(0, -1));
+    }
+  };
 
   // Fetch pre-approved on mount
   React.useEffect(() => {
@@ -198,14 +227,14 @@ const GuardScanning = ({ user, onLogout }) => {
   };
 
   const handlePreEntry = (item) => {
-    setEnteredIds(prev => [...prev, item.id]);
-    setScanResult({ type: 'success', title: 'Pre-Approved Entry ✅', detail: `${item.name} — Flat ${item.flat} (${item.resident})`, time: nowIST() });
+    setEnteredIds(prev => [...prev, `${item.type}-${item.id}`]);
+    setScanResult({ type: 'success', title: 'Pre-Approved Entry ✅', detail: `${item.name} — Flat ${item.flat} (${item.resident_name || 'Resident'})`, time: nowIST() });
   };
 
   const TABS = [
     { key: 'anpr', label: 'ANPR (Gaadi)', icon: Camera },
-    { key: 'qr', label: 'QR Scan', icon: QrCode },
-    { key: 'preapproved', label: `Pre-Approved (${preApproved.filter(p => !enteredIds.includes(p.id)).length})`, icon: ListChecks },
+    { key: 'pin', label: 'PIN Verify', icon: QrCode },
+    { key: 'preapproved', label: `Pre-Approved (${preApproved.filter(p => !enteredIds.includes(`${p.type}-${p.id}`)).length})`, icon: ListChecks },
     { key: 'manual', label: 'Manual', icon: PenLine },
     { key: 'vehicles', label: 'Vehicles', icon: Car },
     { key: 'sos', label: 'SOS List', icon: AlertCircle },
@@ -215,6 +244,8 @@ const GuardScanning = ({ user, onLogout }) => {
     stopCamera();
     setScanResult(null);
     setShowVisitorForm(false);
+    setEnteredPin('');
+    setMatchedGuest(null);
     setActiveTab(key);
   };
 
@@ -329,59 +360,108 @@ const GuardScanning = ({ user, onLogout }) => {
           </div>
         )}
 
-        {/* ── QR TAB ── */}
-        {activeTab === 'qr' && (
-          <div className={`border rounded-2xl p-4 ${card}`}>
-            <h2 className="font-bold mb-3 text-sm">🔍 QR Code Scanner</h2>
+        {/* ── PIN VERIFY TAB ── */}
+        {activeTab === 'pin' && (
+          <div className={`border rounded-2xl p-5 space-y-4 ${card}`}>
+            <h2 className="font-bold text-sm flex items-center gap-2">
+              <QrCode size={16} className="text-indigo-400" /> 🔐 Guest PIN Verification
+            </h2>
+            <p className={`text-xs ${subtext}`}>Guest ka 6-digit PIN enter karein entry verify karne ke liye</p>
 
-            <div className="relative w-full rounded-2xl overflow-hidden bg-black mb-4" style={{ aspectRatio: '1/1' }}>
-              <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
-
-              {!cameraActive && (
-                <div className={`absolute inset-0 flex flex-col items-center justify-center gap-2 ${isDark ? 'bg-slate-800' : 'bg-gray-200'}`}>
-                  <QrCode size={50} className="opacity-30" />
-                  <p className={`text-sm ${subtext}`}>Camera shuru karein</p>
-                </div>
-              )}
-
-              {cameraActive && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-2/3 aspect-square border-2 border-emerald-400 rounded-xl relative">
-                    <div className="absolute top-0 left-0 w-6 h-6 border-t-4 border-l-4 border-emerald-400 rounded-tl" />
-                    <div className="absolute top-0 right-0 w-6 h-6 border-t-4 border-r-4 border-emerald-400 rounded-tr" />
-                    <div className="absolute bottom-0 left-0 w-6 h-6 border-b-4 border-l-4 border-emerald-400 rounded-bl" />
-                    <div className="absolute bottom-0 right-0 w-6 h-6 border-b-4 border-r-4 border-emerald-400 rounded-br" />
-                    <p className="absolute -bottom-7 left-0 right-0 text-center text-xs text-emerald-400 font-bold">
-                      QR code yahan rakhein — auto-scan hoga
-                    </p>
+            {/* 6-Digit Display */}
+            <div className="flex justify-center gap-2 py-3">
+              {[0, 1, 2, 3, 4, 5].map((index) => {
+                const digit = enteredPin[index] || '';
+                const isCurrent = enteredPin.length === index;
+                return (
+                  <div 
+                    key={index} 
+                    className={`w-10 h-14 rounded-xl border flex items-center justify-center text-xl font-black transition-all duration-200
+                      ${digit ? 'bg-indigo-500/10 border-indigo-500 text-indigo-500' : isCurrent ? 'bg-slate-700/50 border-indigo-500 animate-pulse text-indigo-500' : isDark ? 'bg-slate-800 border-slate-700 text-slate-500' : 'bg-gray-100 border-gray-200 text-gray-400'}`}
+                  >
+                    {digit}
                   </div>
-                </div>
-              )}
+                );
+              })}
             </div>
 
-            {cameraError && (
-              <div className="mb-3 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-center gap-2">
-                <CameraOff size={16} /> {cameraError}
-              </div>
-            )}
-
-            {!cameraActive ? (
-              <button onClick={() => startCamera('qr')}
-                className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2">
-                <Camera size={16} /> 📷 Camera Shuru Karein (Auto-Scan)
-              </button>
-            ) : (
-              <div className="flex gap-2 items-center">
-                <div className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-emerald-400 text-sm font-bold">Scan ho raha hai...</span>
+            {/* Matched Guest Details */}
+            {matchedGuest ? (
+              <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 animate-in slide-in-from-bottom duration-300">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <CheckCircle className="text-emerald-400" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-sm text-emerald-400">Match Found!</h3>
+                    <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Guest Pre-Approved</p>
+                  </div>
                 </div>
-                <button onClick={stopCamera}
-                  className={`px-4 py-3 rounded-xl border ${isDark ? 'border-slate-600 text-slate-400' : 'border-gray-300 text-gray-500'}`}>
-                  <CameraOff size={16} />
+                
+                <div className="space-y-2 text-xs border-t border-slate-700/50 pt-2">
+                  <p className="flex justify-between"><span className={subtext}>Name:</span> <strong className="font-bold">{matchedGuest.name}</strong></p>
+                  <p className="flex justify-between"><span className={subtext}>Purpose:</span> <strong className="font-bold">{matchedGuest.purpose || 'Guest'}</strong></p>
+                  <p className="flex justify-between"><span className={subtext}>Flat:</span> <strong className="font-bold">{matchedGuest.flat}</strong></p>
+                  <p className="flex justify-between"><span className={subtext}>Host:</span> <strong className="font-bold">{matchedGuest.resident_name || 'Resident'}</strong></p>
+                  <p className="flex justify-between"><span className={subtext}>Valid Until:</span> <strong className="font-bold">{matchedGuest.valid_date ? matchedGuest.valid_date.split('T')[0] : 'Today'}</strong></p>
+                </div>
+
+                <button 
+                  onClick={() => {
+                    handlePreEntry(matchedGuest);
+                    setEnteredPin('');
+                    setMatchedGuest(null);
+                  }}
+                  className="w-full mt-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs active:scale-95 transition-all shadow-lg"
+                >
+                  Verify & Allow Entry ✅
                 </button>
               </div>
-            )}
+            ) : enteredPin.length === 6 ? (
+              <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/5 text-center">
+                <AlertTriangle className="mx-auto text-red-400 mb-2" size={24} />
+                <p className="text-xs font-bold text-red-400">Invalid PIN Code</p>
+                <p className={`text-[10px] mt-1 ${subtext}`}>Koi pre-approved guest is PIN se nahi mila</p>
+              </div>
+            ) : null}
+
+            {/* Custom Touch Keypad */}
+            <div className="grid grid-cols-3 gap-2 max-w-[280px] mx-auto pt-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
+                <button
+                  key={num}
+                  onClick={() => handleKeypadPress(num.toString())}
+                  className={`py-3.5 rounded-xl text-lg font-black transition-all active:scale-90 flex items-center justify-center
+                    ${isDark ? 'bg-slate-700/60 hover:bg-slate-600 border border-slate-600/50 text-white' : 'bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-800'}`}
+                >
+                  {num}
+                </button>
+              ))}
+              <button
+                onClick={() => {
+                  setEnteredPin('');
+                  setMatchedGuest(null);
+                }}
+                className={`py-3.5 rounded-xl text-xs font-bold transition-all active:scale-90 flex items-center justify-center
+                  ${isDark ? 'bg-slate-800/40 text-slate-400 hover:bg-slate-700' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'}`}
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => handleKeypadPress('0')}
+                className={`py-3.5 rounded-xl text-lg font-black transition-all active:scale-90 flex items-center justify-center
+                  ${isDark ? 'bg-slate-700/60 hover:bg-slate-600 border border-slate-600/50 text-white' : 'bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-800'}`}
+                >
+                0
+              </button>
+              <button
+                onClick={handleKeypadDelete}
+                className={`py-3.5 rounded-xl text-xs font-bold transition-all active:scale-90 flex items-center justify-center
+                  ${isDark ? 'bg-slate-800/40 text-red-400 hover:bg-slate-700' : 'bg-gray-50 text-red-500 hover:bg-gray-100'}`}
+              >
+                Delete
+              </button>
+            </div>
           </div>
         )}
 
@@ -394,20 +474,20 @@ const GuardScanning = ({ user, onLogout }) => {
             <p className={`text-xs mb-4 ${subtext}`}>Residents ne pehle se allow kiya hai — seedha entry dein</p>
             <div className="space-y-3">
               {preApproved.map(item => {
-                const entered = enteredIds.includes(item.id);
+                const entered = enteredIds.includes(`${item.type}-${item.id}`);
                 return (
-                  <div key={item.id}
+                  <div key={`${item.type}-${item.id}`}
                     className={`flex items-center justify-between p-4 rounded-xl border transition-all
                       ${entered ? (isDark ? 'bg-emerald-900/20 border-emerald-800 opacity-60' : 'bg-emerald-50 border-emerald-200 opacity-60')
                                : (isDark ? 'bg-slate-700/40 border-slate-600 hover:border-indigo-500' : 'bg-gray-50 border-gray-200')}`}>
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{item.icon}</span>
+                      <span className="text-2xl">{item.type === 'delivery' ? '📦' : '🧑'}</span>
                       <div>
                         <p className="font-bold text-sm">{item.name}</p>
                         <p className={`text-xs ${subtext}`}>
-                          {item.type === 'delivery' ? 'Delivery' : 'Guest'} → Flat {item.flat}
+                          {item.type === 'delivery' ? 'Delivery' : item.purpose || 'Guest'} → Flat {item.flat}
                         </p>
-                        <p className={`text-xs ${subtext}`}>{item.resident} • Valid: {item.valid}</p>
+                        <p className={`text-xs ${subtext}`}>{item.resident_name || 'Resident'} • Valid: {item.valid_date ? item.valid_date.split('T')[0] : 'Today'}</p>
                       </div>
                     </div>
                     {entered ? (

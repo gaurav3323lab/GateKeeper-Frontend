@@ -209,19 +209,34 @@ const PreApprove = ({ user }) => {
               <div className="absolute -right-4 w-8 h-8 rounded-full bg-black/80"></div>
             </div>
 
-            {/* Ticket Bottom (QR) */}
+            {/* Ticket Bottom (PIN) */}
             <div className={`p-6 text-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
-              <p className={`text-xs font-bold mb-4 ${subtext}`}>Show this QR code at the Main Gate</p>
-              <div className="bg-white p-3 rounded-3xl inline-block shadow-xl mx-auto mb-6">
-                <img 
-                  src={`https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=GUEST_PASS: ${selectedPass.type === 'delivery' ? selectedPass.company : selectedPass.name} (Flat ${user?.flat_number || 'A-101'})`} 
-                  alt="Gate Pass QR" 
-                  className="w-36 h-36 rounded-xl"
-                />
-              </div>
+              {selectedPass.type === 'guest' ? (
+                <>
+                  <p className={`text-xs font-bold mb-4 ${subtext}`}>Tell this 6-Digit PIN at the Main Gate</p>
+                  <div className="flex justify-center gap-2 mb-6">
+                    {(selectedPass.qr_code || '123456').toString().split('').map((digit, idx) => (
+                      <div key={idx} className="w-10 h-14 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-2xl font-black rounded-xl flex items-center justify-center shadow-inner">
+                        {digit}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className={`text-xs font-bold mb-4 ${subtext}`}>Pre-Approved Delivery Pass</p>
+                  <div className="py-4 px-6 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 text-xl font-extrabold rounded-2xl inline-block mb-6">
+                    ✅ Delivery Pre-Approved
+                  </div>
+                </>
+              )}
               
               <a 
-                href={`whatsapp://send?text=*Digital Gate Pass* 🎫%0A%0AHi ${selectedPass.type === 'delivery' ? selectedPass.company : selectedPass.name},%0AYou are invited to Flat *${user?.flat_number || 'A-101'}*!%0A%0APlease show your QR pass at the security gate for instant entry.`}
+                href={`whatsapp://send?text=${encodeURIComponent(
+                  selectedPass.type === 'guest' 
+                    ? `*Digital Gate Pass* 🎫\n\nHi ${selectedPass.name},\nYou are invited to Flat *${user?.flat_number || 'A-101'}*!\n\nPlease tell this 6-Digit PIN Code to the security guard for instant entry:\n\n*Your PIN Code: ${selectedPass.qr_code || '123456'}*`
+                    : `*Delivery Pre-Approval* 🛵\n\nYour delivery has been pre-approved for Flat *${user?.flat_number || 'A-101'}*. Please inform the security guard upon arrival.`
+                )}`}
                 className="w-full py-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
               >
                 Share on WhatsApp 💬

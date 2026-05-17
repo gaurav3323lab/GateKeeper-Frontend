@@ -26,6 +26,12 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
   
+  // History log filters state
+  const [logSearch, setLogSearch] = useState('');
+  const [logType, setLogType] = useState('all');
+  const [logStatus, setLogStatus] = useState('all');
+  const [logDateFilter, setLogDateFilter] = useState('all');
+  
   // Ads State
   const [ads, setAds] = useState([]);
   const [showAddAd, setShowAddAd] = useState(false);
@@ -457,43 +463,186 @@ const ManagerDashboard = ({ user, onLogout }) => {
         )}
 
         {/* ENTRY LOG TAB */}
-        {activeTab === 'logs' && (
-          <div className="space-y-3">
-            <h2 className="font-bold text-base flex items-center gap-2">
-              <Activity size={16} className="text-indigo-400" /> Recent Entry Logs
-            </h2>
-            {entryLogs.length === 0 ? (
-              <div className={`border rounded-2xl p-10 text-center ${card}`}>
-                <Activity size={40} className="mx-auto opacity-30 mb-3" />
-                <p className={`text-sm ${subtext}`}>No entry logs found</p>
+        {activeTab === 'logs' && (() => {
+          const filteredLogs = entryLogs.filter(log => {
+            if (logSearch) {
+              const q = logSearch.toLowerCase().trim();
+              const nameMatch = String(log.entity_name || '').toLowerCase().includes(q);
+              const flatMatch = String(log.flat_number || '').toLowerCase().includes(q);
+              const guardMatch = String(log.guard_name || '').toLowerCase().includes(q);
+              const gateMatch = String(log.gate_number || '').toLowerCase().includes(q);
+              if (!nameMatch && !flatMatch && !guardMatch && !gateMatch) return false;
+            }
+            if (logType !== 'all' && log.entity_type !== logType) return false;
+            if (logStatus !== 'all') {
+              if (logStatus === 'inside' && log.exit_time !== null) return false;
+              if (logStatus === 'exited' && log.exit_time === null) return false;
+            }
+            if (logDateFilter !== 'all') {
+              const entryDate = new Date(log.entry_time);
+              const now = new Date();
+              if (logDateFilter === 'today') {
+                if (entryDate.toDateString() !== now.toDateString()) return false;
+              } else if (logDateFilter === 'yesterday') {
+                const yesterday = new Date(now);
+                yesterday.setDate(now.getDate() - 1);
+                if (entryDate.toDateString() !== yesterday.toDateString()) return false;
+              } else if (logDateFilter === 'week') {
+                const oneWeekAgo = new Date();
+                oneWeekAgo.setDate(now.getDate() - 7);
+                if (entryDate < oneWeekAgo) return false;
+              }
+            }
+            return true;
+          });
+
+          return (
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <h2 className="font-bold text-base flex items-center gap-2">
+                  <Activity size={16} className="text-indigo-400" /> Society Entry & Exit History
+                </h2>
+                <p className={`text-xs ${subtext}`}>Total: <span className="text-indigo-400 font-bold">{filteredLogs.length} logs</span> found</p>
               </div>
-            ) : (
-              entryLogs.map(log => (
-                <div key={log.id} className={`border rounded-2xl p-4 ${card}`}>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${
-                        log.entity_type === 'vehicle' ? 'bg-blue-500/20' :
-                        log.entity_type === 'guest' ? 'bg-emerald-500/20' : 'bg-purple-500/20'
-                      }`}>
-                        {log.entity_type === 'vehicle' ? '🚗' : log.entity_type === 'guest' ? '🧑' : '👷'}
-                      </div>
-                      <div>
-                        <p className="font-bold text-sm">{log.entity_name || 'Unknown'}</p>
-                        <p className={`text-xs ${subtext} capitalize`}>{log.entity_type} • Gate: {log.gate_number}</p>
-                        <p className={`text-xs ${subtext}`}>By: {log.guard_name || 'Guard'}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className={`text-xs ${subtext}`}>In: {new Date(log.entry_time).toLocaleTimeString('en-IN')}</p>
-                      {log.exit_time && <p className={`text-xs text-emerald-400`}>Out: {new Date(log.exit_time).toLocaleTimeString('en-IN')}</p>}
-                    </div>
-                  </div>
+
+              {/* Filters Panel */}
+              <div className={`border rounded-2xl p-4 space-y-3 ${card}`}>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                  {/* Search Input */}
+                  <input
+                    type="text"
+                    placeholder="Search Name, Flat, Gate, Guard..."
+                    value={logSearch}
+                    onChange={e => setLogSearch(e.target.value)}
+                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} sm:col-span-1`}
+                  />
+
+                  {/* Filter Type */}
+                  <select
+                    value={logType}
+                    onChange={e => setLogType(e.target.value)}
+                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} cursor-pointer`}
+                  >
+                    <option value="all">All Types</option>
+                    <option value="guest">Guests Only 🧑</option>
+                    <option value="vehicle">Vehicles Only 🚗</option>
+                    <option value="staff">Staff Only 👷</option>
+                  </select>
+
+                  {/* Filter Status */}
+                  <select
+                    value={logStatus}
+                    onChange={e => setLogStatus(e.target.value)}
+                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} cursor-pointer`}
+                  >
+                    <option value="all">All Status</option>
+                    <option value="inside">Inside Society 🟢</option>
+                    <option value="exited">Checked Out 🔴</option>
+                  </select>
+
+                  {/* Filter Date */}
+                  <select
+                    value={logDateFilter}
+                    onChange={e => setLogDateFilter(e.target.value)}
+                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} cursor-pointer`}
+                  >
+                    <option value="all">All Dates</option>
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="week">Past 7 Days</option>
+                  </select>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+
+                {/* Reset Filters */}
+                {(logSearch || logType !== 'all' || logStatus !== 'all' || logDateFilter !== 'all') && (
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => {
+                        setLogSearch('');
+                        setLogType('all');
+                        setLogStatus('all');
+                        setLogDateFilter('all');
+                      }}
+                      className="text-xs text-red-400 hover:text-red-300 font-bold transition-all"
+                    >
+                      Clear All Filters 🔄
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Logs List */}
+              {filteredLogs.length === 0 ? (
+                <div className={`border rounded-2xl p-10 text-center ${card}`}>
+                  <Activity size={40} className="mx-auto opacity-30 mb-3" />
+                  <p className="font-bold text-sm">Koi records nahi mile</p>
+                  <p className={`text-xs mt-1 ${subtext}`}>Try changing your search or filters.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {filteredLogs.map(log => {
+                    const isInside = !log.exit_time;
+                    return (
+                      <div key={log.id} className={`border rounded-2xl p-4 ${card} transition-all hover:scale-[1.01]`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
+                              log.entity_type === 'vehicle' ? 'bg-blue-500/20' :
+                              log.entity_type === 'guest' ? 'bg-emerald-500/20' : 'bg-purple-500/20'
+                            }`}>
+                              {log.entity_type === 'vehicle' ? '🚗' : log.entity_type === 'guest' ? '🧑' : '👷'}
+                            </div>
+                            <div>
+                              <p className="font-extrabold text-sm">{log.entity_name || 'Unknown'}</p>
+                              <div className="flex items-center gap-2 flex-wrap mt-0.5">
+                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
+                                  log.entity_type === 'vehicle' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                                  log.entity_type === 'guest' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                                  'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                                }`}>
+                                  {log.entity_type}
+                                </span>
+                                {log.flat_number && log.flat_number !== 'N/A' && (
+                                  <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
+                                    Flat {log.flat_number}
+                                  </span>
+                                )}
+                                <span className={`text-[10px] ${subtext}`}>
+                                  Gate: {log.gate_number || 'Gate 1'}
+                                </span>
+                              </div>
+                              <p className={`text-[10px] mt-1 ${subtext}`}>Logged by: <span className="font-bold">{log.guard_name || 'System'}</span></p>
+                            </div>
+                          </div>
+                          <div className="text-left sm:text-right space-y-1">
+                            <div className="flex items-center sm:justify-end gap-1.5">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                              <p className="text-xs font-semibold">
+                                In: {new Date(log.entry_time).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                            {log.exit_time ? (
+                              <div className="flex items-center sm:justify-end gap-1.5">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
+                                <p className="text-xs text-red-400 font-semibold">
+                                  Out: {new Date(log.exit_time).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            ) : (
+                              <span className="inline-block text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                Inside Society 🟢
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {/* ANALYTICS TAB */}
         {activeTab === 'analytics' && (

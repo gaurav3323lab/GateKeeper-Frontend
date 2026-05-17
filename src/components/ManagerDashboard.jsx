@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import ISTClock from './ISTClock';
 import { useTheme } from '../context/ThemeContext';
-import ThemeToggle from './ThemeToggle';
 import {
   LayoutDashboard, Users, ShieldCheck, Wrench, ClipboardList,
   LogOut, CheckCircle, XCircle, Plus, ChevronRight,
   AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity
 } from 'lucide-react';
-import { managerAPI, serviceAPI, entryAPI, announcementAPI } from '../services/api';
+import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI } from '../services/api';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
 
 const ManagerDashboard = ({ user, onLogout }) => {
   const { isDark } = useTheme();
@@ -25,6 +25,11 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const [showProfile, setShowProfile] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+  
+  // Ads State
+  const [ads, setAds] = useState([]);
+  const [showAddAd, setShowAddAd] = useState(false);
+  const [newAd, setNewAd] = useState({ title: '', description: '', image_url: '', link: '' });
 
   const bg = isDark ? 'bg-[#0f172a] text-white' : 'bg-gray-50 text-gray-800';
   const card = isDark ? 'bg-slate-800/70 border-slate-700' : 'bg-white border-gray-200';
@@ -39,22 +44,49 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [pendingRes, ticketsRes, staffRes, logsRes, residentsRes] = await Promise.all([
+      const [pendingRes, ticketsRes, staffRes, logsRes, residentsRes, adsRes] = await Promise.all([
         managerAPI.getPendingResidents(),
         serviceAPI.getAllRequests(),
         managerAPI.getStaff(),
         entryAPI.getLogs().catch(() => ({ data: [] })),
         managerAPI.getResidents().catch(() => ({ data: [] })),
+        adsAPI.getAll().catch(() => ({ data: [] }))
       ]);
       setPendingResidents(pendingRes.data);
       setTickets(ticketsRes.data);
       setStaff(staffRes.data);
       setEntryLogs(logsRes.data);
       setResidents(residentsRes.data);
+      setAds(adsRes.data);
     } catch (err) {
       console.error('Failed to fetch manager data:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddAd = async () => {
+    if (!newAd.title || !newAd.description) return alert('Title and description required');
+    setActionLoading(true);
+    try {
+      await adsAPI.create(newAd);
+      setNewAd({ title: '', description: '', image_url: '', link: '' });
+      setShowAddAd(false);
+      await fetchAllData();
+    } catch (err) {
+      alert('Failed to save ad');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteAd = async (id) => {
+    if (!window.confirm('Delete this promotion?')) return;
+    try {
+      await adsAPI.delete(id);
+      setAds(ads.filter(a => a.id !== id));
+    } catch (err) {
+      alert('Failed to delete ad');
     }
   };
 
@@ -138,7 +170,9 @@ const ManagerDashboard = ({ user, onLogout }) => {
     { key: 'tickets', label: 'Tickets', icon: Wrench },
     { key: 'residents', label: 'Residents', icon: ShieldCheck },
     { key: 'logs', label: 'Entry Log', icon: Activity },
+    { key: 'analytics', label: 'Analytics', icon: Activity },
     { key: 'notices', label: 'Notices', icon: Megaphone },
+    { key: 'ads', label: 'Promotions', icon: Megaphone },
   ];
 
   if (loading) {
@@ -175,7 +209,6 @@ const ManagerDashboard = ({ user, onLogout }) => {
           <button onClick={() => setShowProfile(true)} className={`p-2 rounded-xl border flex items-center justify-center ${isDark ? 'border-slate-700 text-slate-400 hover:text-indigo-400' : 'border-gray-200 text-gray-400 hover:text-indigo-500'}`}>
             <User size={15} />
           </button>
-          <ThemeToggle />
           <button onClick={onLogout} className={`p-2 rounded-xl border ${isDark ? 'border-slate-700 text-slate-400 hover:text-red-400' : 'border-gray-200 text-gray-400 hover:text-red-400'}`}>
             <LogOut size={16} />
           </button>
@@ -340,8 +373,8 @@ const ManagerDashboard = ({ user, onLogout }) => {
                     </select>
                     <ChevronRight size={14} className={`absolute right-3 pointer-events-none rotate-90 ${subtext}`} />
                   </div>
-                  {['guard', 'technician'].includes(newStaff.role) && !editingStaff && (
-                    <input placeholder="Login Password (Min 6 chars)" type="password" value={newStaff.password || ''} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className={`px-4 py-2.5 rounded-xl border text-sm outline-none md:col-span-3 ${input}`} />
+                  {['guard', 'technician'].includes(newStaff.role) && (
+                    <input placeholder={editingStaff ? "New Password (Leave blank to keep current)" : "Login Password (Min 6 chars)"} type="password" value={newStaff.password || ''} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className={`px-4 py-2.5 rounded-xl border text-sm outline-none md:col-span-3 ${input}`} />
                   )}
                 </div>
                 <button onClick={handleAddOrEditStaff} disabled={actionLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
@@ -462,9 +495,114 @@ const ManagerDashboard = ({ user, onLogout }) => {
           </div>
         )}
 
+        {/* ANALYTICS TAB */}
+        {activeTab === 'analytics' && (
+          <div className="space-y-4">
+            <h2 className="font-bold text-base flex items-center gap-2">
+              <Activity size={16} className="text-indigo-400" /> Visitor & Service Analytics
+            </h2>
+            <div className={`border rounded-2xl p-4 ${card}`}>
+              <h3 className="text-sm font-bold mb-4">Daily Entries (Past 7 Days)</h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={[
+                    { name: 'Mon', entries: 12 }, { name: 'Tue', entries: 19 }, { name: 'Wed', entries: 15 },
+                    { name: 'Thu', entries: 22 }, { name: 'Fri', entries: 30 }, { name: 'Sat', entries: 45 }, { name: 'Sun', entries: 38 }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
+                    <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
+                    <RechartsTooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Line type="monotone" dataKey="entries" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 6 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+            
+            <div className={`border rounded-2xl p-4 ${card}`}>
+              <h3 className="text-sm font-bold mb-4">Service Requests by Category</h3>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={[
+                    { name: 'Plumbing', count: 8 }, { name: 'Electrical', count: 12 }, { name: 'Cleaning', count: 5 }, { name: 'Other', count: 3 }
+                  ]}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
+                    <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
+                    <RechartsTooltip cursor={{ fill: isDark ? '#334155' : '#f1f5f9' }} contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
+                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* NOTICES TAB */}
         {activeTab === 'notices' && (
           <AnnouncementBoard user={user} />
+        )}
+
+        {/* ADS TAB */}
+        {activeTab === 'ads' && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base flex items-center gap-2">
+                <Megaphone size={16} className="text-indigo-400" /> Manage Promotions & Ads
+              </h2>
+              <button onClick={() => setShowAddAd(!showAddAd)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                {showAddAd ? <XCircle size={16} /> : <Plus size={16} />}
+                {showAddAd ? 'Cancel' : 'New Ad'}
+              </button>
+            </div>
+
+            {showAddAd && (
+              <div className={`border rounded-2xl p-5 ${isDark ? 'bg-indigo-900/20 border-indigo-700/30' : 'bg-indigo-50 border-indigo-200'}`}>
+                <h3 className="font-bold text-indigo-400 mb-3">Create New Promotion</h3>
+                <div className="space-y-3 mb-4">
+                  <input placeholder="Ad Title (e.g. 50% Off Plumbing)" value={newAd.title} onChange={e => setNewAd({...newAd, title: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
+                  <textarea placeholder="Description" rows={2} value={newAd.description} onChange={e => setNewAd({...newAd, description: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none resize-none ${input}`} />
+                  <input placeholder="Image URL (e.g. https://imgur.com/...)" value={newAd.image_url} onChange={e => setNewAd({...newAd, image_url: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
+                  <input placeholder="Click Link URL (Optional)" value={newAd.link} onChange={e => setNewAd({...newAd, link: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
+                </div>
+                <button onClick={handleAddAd} disabled={actionLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
+                  {actionLoading ? <Loader2 className="animate-spin" size={18} /> : 'Publish Ad'}
+                </button>
+              </div>
+            )}
+
+            {ads.length === 0 ? (
+              <div className={`border rounded-2xl p-10 text-center ${card}`}>
+                <Megaphone size={40} className="mx-auto opacity-30 mb-3" />
+                <p className={`text-sm ${subtext}`}>No active promotions. Residents see generic ads.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-3">
+                {ads.map(ad => (
+                  <div key={ad.id} className={`flex flex-col sm:flex-row items-center gap-4 border rounded-2xl p-4 ${card}`}>
+                    <div className="w-full sm:w-24 h-24 rounded-xl overflow-hidden bg-slate-800 shrink-0">
+                      {ad.image_url ? (
+                        <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold text-xs text-center p-2">No Image</div>
+                      )}
+                    </div>
+                    <div className="flex-1 text-center sm:text-left">
+                      <p className="font-bold text-sm mb-1">{ad.title}</p>
+                      <p className={`text-xs ${subtext} mb-2`}>{ad.description}</p>
+                      <div className="flex items-center justify-center sm:justify-start gap-3">
+                        {ad.link && ad.link !== '#' && <a href={ad.link} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 font-bold hover:underline">Test Link</a>}
+                        <p className={`text-[10px] ${subtext}`}>Posted: {new Date(ad.created_at).toLocaleDateString()}</p>
+                      </div>
+                    </div>
+                    <button onClick={() => handleDeleteAd(ad.id)} className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 shrink-0">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
 
       </div>

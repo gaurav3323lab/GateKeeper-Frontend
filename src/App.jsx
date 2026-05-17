@@ -9,6 +9,7 @@ import SuperAdminDashboard from './components/SuperAdminDashboard';
 import NotificationManager from './components/NotificationManager';
 import api from './services/api';
 import { AlertTriangle } from 'lucide-react';
+import ThemeToggle from './components/ThemeToggle';
 
 // ─── Role → Component Map ────────────────────────────────────────────────────
 const ROLE_VIEWS = {
@@ -19,57 +20,6 @@ const ROLE_VIEWS = {
   resident_primary: ResidentDashboard,
   resident_family: ResidentDashboard,
 };
-
-// ─── For DEV TESTING ─────────────────────────────────────────────────────────
-const DEV_TEST_USERS = [
-  { id: 1, name: 'Super Admin', role: 'super_admin', flat_number: null, phone: '9999999999', password: '1234' },
-  { id: 2, name: 'Vikram Manager', role: 'manager', flat_number: null, phone: '8888888888', password: '1234' },
-  { id: 3, name: 'Suresh Guard', role: 'guard', flat_number: null, phone: '7777777777', password: '1234' },
-  { id: 4, name: 'Mahesh Technician', role: 'technician', flat_number: null, phone: '6666666666', password: '1234' },
-  { id: 5, name: 'Rahul Sharma', role: 'resident_primary', flat_number: 'A-402', phone: '9876543210', password: '1234' },
-];
-
-function DevRoleSwitcher({ onSwitch }) {
-  const { isDark } = useTheme();
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleDevLogin = async (u) => {
-    setLoading(true);
-    try {
-      const res = await api.post('/api/auth/login', { phone: u.phone, password: u.password });
-      onSwitch(res.data.user, res.data.token);
-      setOpen(false);
-    } catch (err) {
-      alert('Dev Login Failed: Make sure your local backend is running and dummy data is inserted.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="fixed bottom-4 left-4 z-50">
-      <button onClick={() => setOpen(!open)} disabled={loading}
-        className="bg-purple-700 text-white text-xs px-3 py-2 rounded-xl font-bold shadow-xl border border-purple-500 flex items-center gap-2">
-        {loading ? <div className="w-3 h-3 border-2 border-white border-t-transparent animate-spin rounded-full" /> : '🧪 Dev Login'}
-      </button>
-      {open && (
-        <div className={`absolute bottom-10 left-0 border rounded-2xl p-3 shadow-2xl w-52 space-y-1
-          ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-white border-gray-200'}`}>
-          <p className="text-xs font-bold text-purple-400 mb-2">Role Select Karein:</p>
-          {DEV_TEST_USERS.map(u => (
-            <button key={u.id} onClick={() => handleDevLogin(u)}
-              className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all
-                ${isDark ? 'hover:bg-slate-700 text-slate-300' : 'hover:bg-gray-100 text-gray-700'}`}>
-              {u.role === 'super_admin' ? '🌐' : u.role === 'manager' ? '📋' : u.role === 'guard' ? '🛡️' : u.role === 'technician' ? '🔧' : '🏠'}{' '}
-              {u.name}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Main App Content ────────────────────────────────────────────────────────
 function AppContent() {
@@ -98,10 +48,7 @@ function AppContent() {
 
   if (!user) {
     return (
-      <>
-        <LoginPage onLoginSuccess={handleLogin} />
-        <DevRoleSwitcher onSwitch={handleLogin} />
-      </>
+      <LoginPage onLoginSuccess={handleLogin} />
     );
   }
 
@@ -147,7 +94,6 @@ function AppContent() {
       )}
 
       <ViewComponent user={user} onLogout={handleLogout} sharedSocket={sharedSocketRef.current} />
-      <DevRoleSwitcher onSwitch={handleLogin} />
     </>
   );
 }
@@ -156,6 +102,7 @@ function App() {
   return (
     <ThemeProvider>
       <AppContent />
+      <ThemeToggle />
     </ThemeProvider>
   );
 }

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import ThemeToggle from './ThemeToggle';
 import ISTClock from './ISTClock';
 import MyFlat from './MyFlat';
 import ResidentGarage from './ResidentGarage';
@@ -9,6 +8,8 @@ import PreApprove from './PreApprove';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
 import ResidentLogs from './ResidentLogs';
+import AdBanner from './AdBanner';
+import QuickActionsFAB from './QuickActionsFAB';
 import { entryAPI } from '../services/api';
 import { Home, Car, Wrench, CheckCircle, LogOut, Shield, AlertTriangle, User, Megaphone, List } from 'lucide-react';
 
@@ -162,7 +163,6 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
           <button onClick={() => setShowProfile(true)} className={`p-2 rounded-xl border ${isDark ? 'border-slate-700 text-slate-400 hover:text-indigo-400' : 'border-gray-200 text-gray-400 hover:text-indigo-500'}`}>
             <User size={16} />
           </button>
-          <ThemeToggle />
           <button onClick={onLogout}
             className={`p-2 rounded-xl border ${isDark ? 'border-slate-700 text-slate-400 hover:text-red-400' : 'border-gray-200 text-gray-400 hover:text-red-400'}`}>
             <LogOut size={16} />
@@ -171,26 +171,17 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       </header>
 
       {/* Main Content */}
-      <main className="p-4">
+      <main className="p-4 space-y-4">
         {renderContent()}
+        <AdBanner />
       </main>
 
-      {/* SOS Emergency Button */}
-      <div className="fixed bottom-24 right-4 z-40">
-        <button
-          onClick={handleSOS}
-          disabled={sosActive}
-          className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl font-bold text-white transition-all
-            ${sosActive
-              ? 'bg-red-600 animate-pulse scale-110 cursor-not-allowed'
-              : 'bg-red-500 hover:bg-red-600 active:scale-95'
-            }`}
-          title="Emergency SOS — Click for help"
-        >
-          <Shield size={22} />
-        </button>
-        <p className="text-center text-xs text-red-400 mt-1 font-bold">SOS</p>
-      </div>
+      {/* Quick Actions FAB */}
+      <QuickActionsFAB 
+        onSOS={handleSOS} 
+        onPreApprove={() => setActiveTab('preapprove')} 
+        onService={() => setActiveTab('service')} 
+      />
 
       {/* Bottom Navigation */}
       <nav className={`fixed bottom-0 left-0 right-0 z-40 border-t backdrop-blur-md ${bottomNav}`}>

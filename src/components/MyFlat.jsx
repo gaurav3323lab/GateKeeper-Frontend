@@ -8,7 +8,7 @@ const MyFlat = ({ user }) => {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', relation: '' });
+  const [form, setForm] = useState({ name: '', phone: '', relation: '', password: '' });
   const [actionLoading, setActionLoading] = useState(false);
   const [editingMember, setEditingMember] = useState(null);
 
@@ -32,7 +32,7 @@ const MyFlat = ({ user }) => {
   };
 
   const handleAddOrEdit = async () => {
-    if (!form.name || !form.phone) return;
+    if (!form.name || !form.phone || (!editingMember && !form.password)) return alert('Name, phone aur password zaroori hain');
     setActionLoading(true);
     try {
       if (editingMember) {
@@ -41,7 +41,7 @@ const MyFlat = ({ user }) => {
         await familyAPI.addMember(form);
       }
       await fetchMembers();
-      setForm({ name: '', phone: '', relation: '' });
+      setForm({ name: '', phone: '', relation: '', password: '' });
       setShowForm(false);
       setEditingMember(null);
     } catch (err) {
@@ -53,7 +53,7 @@ const MyFlat = ({ user }) => {
 
   const handleEdit = (member) => {
     setEditingMember(member.id);
-    setForm({ name: member.name, phone: member.phone, relation: member.relation || '' });
+    setForm({ name: member.name, phone: member.phone, relation: member.relation || '', password: '' });
     setShowForm(true);
   };
 
@@ -97,7 +97,7 @@ const MyFlat = ({ user }) => {
               setShowForm(!showForm); 
               if (showForm) {
                 setEditingMember(null);
-                setForm({ name: '', phone: '', relation: '' });
+                setForm({ name: '', phone: '', relation: '', password: '' });
               }
             }}
             className="flex items-center gap-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl font-semibold transition-all"
@@ -117,6 +117,10 @@ const MyFlat = ({ user }) => {
                 placeholder="Mobile Number" type="tel" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
               <input name="relation" value={form.relation} onChange={e => setForm({...form, relation: e.target.value})}
                 placeholder="Relation (Wife, Son, etc.)" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
+              {!editingMember && (
+                <input name="password" type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})}
+                  placeholder="Login Password" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
+              )}
               <div className="flex gap-2 mt-2">
                 <button onClick={handleAddOrEdit} disabled={actionLoading} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
                   {actionLoading ? <Loader2 size={16} className="animate-spin" /> : (editingMember ? 'Update Member' : 'Add Member')}

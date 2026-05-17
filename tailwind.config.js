@@ -22,6 +22,15 @@ export default {
         'neon-emerald': '0 0 15px rgba(16, 185, 129, 0.4)',
         'neon-indigo': '0 0 15px rgba(99, 102, 241, 0.4)',
       },
+      keyframes: {
+        'mesh-shift': {
+          '0%, 100%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+        },
+      },
+      animation: {
+        'mesh': 'mesh-shift 15s ease infinite',
+      },
     },
   },
   plugins: [],

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
 import { Phone, User, Home, LogIn, UserPlus, CheckCircle, Clock, Loader2, Key, Eye, EyeOff } from 'lucide-react';
 import { authAPI, societyAPI } from '../services/api';
@@ -97,7 +96,6 @@ const LoginPage = ({ onLoginSuccess }) => {
 
   return (
     <div className={`min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 ${bg}`}>
-      <div className="absolute top-4 right-4"><ThemeToggle /></div>
 
       <div className="mb-8 text-center">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-emerald-500 mb-4 shadow-2xl">

@@ -3,7 +3,6 @@ import ISTClock from './ISTClock';
 import { useTheme } from '../context/ThemeContext';
 import { Globe, Users, Building2, ShieldCheck, TrendingUp, LogOut, Plus, Eye, Trash2, BarChart3, Activity, User, Edit2 } from 'lucide-react';
 import UserProfile from './UserProfile';
-import ThemeToggle from './ThemeToggle';
 
 import { societyAPI, managerAPI, announcementAPI } from '../services/api';
 import AnnouncementBoard from './AnnouncementBoard';
@@ -85,7 +84,6 @@ const SuperAdminDashboard = ({ user, onLogout }) => {
           <button onClick={() => setShowProfile(true)} className={`p-2 rounded-xl border flex items-center justify-center ${isDark ? 'border-slate-700 text-slate-400 hover:text-purple-400' : 'border-gray-200 text-gray-400 hover:text-purple-500'}`}>
             <User size={15} />
           </button>
-          <ThemeToggle />
           <button onClick={onLogout} className={`p-2 rounded-xl border ${isDark ? 'border-slate-700 text-slate-400 hover:text-red-400' : 'border-gray-200 text-gray-400 hover:text-red-400'}`}>
             <LogOut size={16} />
           </button>

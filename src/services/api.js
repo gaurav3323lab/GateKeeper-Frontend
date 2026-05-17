@@ -100,4 +100,11 @@ export const announcementAPI = {
   delete: (id) => api.delete(`/api/announcements/${id}`),
 };
 
+// ── Ads ──────────────────────────────────────────────────────
+export const adsAPI = {
+  getAll: () => api.get('/api/ads'),
+  create: (data) => api.post('/api/ads', data),
+  delete: (id) => api.delete(`/api/ads/${id}`),
+};
+
 export default api;

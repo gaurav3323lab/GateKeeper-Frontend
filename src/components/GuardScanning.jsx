@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import ThemeToggle from './ThemeToggle';
 import ISTClock from './ISTClock';
 import jsQR from 'jsqr';
 import UserProfile from './UserProfile';
@@ -236,7 +235,6 @@ const GuardScanning = ({ user, onLogout }) => {
           <button onClick={() => setShowProfile(true)} className={`p-2 rounded-xl border flex items-center justify-center ${isDark ? 'border-slate-700 text-slate-400 hover:text-indigo-400' : 'border-gray-200 text-gray-400 hover:text-indigo-500'}`}>
             <User size={15} />
           </button>
-          <ThemeToggle />
           <button onClick={onLogout}
             className={`p-2 rounded-xl border flex items-center gap-1 text-xs font-semibold
               ${isDark ? 'border-slate-700 text-slate-400 hover:text-red-400' : 'border-gray-200 text-gray-400 hover:text-red-500'}`}>

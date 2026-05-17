@@ -148,7 +148,14 @@ const PreApprove = ({ user }) => {
                 <div className="flex items-center gap-3">
                   <div className="text-2xl">{a.type === 'delivery' ? (deliveryIcons[a.company] || '📦') : '🧑'}</div>
                   <div>
-                    <p className="font-semibold text-sm">{a.type === 'delivery' ? a.company : a.name}</p>
+                    <p className="font-semibold text-sm flex items-center gap-2 flex-wrap">
+                      <span>{a.type === 'delivery' ? a.company : a.name}</span>
+                      {a.type === 'guest' && (
+                        <span className="text-[10px] bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg font-black tracking-wider">
+                          PIN: {a.qr_code || '123456'}
+                        </span>
+                      )}
+                    </p>
                     <p className={`text-xs ${subtext}`}>
                       {a.type === 'delivery' ? 'Delivery' : a.purpose || 'Guest'}
                       {a.valid_date && ` • Valid: ${a.valid_date}`}

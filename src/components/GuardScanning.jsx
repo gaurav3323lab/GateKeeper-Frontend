@@ -299,7 +299,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   }, [stopCamera]);
 
   const handleManualSubmit = async () => {
-    if (!visitorForm.name || !visitorForm.phone) return;
+    if (!visitorForm.name) return; // phone is optional
     try {
       await entryAPI.manualLog({
         visitor_name: visitorForm.name,
@@ -832,10 +832,49 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               <option>Service</option>
               <option>Other</option>
             </select>
-            <button onClick={askResidentApproval}
-              className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-2xl font-black text-sm transition-all shadow-lg flex items-center justify-center gap-1.5 animate-pulse">
-              📞 Resident Approval Chahiye (Real-time Call)
-            </button>
+            {/* Resident Approval Section */}
+            {waitingForApproval ? (
+              <div className="w-full p-4 rounded-2xl border border-indigo-500/40 bg-indigo-500/5 flex flex-col items-center gap-3 animate-pulse">
+                <div className="w-8 h-8 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin" />
+                <p className="text-sm font-bold text-indigo-300">Resident ka response aa raha hai...</p>
+                <p className="text-[10px] text-slate-400">Flat {visitorForm.flat} ko notification bheji gayi hai</p>
+                <button
+                  onClick={() => { setWaitingForApproval(false); setApprovalStatus(null); }}
+                  className="text-[10px] text-slate-500 hover:text-red-400 underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : approvalStatus === 'approved' ? (
+              <div className="w-full p-4 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 text-center space-y-2">
+                <p className="text-2xl">✅</p>
+                <p className="text-sm font-black text-emerald-400">Resident ne Entry APPROVE kar di!</p>
+                <p className="text-[10px] text-slate-400">Entry log ho gayi hai automatically</p>
+                <button
+                  onClick={() => { setApprovalStatus(null); setScanResult(null); setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '' }); }}
+                  className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold mt-1"
+                >
+                  Done — Next Visitor
+                </button>
+              </div>
+            ) : approvalStatus === 'denied' ? (
+              <div className="w-full p-4 rounded-2xl border border-red-500/40 bg-red-500/10 text-center space-y-2">
+                <p className="text-2xl">❌</p>
+                <p className="text-sm font-black text-red-400">Resident ne Entry DENY kar di!</p>
+                <p className="text-[10px] text-slate-400">Visitor ko entry mat dein</p>
+                <button
+                  onClick={() => { setApprovalStatus(null); }}
+                  className="w-full py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl text-xs font-bold mt-1"
+                >
+                  OK, Clear
+                </button>
+              </div>
+            ) : (
+              <button onClick={askResidentApproval}
+                className="w-full py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-2xl font-black text-sm transition-all shadow-lg flex items-center justify-center gap-1.5">
+                📞 Resident se Approval Maangein (Real-time)
+              </button>
+            )}
           </div>
         )}
 

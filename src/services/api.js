@@ -115,4 +115,27 @@ export const adsAPI = {
   delete: (id) => api.delete(`/api/ads/${id}`),
 };
 
+// ── Admin Panel API ──────────────────────────────────────────
+export const adminAPI = {
+  getDashboard: () => api.get('/api/admin/dashboard'),
+  getManagers: () => api.get('/api/admin/managers'),
+  createManager: (data) => api.post('/api/admin/create-manager', data),
+  deleteManager: (id) => api.delete(`/api/admin/managers/${id}`),
+  getStaff: () => api.get('/api/admin/staff'),
+  createStaff: (data) => api.post('/api/admin/create-staff', data),
+  getResidents: () => api.get('/api/admin/residents'),
+  getEntryLogs: () => api.get('/api/admin/entry-logs'),
+  getPendingResidents: () => api.get('/api/admin/pending-residents'),
+  approveResident: (id, data) => api.post('/api/admin/approve-resident', { userId: id, ...data }),
+  getEmergencyContacts: () => api.get('/api/admin/emergency-contacts'),
+};
+
+// ── Emergency Contacts (Manager) ─────────────────────────────
+export const emergencyAPI = {
+  getAll: () => api.get('/api/manager/emergency-contacts'),
+  create: (data) => api.post('/api/manager/emergency-contacts', data),
+  update: (id, data) => api.put(`/api/manager/emergency-contacts/${id}`, data),
+  delete: (id) => api.delete(`/api/manager/emergency-contacts/${id}`),
+};
+
 export default api;

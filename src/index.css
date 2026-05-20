@@ -27,4 +27,20 @@
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
   }
+  .animate-bounce-slow {
+    animation: bounce-slow 2.5s ease-in-out infinite;
+  }
+  .animate-slide-in {
+    animation: slide-in 0.3s ease-out;
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50%       { transform: translateX(-50%) translateY(-6px); }
+}
+
+@keyframes slide-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
 }

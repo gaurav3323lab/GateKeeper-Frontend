@@ -5,6 +5,7 @@ import ResidentDashboard from './components/ResidentDashboard';
 import GuardScanning from './components/GuardScanning';
 import TechnicianView from './components/TechnicianView';
 import ManagerDashboard from './components/ManagerDashboard';
+import AdminDashboard from './components/AdminDashboard';
 import SuperAdminDashboard from './components/SuperAdminDashboard';
 import NotificationManager from './components/NotificationManager';
 import api from './services/api';
@@ -14,6 +15,7 @@ import ThemeToggle from './components/ThemeToggle';
 // ─── Role → Component Map ────────────────────────────────────────────────────
 const ROLE_VIEWS = {
   super_admin: SuperAdminDashboard,
+  admin: AdminDashboard,
   manager: ManagerDashboard,
   guard: GuardScanning,
   technician: TechnicianView,

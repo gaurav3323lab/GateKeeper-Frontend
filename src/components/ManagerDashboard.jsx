@@ -4,12 +4,13 @@ import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Users, ShieldCheck, Wrench, ClipboardList,
   LogOut, CheckCircle, XCircle, Plus, ChevronRight,
-  AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity
+  AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity, BarChart2
 } from 'lucide-react';
-import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI } from '../services/api';
+import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI, emergencyAPI } from '../services/api';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { Phone, PhoneCall, AlertTriangle, Edit3 } from 'lucide-react';
 
 const ManagerDashboard = ({ user, onLogout }) => {
   const { isDark } = useTheme();
@@ -25,6 +26,10 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const [showProfile, setShowProfile] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [editingStaff, setEditingStaff] = useState(null);
+  const [emergencyContacts, setEmergencyContacts] = useState([]);
+  const [showAddEmergency, setShowAddEmergency] = useState(false);
+  const [editingEmergency, setEditingEmergency] = useState(null);
+  const [newEmergency, setNewEmergency] = useState({ name: '', phone: '', category: 'Police', priority: 5 });
   
   // History log filters state
   const [logSearch, setLogSearch] = useState('');
@@ -50,13 +55,14 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
-      const [pendingRes, ticketsRes, staffRes, logsRes, residentsRes, adsRes] = await Promise.all([
+      const [pendingRes, ticketsRes, staffRes, logsRes, residentsRes, adsRes, emergencyRes] = await Promise.all([
         managerAPI.getPendingResidents(),
         serviceAPI.getAllRequests(),
         managerAPI.getStaff(),
         entryAPI.getLogs().catch(() => ({ data: [] })),
         managerAPI.getResidents().catch(() => ({ data: [] })),
-        adsAPI.getAll().catch(() => ({ data: [] }))
+        adsAPI.getAll().catch(() => ({ data: [] })),
+        emergencyAPI.getAll().catch(() => ({ data: [] }))
       ]);
       setPendingResidents(pendingRes.data);
       setTickets(ticketsRes.data);
@@ -64,6 +70,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
       setEntryLogs(logsRes.data);
       setResidents(residentsRes.data);
       setAds(adsRes.data);
+      setEmergencyContacts(emergencyRes.data);
     } catch (err) {
       console.error('Failed to fetch manager data:', err);
     } finally {
@@ -176,8 +183,9 @@ const ManagerDashboard = ({ user, onLogout }) => {
     { key: 'tickets', label: 'Tickets', icon: Wrench },
     { key: 'residents', label: 'Residents', icon: ShieldCheck },
     { key: 'logs', label: 'Entry Log', icon: Activity },
-    { key: 'analytics', label: 'Analytics', icon: Activity },
-    { key: 'notices', label: 'Notices', icon: Megaphone },
+    { key: 'analytics', label: 'Analytics', icon: BarChart2 },
+    { key: 'emergency', label: 'Emergency', icon: AlertCircle },
+    { key: 'notices', label: 'Notices', icon: Bell },
     { key: 'ads', label: 'Promotions', icon: Megaphone },
   ];
 
@@ -686,6 +694,140 @@ const ManagerDashboard = ({ user, onLogout }) => {
             </div>
           </div>
         )}
+
+        {/* EMERGENCY CONTACTS TAB */}
+        {activeTab === 'emergency' && (() => {
+          const CATEGORIES = ['Police', 'Fire Brigade', 'Ambulance', 'Electrician', 'Plumber', 'Security', 'Committee', 'Other'];
+          const catColors = {
+            'Police': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+            'Fire Brigade': 'bg-red-500/20 text-red-400 border-red-500/30',
+            'Ambulance': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
+            'Electrician': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            'Plumber': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+            'Security': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
+            'Committee': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
+            'Other': 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+          };
+          return (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="font-bold text-base flex items-center gap-2">
+                  <AlertCircle size={16} className="text-red-400" /> Emergency Contacts
+                </h2>
+                <button onClick={() => { setShowAddEmergency(!showAddEmergency); setEditingEmergency(null); setNewEmergency({ name: '', phone: '', category: 'Police', priority: 5 }); }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
+                  {showAddEmergency ? <XCircle size={15}/> : <Plus size={15}/>} {showAddEmergency ? 'Cancel' : 'Add Contact'}
+                </button>
+              </div>
+
+              {showAddEmergency && (
+                <div className={`border rounded-2xl p-5 space-y-3 ${isDark ? 'bg-red-900/20 border-red-700/30' : 'bg-red-50 border-red-200'}`}>
+                  <h4 className="font-bold text-sm text-red-400 flex items-center gap-2"><PhoneCall size={14}/> {editingEmergency ? 'Update Contact' : 'New Emergency Contact'}</h4>
+                  <input placeholder="Contact Name (e.g. Local Police Station)" value={newEmergency.name}
+                    onChange={e => setNewEmergency({...newEmergency, name: e.target.value})}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
+                  <input placeholder="Phone Number" type="tel" value={newEmergency.phone}
+                    onChange={e => setNewEmergency({...newEmergency, phone: e.target.value})}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
+                  <select value={newEmergency.category} onChange={e => setNewEmergency({...newEmergency, category: e.target.value})}
+                    className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`}>
+                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+                  </select>
+                  <div>
+                    <label className={`text-xs font-semibold ${subtext} block mb-1`}>Priority (1=Highest, 10=Lowest)</label>
+                    <input type="number" min={1} max={10} value={newEmergency.priority}
+                      onChange={e => setNewEmergency({...newEmergency, priority: Number(e.target.value)})}
+                      className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
+                  </div>
+                  <button onClick={async () => {
+                    if (!newEmergency.name || !newEmergency.phone) return alert('Name and phone required');
+                    setActionLoading(true);
+                    try {
+                      if (editingEmergency) {
+                        await emergencyAPI.update(editingEmergency.id, newEmergency);
+                      } else {
+                        await emergencyAPI.create(newEmergency);
+                      }
+                      setNewEmergency({ name: '', phone: '', category: 'Police', priority: 5 });
+                      setShowAddEmergency(false);
+                      setEditingEmergency(null);
+                      await fetchAllData();
+                    } catch(e) { alert('Failed to save contact'); }
+                    finally { setActionLoading(false); }
+                  }} disabled={actionLoading}
+                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
+                    {actionLoading ? <Loader2 className="animate-spin" size={16}/> : (editingEmergency ? 'Update Contact' : 'Save Contact')}
+                  </button>
+                </div>
+              )}
+
+              {/* Quick Dial Strip */}
+              {emergencyContacts.length > 0 && (
+                <div className={`border rounded-2xl p-4 ${isDark ? 'bg-red-900/10 border-red-700/20' : 'bg-red-50 border-red-200'}`}>
+                  <p className="text-xs font-black text-red-400 mb-3 uppercase tracking-wider">🚨 Quick Dial</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {emergencyContacts.filter(c => c.priority <= 3).map(c => (
+                      <a key={c.id} href={`tel:${c.phone}`}
+                        className={`flex items-center gap-2 p-3 rounded-xl border font-bold text-xs transition-all active:scale-95 ${catColors[c.category] || catColors['Other']}`}>
+                        <PhoneCall size={14}/>
+                        <div>
+                          <p className="font-bold text-xs">{c.name}</p>
+                          <p className="font-mono text-xs opacity-80">{c.phone}</p>
+                        </div>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* All Contacts List */}
+              <div className="space-y-2">
+                {CATEGORIES.map(cat => {
+                  const catContacts = emergencyContacts.filter(c => c.category === cat);
+                  if (!catContacts.length) return null;
+                  return (
+                    <div key={cat}>
+                      <p className={`text-xs font-black uppercase tracking-wider mb-2 ${subtext}`}>{cat}</p>
+                      {catContacts.map(c => (
+                        <div key={c.id} className={`border rounded-2xl p-4 flex items-center justify-between mb-2 ${card}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border text-sm font-black ${catColors[c.category] || catColors['Other']}`}>
+                              {cat === 'Police' ? '🚓' : cat === 'Fire Brigade' ? '🔥' : cat === 'Ambulance' ? '🚑' : cat === 'Electrician' ? '⚡' : cat === 'Plumber' ? '🔧' : '📞'}
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm">{c.name}</p>
+                              <a href={`tel:${c.phone}`} className="text-xs text-indigo-400 font-mono font-bold hover:underline">{c.phone}</a>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${catColors[c.category] || catColors['Other']}`}>{c.category}</span>
+                            <button onClick={() => {
+                              setEditingEmergency(c);
+                              setNewEmergency({ name: c.name, phone: c.phone, category: c.category, priority: c.priority });
+                              setShowAddEmergency(true);
+                            }} className="text-indigo-400 hover:text-indigo-300 p-1"><PenLine size={14}/></button>
+                            <button onClick={async () => {
+                              if (!window.confirm('Delete this contact?')) return;
+                              try { await emergencyAPI.delete(c.id); await fetchAllData(); }
+                              catch { alert('Delete failed'); }
+                            }} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={14}/></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })}
+                {emergencyContacts.length === 0 && (
+                  <div className={`border rounded-2xl p-10 text-center ${card}`}>
+                    <PhoneCall size={36} className="mx-auto opacity-30 mb-3" />
+                    <p className="font-bold text-sm">No emergency contacts added yet</p>
+                    <p className={`text-xs mt-1 ${subtext}`}>Add Police, Fire, Ambulance numbers for your society residents.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* NOTICES TAB */}
         {activeTab === 'notices' && (

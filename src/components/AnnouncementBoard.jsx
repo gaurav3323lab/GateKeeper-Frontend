@@ -50,7 +50,7 @@ const AnnouncementBoard = ({ user }) => {
         await announcementAPI.update(editingId, form);
         setAnnouncements(announcements.map(a => a.id === editingId ? { ...a, ...form } : a));
       } else {
-        const res = await announcementAPI.create(form);
+        await announcementAPI.create(form);
         await fetchAnnouncements();
       }
       setForm({ title: '', body: '', category: 'General', is_pinned: false });

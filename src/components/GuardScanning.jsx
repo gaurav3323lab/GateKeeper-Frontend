@@ -81,9 +81,20 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     }
   };
 
-  // Listen for resident real-time decisions
+  // Listen for resident real-time decisions & auto-refresh on new pre-approvals
   React.useEffect(() => {
     if (!sharedSocket) return;
+
+    // 1. Join guard room to receive real-time push signals, SOS, and pre-approvals
+    sharedSocket.emit('join_room', { room: 'guard_room' });
+
+    // 2. Auto-refresh pre-approved list in real-time
+    const handleNewPreApproval = (data) => {
+      console.log("[Socket] New pre-approval added by resident — auto-refreshing...", data);
+      fetchPreApproved();
+    };
+
+    // 3. Resident manual visitor arrival decisions
     const handleDecision = (data) => {
       if (waitingForApproval && String(data.flat_number).trim() === String(visitorForm.flat).trim()) {
         setWaitingForApproval(false);
@@ -96,11 +107,15 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         }
       }
     };
+
+    sharedSocket.on('new_pre_approval', handleNewPreApproval);
     sharedSocket.on('visitor_decision_result', handleDecision);
+
     return () => {
+      sharedSocket.off('new_pre_approval', handleNewPreApproval);
       sharedSocket.off('visitor_decision_result', handleDecision);
     };
-  }, [sharedSocket, waitingForApproval, visitorForm.flat]);
+  }, [sharedSocket, waitingForApproval, visitorForm.flat, fetchPreApproved]);
 
   const askResidentApproval = () => {
     if (!visitorForm.name || !visitorForm.flat) {

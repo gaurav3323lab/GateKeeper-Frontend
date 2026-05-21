@@ -7,6 +7,8 @@ import {
   unsubscribeFromPush,
   getNotificationPermission,
 } from '../services/pushService';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
@@ -133,10 +135,80 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
     } catch (err) { console.error('Sound stop error:', err); }
   };
 
+  const registerNativePush = async () => {
+    try {
+      let permStatus = await PushNotifications.checkPermissions();
+      
+      if (permStatus.receive === 'prompt') {
+        permStatus = await PushNotifications.requestPermissions();
+      }
+      
+      if (permStatus.receive !== 'granted') {
+        console.warn('[Push] Native permission denied');
+        return;
+      }
+      
+      await PushNotifications.register();
+      
+      // Register listeners
+      await PushNotifications.addListener('registration', async (token) => {
+        console.log('[Push] Native registration success, token:', token.value);
+        
+        // Save fcm_token in the database
+        const authToken = localStorage.getItem('token');
+        if (!authToken) return;
+        
+        try {
+          const res = await fetch(`${API_URL}/api/push/subscribe`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+              fcm_token: token.value,
+              platform: Capacitor.getPlatform() || 'android'
+            })
+          });
+          if (res.ok) {
+            console.log('[Push] Native FCM token saved to database successfully');
+            localStorage.setItem('push_subscribed', 'true');
+          }
+        } catch (err) {
+          console.error('[Push] FCM save failed:', err.message);
+        }
+      });
+      
+      await PushNotifications.addListener('registrationError', (err) => {
+        console.error('[Push] Native registration error:', err.error);
+      });
+      
+      await PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        console.log('[Push] Foreground notification received:', notification);
+        playSound('message');
+        addToast('success', notification.title || 'Notification', notification.body || '');
+      });
+      
+      await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        console.log('[Push] Push action performed:', action);
+      });
+      
+    } catch (e) {
+      console.error('[Push] Capacitor registration error:', e.message);
+    }
+  };
+
   // ── Push Notification Setup ───────────────────────────────
   useEffect(() => {
     if (!user) return;
 
+    // Capacitor Native Mobile Client
+    if (Capacitor.isNativePlatform()) {
+      registerNativePush();
+      return;
+    }
+
+    // Standard Web PWA Client
     registerServiceWorker();
 
     const permission = getNotificationPermission();

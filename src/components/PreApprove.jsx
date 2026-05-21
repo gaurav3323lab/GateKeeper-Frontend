@@ -9,7 +9,7 @@ const PreApprove = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ type: 'delivery', company: '', name: '', phone: '', purpose: '', valid_date: '' });
+  const [form, setForm] = useState({ category: 'Guest', company: '', name: '', phone: '', purpose: '', valid_date: '' });
   const [selectedPass, setSelectedPass] = useState(null);
 
   const formatDateTime = (dtStr) => {
@@ -43,14 +43,22 @@ const PreApprove = ({ user }) => {
   const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
 
   const handleAdd = async () => {
-    if (form.type === 'delivery' && !form.company) return;
-    if (form.type === 'guest' && !form.name) return;
+    if (form.category === 'Delivery' && !form.company) return alert('Please select a delivery company');
+    if (form.category !== 'Delivery' && !form.name) return alert('Please enter visitor name');
     
     setActionLoading(true);
     try {
-      await entryAPI.addPreApproval(form);
+      const payload = {
+        type: form.category === 'Delivery' ? 'delivery' : 'guest',
+        company: form.category === 'Delivery' ? form.company : undefined,
+        name: form.category !== 'Delivery' ? form.name : undefined,
+        phone: form.phone || '',
+        purpose: form.category !== 'Delivery' ? form.category : 'Delivery',
+        valid_date: form.valid_date || ''
+      };
+      await entryAPI.addPreApproval(payload);
       await fetchApprovals();
-      setForm({ type: 'delivery', company: '', name: '', phone: '', purpose: '', valid_date: '' });
+      setForm({ category: 'Guest', company: '', name: '', phone: '', purpose: '', valid_date: '' });
       setShowForm(false);
     } catch (err) {
       console.error('Failed to add pre-approval', err);
@@ -95,54 +103,118 @@ const PreApprove = ({ user }) => {
 
         {/* Add Form */}
         {showForm && (
-          <div className={`mb-4 p-4 rounded-xl border ${isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <button onClick={() => setForm({...form, type: 'delivery'})}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${form.type === 'delivery' ? 'bg-indigo-600 text-white' : isDark ? 'bg-slate-600 text-slate-300' : 'bg-gray-200 text-gray-600'}`}>
-                  <Truck size={14} className="inline mr-1" /> Delivery
-                </button>
-                <button onClick={() => setForm({...form, type: 'guest'})}
-                  className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all ${form.type === 'guest' ? 'bg-indigo-600 text-white' : isDark ? 'bg-slate-600 text-slate-300' : 'bg-gray-200 text-gray-600'}`}>
-                  <User size={14} className="inline mr-1" /> Guest
-                </button>
+          <div className={`mb-4 p-5 rounded-[24px] border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gray-50 border-gray-200'} space-y-4`}>
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider mb-2 block ${subtext}`}>Visitor Type</label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {['Guest', 'Cab', 'Delivery', 'Helper'].map((cat) => (
+                  <button 
+                    key={cat}
+                    type="button"
+                    onClick={() => setForm({...form, category: cat, name: '', company: ''})}
+                    className={`py-2.5 rounded-xl text-[10px] font-black border transition-all ${
+                      form.category === cat 
+                        ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
+                        : isDark ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700/50' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
+            </div>
 
-              {form.type === 'delivery' ? (
-                <select value={form.company} onChange={e => setForm({...form, company: e.target.value})}
-                  className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`}>
-                  <option value="">Company Select Karein</option>
-                  <option>Amazon</option>
-                  <option>Swiggy</option>
-                  <option>Zomato</option>
-                  <option>Flipkart</option>
-                  <option>Other</option>
-                </select>
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>
+                {form.category === 'Delivery' ? 'Delivery Company' : 'Visitor Name'}
+              </label>
+              {form.category === 'Delivery' ? (
+                <div className="space-y-2">
+                  <select 
+                    value={form.company} 
+                    onChange={e => setForm({...form, company: e.target.value})}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                  >
+                    <option value="">Company Select Karein</option>
+                    <option value="Amazon">Amazon</option>
+                    <option value="Swiggy">Swiggy</option>
+                    <option value="Zomato">Zomato</option>
+                    <option value="Flipkart">Flipkart</option>
+                    <option value="Other">Other</option>
+                  </select>
+                  {form.company === 'Other' && (
+                    <input 
+                      type="text" 
+                      placeholder="Company ka Naam" 
+                      value={form.name}
+                      onChange={e => setForm({...form, name: e.target.value})}
+                      className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                    />
+                  )}
+                </div>
               ) : (
-                <>
-                  <input value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                    placeholder="Guest ka Naam" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
-                  <input value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                    placeholder="Guest ka Mobile Number" type="tel" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
-                  <input value={form.purpose} onChange={e => setForm({...form, purpose: e.target.value})}
-                    placeholder="Aane ka Maqsad" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
-                </>
+                <input 
+                  type="text" 
+                  placeholder={
+                    form.category === 'Cab' ? 'e.g. Ola Driver, Uber Auto' :
+                    form.category === 'Helper' ? 'e.g. Ramu Plumber, Kaamwali Bai' : 'e.g. Rahul Mehta, Friend'
+                  }
+                  value={form.name}
+                  onChange={e => setForm({...form, name: e.target.value})}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                />
               )}
+            </div>
 
-              <div className="space-y-1">
-                <label className="text-[10px] font-bold block text-indigo-400 pl-1 uppercase tracking-wider">📅 Kab tak valid rakhna hai? (Date & Time)</label>
-                <input type="datetime-local" value={form.valid_date} onChange={e => setForm({...form, valid_date: e.target.value})}
-                  className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
-              </div>
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>Mobile Number (Optional)</label>
+              <input 
+                type="tel" 
+                placeholder="e.g. +91 99999 88888" 
+                value={form.phone}
+                onChange={e => setForm({...form, phone: e.target.value})}
+                className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+              />
+            </div>
 
-              <div className="flex gap-2">
-                <button onClick={handleAdd} disabled={actionLoading} className="flex-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white py-2 rounded-xl text-sm font-semibold flex justify-center items-center gap-2">
-                  {actionLoading ? <Loader2 size={16} className="animate-spin" /> : 'Allow Karein ✅'}
-                </button>
-                <button onClick={() => setShowForm(false)} disabled={actionLoading} className={`flex-1 py-2 rounded-xl text-sm border ${isDark ? 'border-slate-600 text-slate-400' : 'border-gray-300 text-gray-500'}`}>
-                  Cancel
-                </button>
+            {form.category === 'Guest' && (
+              <div>
+                <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>Aane ka Maqsad / Purpose (Optional)</label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. Family Meet, Dinner" 
+                  value={form.purpose}
+                  onChange={e => setForm({...form, purpose: e.target.value})}
+                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                />
               </div>
+            )}
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>📅 Validity (Date & Time)</label>
+              <input 
+                type="datetime-local" 
+                value={form.valid_date} 
+                onChange={e => setForm({...form, valid_date: e.target.value})}
+                className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+              />
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button 
+                onClick={handleAdd} 
+                disabled={actionLoading} 
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white py-3 rounded-2xl text-xs font-extrabold flex justify-center items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all"
+              >
+                {actionLoading ? <Loader2 size={14} className="animate-spin" /> : 'Create Pre-approval Pass ✅'}
+              </button>
+              <button 
+                onClick={() => setShowForm(false)} 
+                disabled={actionLoading} 
+                className={`flex-1 py-3 rounded-2xl text-xs font-bold border transition-all ${isDark ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-gray-300 text-gray-500 hover:bg-gray-100'}`}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         )}

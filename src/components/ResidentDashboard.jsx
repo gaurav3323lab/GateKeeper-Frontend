@@ -107,19 +107,22 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
     if (!preapproveForm.name) return alert('Name fill kijiye');
     setPassLoading(true);
     try {
+      const isDelivery = preapproveForm.category === 'Delivery';
       const payload = {
-        type: 'guest',
-        name: preapproveForm.name,
+        type: isDelivery ? 'delivery' : 'guest',
+        company: isDelivery ? preapproveForm.name : undefined,
+        name: isDelivery ? undefined : preapproveForm.name,
         phone: preapproveForm.phone || '',
-        purpose: preapproveForm.category || 'Guest',
+        purpose: isDelivery ? 'Delivery' : (preapproveForm.category || 'Guest'),
         valid_date: preapproveForm.time ? `${new Date().toISOString().slice(0, 10)}T${preapproveForm.time}` : ''
       };
       const res = await entryAPI.addPreApproval(payload);
-      // Fetch the newly created guest to get the real PIN
+      // Fetch the newly created guest or delivery to get the real PIN
       const allRes = await entryAPI.getPreApprovals();
-      const newEntry = (allRes.data || []).find(a => a.id === res.data.id && a.type === 'guest');
+      const targetType = isDelivery ? 'delivery' : 'guest';
+      const newEntry = (allRes.data || []).find(a => a.id === res.data.id && a.type === targetType);
       setGuestPass({
-        code: newEntry?.qr_code || res.data.id,
+        code: isDelivery ? 'PRE-APPROVED' : (newEntry?.qr_code || res.data.id),
         name: preapproveForm.name,
         category: preapproveForm.category,
         time: preapproveForm.time || 'Immediate Entry'

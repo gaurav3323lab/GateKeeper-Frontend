@@ -58,8 +58,22 @@ export async function subscribeToPush(token) {
     const registration = await navigator.serviceWorker.ready;
 
     // 3. Backend se VAPID public key fetch karo
-    const keyRes = await fetch(`${API_URL}/api/push/vapid-key`);
-    const { publicKey } = await keyRes.json();
+    let publicKey = null;
+    try {
+      const keyRes = await fetch(`${API_URL}/api/push/vapid-key`);
+      if (keyRes.ok) {
+        const data = await keyRes.json();
+        publicKey = data.publicKey;
+      }
+    } catch (keyErr) {
+      console.warn('[Push] VAPID key fetch failed — push disabled:', keyErr.message);
+    }
+
+    // VAPID key nahi mila — silently abort, crash mat karo
+    if (!publicKey) {
+      console.warn('[Push] VAPID public key missing — skipping push subscription');
+      return false;
+    }
 
     // 4. Push subscription banao
     const subscription = await registration.pushManager.subscribe({

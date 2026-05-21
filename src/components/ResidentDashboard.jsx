@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import ISTClock from './ISTClock';
 import MyFlat from './MyFlat';
@@ -31,6 +31,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const [activeTab, setActiveTab] = useState('community');
   const [sosActive, setSosActive] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const noticesRef = useRef(null); // Notices section scroll ref
 
   // MOCK INTERACTION STATES
   // 1. Poll State
@@ -59,6 +60,10 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const [realContacts, setRealContacts] = useState([]);
   const [openServiceCount, setOpenServiceCount] = useState(0);
   const [dataLoading, setDataLoading] = useState(true);
+  const [unreadNoticeCount, setUnreadNoticeCount] = useState(0); // Bell badge
+  const [postText, setPostText] = useState(''); // Create Post modal
+  const [postLoading, setPostLoading] = useState(false);
+  const [sosLoading, setSosLoading] = useState(false);
   
   // Pre-approve pass state (real API)
   const [guestPass, setGuestPass] = useState(null);
@@ -144,7 +149,14 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
           serviceAPI.getResidentRequests(),
           entryAPI.getResidentLogs(),
         ]);
-        if (noticesRes.status === 'fulfilled') setRealNotices(noticesRes.value.data || []);
+        if (noticesRes.status === 'fulfilled') {
+          const notices = noticesRes.value.data || [];
+          setRealNotices(notices);
+          // Count unread: notices newer than last-seen timestamp
+          const lastSeen = parseInt(localStorage.getItem('notices_last_seen') || '0', 10);
+          const unread = notices.filter(n => new Date(n.created_at).getTime() > lastSeen).length;
+          setUnreadNoticeCount(unread);
+        }
         if (contactsRes.status === 'fulfilled') {
           const data = contactsRes.value.data || {};
           const guards = data.guards || [];
@@ -294,7 +306,11 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                 { label: 'My Garage', icon: Car, color: 'text-sky-500 bg-sky-500/10', action: () => setActiveTab('garage') },
                 { label: 'Pre-Approve', icon: ShieldCheck, color: 'text-violet-500 bg-violet-500/10', action: () => setShowPreapproveModal(true) },
                 { label: 'Directory', icon: Search, color: 'text-indigo-500 bg-indigo-500/10', action: () => setShowDirectoryModal(true) },
-                { label: 'Notices', icon: Megaphone, color: 'text-pink-500 bg-pink-500/10', action: () => setActiveTab('logs') },
+                { label: 'Notices', icon: Megaphone, color: 'text-pink-500 bg-pink-500/10', action: () => {
+                    // Scroll to notices section within community tab
+                    setActiveTab('community');
+                    setTimeout(() => noticesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                  } },
                 { label: 'SOS Alert', icon: AlertTriangle, color: 'text-red-500 bg-red-500/10', action: handleSOS },
                 { label: 'My Flat', icon: Home, color: 'text-emerald-500 bg-emerald-500/10', action: () => setActiveTab('flat') },
               ].map((item, idx) => (
@@ -450,7 +466,11 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
             </div>
 
             {/* 2. REAL NOTICES from AnnouncementBoard API */}
-            <div className="space-y-3">
+            <div ref={noticesRef} className="space-y-3" onClick={() => {
+                // Mark all as read when user opens notices section
+                localStorage.setItem('notices_last_seen', String(Date.now()));
+                setUnreadNoticeCount(0);
+              }}>
               <p className={`text-[10px] font-black uppercase tracking-wider ${subtext}`}>📢 Society Notices</p>
               {dataLoading ? (
                 <div className={`p-6 rounded-3xl border text-center ${cardBg}`}>
@@ -554,9 +574,14 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               {/* Header icons: Search, bell, chat, profile, logout */}
               <div className="flex items-center gap-3 text-slate-400">
                 <button className="hover:text-slate-600"><Search size={16} /></button>
-                <button className="hover:text-slate-600 relative">
+                <button className="hover:text-slate-600 relative" onClick={() => {
+                    setActiveTab('community');
+                    setTimeout(() => noticesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                  }}>
                   <Bell size={16} />
-                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-red-500" />
+                  {unreadNoticeCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[8px] font-black flex items-center justify-center px-0.5">{unreadNoticeCount}</span>
+                  )}
                 </button>
                 <button onClick={() => alert('Community Chat feature is coming soon!')} className="hover:text-slate-600 relative">
                   <MessageSquare size={16} />
@@ -813,27 +838,48 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
         </div>
       )}
 
-      {/* 5. CREATE DUMMY POST MODAL */}
+      {/* 5. CREATE COMMUNITY POST MODAL */}
       {showPostModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className={`w-full max-w-sm rounded-[30px] p-6 border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-extrabold text-sm">Post to Community Feed</h3>
-              <button onClick={() => setShowPostModal(false)} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
+              <h3 className="font-extrabold text-sm flex items-center gap-1.5"><Megaphone size={16} className="text-pink-500" /> Post Society Notice</h3>
+              <button onClick={() => { setShowPostModal(false); setPostText(''); }} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
             </div>
 
             <div className="space-y-3">
+              <p className={`text-[10px] ${subtext} leading-relaxed`}>Aapki notice society members ko dikhegi. Manager se approval ke baad publish hogi.</p>
               <textarea 
-                placeholder="What is happening in your block? Share details..."
+                placeholder="Kya share karna chahte hain? e.g. Water cut on Thursday 10AM–2PM..."
                 rows={4}
+                value={postText}
+                onChange={e => setPostText(e.target.value)}
                 className={`w-full border rounded-2xl p-3 text-xs outline-none resize-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
               />
               <div className="flex gap-2 justify-end">
-                <button onClick={() => setShowPostModal(false)} className={`px-4 py-2 border rounded-xl text-xs font-bold ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
+                <button onClick={() => { setShowPostModal(false); setPostText(''); }} className={`px-4 py-2 border rounded-xl text-xs font-bold ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}>
                   Cancel
                 </button>
-                <button onClick={() => { setShowPostModal(false); alert('Mock post submitted! Admin approval is required for resident feed posts.'); }} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md">
-                  Publish Post
+                <button 
+                  disabled={postLoading || !postText.trim()}
+                  onClick={async () => {
+                    if (!postText.trim()) return;
+                    setPostLoading(true);
+                    try {
+                      await announcementAPI.create({ title: postText.trim().slice(0, 80), body: postText.trim(), category: 'General' });
+                      setPostText('');
+                      setShowPostModal(false);
+                      alert('✅ Notice submit ho gayi! Manager approve karega.');
+                    } catch (err) {
+                      alert('Post submit nahi hui. Please try again.');
+                    } finally {
+                      setPostLoading(false);
+                    }
+                  }}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5"
+                >
+                  {postLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : null}
+                  Submit Notice
                 </button>
               </div>
             </div>

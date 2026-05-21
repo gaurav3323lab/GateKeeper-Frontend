@@ -52,8 +52,8 @@ const ResidentLogs = ({ sharedSocket }) => {
           <p className={`text-center py-6 text-sm ${subtext}`}>Koi recent activity nahi hai</p>
         ) : (
           <div className="space-y-3">
-            {logs.map(log => (
-              <div key={`${log.type}-${log.id}`} className={`p-3 rounded-xl border flex items-center justify-between ${isDark ? 'bg-slate-700/30 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+            {logs.map((log, idx) => (
+              <div key={`${log.type}-${log.id}-${idx}`} className={`p-3 rounded-xl border flex items-center justify-between ${isDark ? 'bg-slate-700/30 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
                 <div className="flex items-center gap-3">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
                     ${log.type === 'Vehicle' ? 'bg-blue-500/20 text-blue-500' : 

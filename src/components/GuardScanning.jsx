@@ -50,6 +50,19 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [insideVisitors, setInsideVisitors] = useState([]);
   const [insideLoading, setInsideLoading] = useState(false);
 
+  const fetchPreApproved = useCallback(async () => {
+    setPreApprovedLoading(true);
+    try {
+      const res = await guardAPI.getPreApproved();
+      setPreApproved(res.data);
+    } catch (err) {
+      console.error('Pre-approved fetch failed:', err);
+      setPreApproved([]); // fallback to empty
+    } finally {
+      setPreApprovedLoading(false);
+    }
+  }, []);
+
   const handlePinChange = async (val) => {
     if (val.length > 6) return;
     setEnteredPin(val);
@@ -140,19 +153,6 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       handlePinChange(enteredPin.slice(0, -1));
     }
   };
-
-  const fetchPreApproved = useCallback(async () => {
-    setPreApprovedLoading(true);
-    try {
-      const res = await guardAPI.getPreApproved();
-      setPreApproved(res.data);
-    } catch (err) {
-      console.error('Pre-approved fetch failed:', err);
-      setPreApproved([]); // fallback to empty
-    } finally {
-      setPreApprovedLoading(false);
-    }
-  }, []);
 
   const fetchInsideVisitors = useCallback(async () => {
     setInsideLoading(true);

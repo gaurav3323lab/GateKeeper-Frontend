@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "174521735052",
+    "project_id": "gatekeeper-24b33",
+    "storage_bucket": "gatekeeper-24b33.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:174521735052:android:53142ad59a71e1d652e8a9",
+        "android_client_info": {
+          "package_name": "com.gatekeeper.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBN8vwB9HKkEpgmXPIk6x-c3oQ_HtQBvUs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

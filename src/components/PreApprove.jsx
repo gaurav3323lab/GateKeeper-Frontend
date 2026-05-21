@@ -9,7 +9,7 @@ const PreApprove = ({ user }) => {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ category: 'Guest', company: '', name: '', phone: '', purpose: '', valid_date: '' });
+  const [form, setForm] = useState({ category: 'Guest', company: '', name: '', phone: '', purpose: '', valid_date: 'Immediate', vehicle_number: '' });
   const [selectedPass, setSelectedPass] = useState(null);
 
   const formatDateTime = (dtStr) => {
@@ -48,17 +48,40 @@ const PreApprove = ({ user }) => {
     
     setActionLoading(true);
     try {
+      // 📅 Calculate real expiration timestamp based on dropdown selection
+      const now = new Date();
+      if (form.valid_date === 'Immediate' || form.valid_date === '2 Hours') {
+        now.setHours(now.getHours() + 2);
+      } else if (form.valid_date === '4 Hours') {
+        now.setHours(now.getHours() + 4);
+      } else if (form.valid_date === 'Today') {
+        now.setHours(23, 59, 59, 999);
+      } else if (form.valid_date === 'Tomorrow') {
+        now.setDate(now.getDate() + 1);
+        now.setHours(23, 59, 59, 999);
+      } else {
+        // Fallback: 24 hours
+        now.setHours(now.getHours() + 24);
+      }
+      const validDateStr = now.toISOString().slice(0, 19).replace('T', ' ');
+
+      // 🚗 Append vehicle number if provided
+      let finalPurpose = form.category || 'Guest';
+      if (form.vehicle_number) {
+        finalPurpose = `${finalPurpose} (${form.vehicle_number})`;
+      }
+
       const payload = {
         type: form.category === 'Delivery' ? 'delivery' : 'guest',
-        company: form.category === 'Delivery' ? form.company : undefined,
+        company: form.category === 'Delivery' ? (form.vehicle_number ? `${form.company} (${form.vehicle_number})` : form.company) : undefined,
         name: form.category !== 'Delivery' ? form.name : undefined,
         phone: form.phone || '',
-        purpose: form.category !== 'Delivery' ? form.category : 'Delivery',
-        valid_date: form.valid_date || ''
+        purpose: finalPurpose,
+        valid_date: validDateStr
       };
       await entryAPI.addPreApproval(payload);
       await fetchApprovals();
-      setForm({ category: 'Guest', company: '', name: '', phone: '', purpose: '', valid_date: '' });
+      setForm({ category: 'Guest', company: '', name: '', phone: '', purpose: '', valid_date: 'Immediate', vehicle_number: '' });
       setShowForm(false);
     } catch (err) {
       console.error('Failed to add pre-approval', err);
@@ -191,13 +214,29 @@ const PreApprove = ({ user }) => {
             )}
 
             <div>
-              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>📅 Validity (Date & Time)</label>
+              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>Vehicle Number (Optional)</label>
               <input 
-                type="datetime-local" 
-                value={form.valid_date} 
-                onChange={e => setForm({...form, valid_date: e.target.value})}
+                type="text" 
+                placeholder="e.g. MH 12 AB 1234" 
+                value={form.vehicle_number || ''}
+                onChange={e => setForm({...form, vehicle_number: e.target.value.toUpperCase()})}
                 className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
               />
+            </div>
+
+            <div>
+              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>📅 Validity (Arrival Time Slot)</label>
+              <select 
+                value={form.valid_date || 'Immediate'}
+                onChange={e => setForm({...form, valid_date: e.target.value})}
+                className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+              >
+                <option value="Immediate">Immediate (Valid for 2 Hours)</option>
+                <option value="2 Hours">Next 2 Hours</option>
+                <option value="4 Hours">Next 4 Hours</option>
+                <option value="Today">Today (Full Day)</option>
+                <option value="Tomorrow">Tomorrow (Full Day)</option>
+              </select>
             </div>
 
             <div className="flex gap-2 pt-2">

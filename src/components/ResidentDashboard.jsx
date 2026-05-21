@@ -68,7 +68,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   // Pre-approve pass state (real API)
   const [guestPass, setGuestPass] = useState(null);
   const [passLoading, setPassLoading] = useState(false);
-  const [preapproveForm, setPreapproveForm] = useState({ name: '', category: 'Guest', phone: '', time: '' });
+  const [preapproveForm, setPreapproveForm] = useState({ name: '', category: 'Guest', phone: '', time: 'Immediate', vehicle_number: '' });
 
   // Daily helpers from backend (inside visitors for this flat)
   const [dailyHelpers, setDailyHelpers] = useState([]);
@@ -108,14 +108,39 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
     setPassLoading(true);
     try {
       const isDelivery = preapproveForm.category === 'Delivery';
+
+      // 📅 Calculate real expiration timestamp based on dropdown selection
+      const now = new Date();
+      if (preapproveForm.time === 'Immediate' || preapproveForm.time === '2 Hours') {
+        now.setHours(now.getHours() + 2);
+      } else if (preapproveForm.time === '4 Hours') {
+        now.setHours(now.getHours() + 4);
+      } else if (preapproveForm.time === 'Today') {
+        now.setHours(23, 59, 59, 999);
+      } else if (preapproveForm.time === 'Tomorrow') {
+        now.setDate(now.getDate() + 1);
+        now.setHours(23, 59, 59, 999);
+      } else {
+        // Fallback: 24 hours
+        now.setHours(now.getHours() + 24);
+      }
+      const validDateStr = now.toISOString().slice(0, 19).replace('T', ' ');
+
+      // 🚗 Append vehicle number if provided
+      let finalPurpose = preapproveForm.category || 'Guest';
+      if (preapproveForm.vehicle_number) {
+        finalPurpose = `${finalPurpose} (${preapproveForm.vehicle_number})`;
+      }
+
       const payload = {
         type: isDelivery ? 'delivery' : 'guest',
-        company: isDelivery ? preapproveForm.name : undefined,
+        company: isDelivery ? (preapproveForm.vehicle_number ? `${preapproveForm.name} (${preapproveForm.vehicle_number})` : preapproveForm.name) : undefined,
         name: isDelivery ? undefined : preapproveForm.name,
         phone: preapproveForm.phone || '',
-        purpose: isDelivery ? 'Delivery' : (preapproveForm.category || 'Guest'),
-        valid_date: preapproveForm.time ? `${new Date().toISOString().slice(0, 10)}T${preapproveForm.time}` : ''
+        purpose: finalPurpose,
+        valid_date: validDateStr
       };
+
       const res = await entryAPI.addPreApproval(payload);
       // Fetch the newly created guest or delivery to get the real PIN
       const allRes = await entryAPI.getPreApprovals();
@@ -726,14 +751,29 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                 </div>
 
                 <div>
-                  <label className={`text-[10px] font-bold uppercase tracking-wider mb-1 block ${subtext}`}>Arrival Time Slot</label>
+                  <label className={`text-[10px] font-bold uppercase tracking-wider mb-1 block ${subtext}`}>Vehicle Number (Optional)</label>
                   <input 
                     type="text" 
-                    placeholder="e.g. 5:00 PM - 7:00 PM" 
-                    value={preapproveForm.time}
-                    onChange={e => setPreapproveForm({...preapproveForm, time: e.target.value})}
+                    placeholder="e.g. MH 12 AB 1234" 
+                    value={preapproveForm.vehicle_number || ''}
+                    onChange={e => setPreapproveForm({...preapproveForm, vehicle_number: e.target.value.toUpperCase()})}
                     className={`w-full rounded-xl border px-3 py-2 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
                   />
+                </div>
+
+                <div>
+                  <label className={`text-[10px] font-bold uppercase tracking-wider mb-1 block ${subtext}`}>Arrival Time Slot</label>
+                  <select 
+                    value={preapproveForm.time || 'Immediate'}
+                    onChange={e => setPreapproveForm({...preapproveForm, time: e.target.value})}
+                    className={`w-full rounded-xl border px-3 py-2 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                  >
+                    <option value="Immediate">Immediate (Valid for 2 Hours)</option>
+                    <option value="2 Hours">Next 2 Hours</option>
+                    <option value="4 Hours">Next 4 Hours</option>
+                    <option value="Today">Today (Full Day)</option>
+                    <option value="Tomorrow">Tomorrow (Full Day)</option>
+                  </select>
                 </div>
 
                 <button 

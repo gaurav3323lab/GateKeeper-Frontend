@@ -60,16 +60,13 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const [openServiceCount, setOpenServiceCount] = useState(0);
   const [dataLoading, setDataLoading] = useState(true);
   
-  // Custom generated guest pass
+  // Pre-approve pass state (real API)
   const [guestPass, setGuestPass] = useState(null);
+  const [passLoading, setPassLoading] = useState(false);
   const [preapproveForm, setPreapproveForm] = useState({ name: '', category: 'Guest', phone: '', time: '' });
 
-
-  const [dailyHelpers, setDailyHelpers] = useState([
-    { name: 'Raju Kumar', role: 'Cook', status: 'Inside', time: '09:15 AM', avatar: '🧑‍🍳' },
-    { name: 'Shanti Devi', role: 'Maid', status: 'Inside', time: '08:30 AM', avatar: '👩‍🌾' },
-    { name: 'Amit Sharma', role: 'Driver', status: 'Not Inside', time: '—', avatar: '👨‍✈️' }
-  ]);
+  // Daily helpers from backend (inside visitors for this flat)
+  const [dailyHelpers, setDailyHelpers] = useState([]);
 
   // Home Planner tasks
   const [tasks, setTasks] = useState([
@@ -99,17 +96,35 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
     setNewCommentText('');
   };
 
-  // Generate mock preapproved pass code
-  const handleGeneratePass = (e) => {
+  // Generate REAL pre-approved pass using backend API
+  const handleGeneratePass = async (e) => {
     e.preventDefault();
     if (!preapproveForm.name) return alert('Name fill kijiye');
-    const randomCode = Math.floor(100000 + Math.random() * 900000);
-    setGuestPass({
-      code: randomCode,
-      name: preapproveForm.name,
-      category: preapproveForm.category,
-      time: preapproveForm.time || 'Immediate Entry'
-    });
+    setPassLoading(true);
+    try {
+      const payload = {
+        type: 'guest',
+        name: preapproveForm.name,
+        phone: preapproveForm.phone || '',
+        purpose: preapproveForm.category || 'Guest',
+        valid_date: preapproveForm.time ? `${new Date().toISOString().slice(0, 10)}T${preapproveForm.time}` : ''
+      };
+      const res = await entryAPI.addPreApproval(payload);
+      // Fetch the newly created guest to get the real PIN
+      const allRes = await entryAPI.getPreApprovals();
+      const newEntry = (allRes.data || []).find(a => a.id === res.data.id && a.type === 'guest');
+      setGuestPass({
+        code: newEntry?.qr_code || res.data.id,
+        name: preapproveForm.name,
+        category: preapproveForm.category,
+        time: preapproveForm.time || 'Immediate Entry'
+      });
+    } catch (err) {
+      console.error('Pre-approve failed:', err);
+      alert('Pre-approval save nahi ho saka. Please Pre-Approve tab use karein.');
+    } finally {
+      setPassLoading(false);
+    }
   };
 
 
@@ -123,10 +138,11 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
     const fetchCommunityData = async () => {
       setDataLoading(true);
       try {
-        const [noticesRes, contactsRes, serviceRes] = await Promise.allSettled([
+        const [noticesRes, contactsRes, serviceRes, logsRes] = await Promise.allSettled([
           announcementAPI.getAll(),
           entryAPI.getSocietyContacts(),
           serviceAPI.getResidentRequests(),
+          entryAPI.getResidentLogs(),
         ]);
         if (noticesRes.status === 'fulfilled') setRealNotices(noticesRes.value.data || []);
         if (contactsRes.status === 'fulfilled') {
@@ -150,6 +166,22 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
         if (serviceRes.status === 'fulfilled') {
           const open = (serviceRes.value.data || []).filter(r => r.status === 'Open').length;
           setOpenServiceCount(open);
+        }
+        // Build daily helpers from real resident logs (guests currently inside)
+        if (logsRes.status === 'fulfilled') {
+          const logs = logsRes.value.data || [];
+          const roleEmoji = { Guest: '🧑', Vehicle: '🚗', Delivery: '📦' };
+          const insideGuests = logs
+            .filter(l => l.type === 'Guest' && l.entry_time && !l.exit_time)
+            .slice(0, 3)
+            .map(l => ({
+              name: l.name || 'Guest',
+              role: l.purpose || 'Guest',
+              status: 'Inside',
+              time: new Date(l.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }),
+              avatar: roleEmoji[l.type] || '🧑'
+            }));
+          setDailyHelpers(insideGuests);
         }
       } catch (e) {
         console.error('Community data fetch error:', e);
@@ -678,9 +710,12 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
 
                 <button 
                   type="submit"
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-2xl shadow-lg transition-all"
+                  disabled={passLoading}
+                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white font-extrabold text-xs rounded-2xl shadow-lg transition-all flex items-center justify-center gap-2"
                 >
-                  Create Pre-approval Pass
+                  {passLoading ? (
+                    <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> Saving...</>
+                  ) : 'Create Pre-approval Pass ✅'}
                 </button>
               </form>
             )}

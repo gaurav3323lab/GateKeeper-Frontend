@@ -32,8 +32,29 @@ function AppContent() {
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
     if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { localStorage.clear(); }
+      try { 
+        const parsedUser = JSON.parse(stored);
+        setUser(parsedUser); 
+        
+        // Sync profile from database to get fresh society name & details
+        if (token) {
+          api.get('/api/auth/profile')
+            .then(res => {
+              if (res.data) {
+                const updatedUser = { ...parsedUser, ...res.data };
+                localStorage.setItem('user', JSON.stringify(updatedUser));
+                setUser(updatedUser);
+              }
+            })
+            .catch(err => {
+              console.error('Error syncing profile on mount:', err);
+            });
+        }
+      } catch (err) { 
+        localStorage.clear(); 
+      }
     }
   }, []);
 
@@ -41,6 +62,21 @@ function AppContent() {
     localStorage.setItem('user', JSON.stringify(userData));
     if (token) localStorage.setItem('token', token);
     setUser(userData);
+
+    // Sync profile immediately to fetch correct society name, address, and city details
+    if (token) {
+      api.get('/api/auth/profile')
+        .then(res => {
+          if (res.data) {
+            const updatedUser = { ...userData, ...res.data };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setUser(updatedUser);
+          }
+        })
+        .catch(err => {
+          console.error('Error syncing profile immediately after login:', err);
+        });
+    }
   };
 
   const handleLogout = () => {

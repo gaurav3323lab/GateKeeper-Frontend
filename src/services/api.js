@@ -89,6 +89,8 @@ export const guardAPI = {
   getInsideVisitors: () => api.get('/api/guard/inside-visitors'),
   checkoutVisitor: (log_id) => api.post('/api/guard/checkout-visitor', { log_id }),
   verifyPin: (pin) => api.get(`/api/guard/verify-pin/${pin}`),
+  verifyVehicle: (plate) => api.get(`/api/guard/verify-vehicle/${plate}`),
+  vehicleLog: (data) => api.post('/api/guard/vehicle-log', data),
 };
 
 // ── Societies ────────────────────────────────────────────────
@@ -136,6 +138,23 @@ export const emergencyAPI = {
   create: (data) => api.post('/api/manager/emergency-contacts', data),
   update: (id, data) => api.put(`/api/manager/emergency-contacts/${id}`, data),
   delete: (id) => api.delete(`/api/manager/emergency-contacts/${id}`),
+};
+
+// ── Community Features (Polls, Chores, Comments, Daily Helpers) ──
+export const communityAPI = {
+  getPosts: () => api.get('/api/community/posts'),
+  createPost: (data) => api.post('/api/community/posts', data),
+  toggleLike: (postId) => api.post(`/api/community/posts/${postId}/like`),
+  addComment: (postId, text) => api.post(`/api/community/posts/${postId}/comments`, { text }),
+  votePoll: (postId, option) => api.post(`/api/community/posts/${postId}/vote`, { option }),
+  
+  getChores: () => api.get('/api/community/chores'),
+  createChore: (text) => api.post('/api/community/chores', { text }),
+  toggleChore: (id) => api.put(`/api/community/chores/${id}/toggle`),
+  deleteChore: (id) => api.delete(`/api/community/chores/${id}`),
+  
+  getDailyHelpers: () => api.get('/api/community/daily-helpers'),
+  getDirectory: () => api.get('/api/community/directory'),
 };
 
 export default api;

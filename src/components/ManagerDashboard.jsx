@@ -4,17 +4,18 @@ import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Users, ShieldCheck, Wrench, ClipboardList,
   LogOut, CheckCircle, XCircle, Plus, ChevronRight,
-  AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity, BarChart2
+  AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity, BarChart2,
+  Phone, PhoneCall, AlertTriangle, Edit3, ArrowRight, Search, Shield, Building, Filter, RefreshCw
 } from 'lucide-react';
-import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI, emergencyAPI } from '../services/api';
+import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI, emergencyAPI, authAPI } from '../services/api';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
-import { Phone, PhoneCall, AlertTriangle, Edit3 } from 'lucide-react';
 
 const ManagerDashboard = ({ user, onLogout }) => {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [managerSociety, setManagerSociety] = useState(user?.society_name || '');
   const [pendingResidents, setPendingResidents] = useState([]);
   const [staff, setStaff] = useState({ systemStaff: [], externalStaff: [] });
   const [tickets, setTickets] = useState([]);
@@ -42,11 +43,17 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const [showAddAd, setShowAddAd] = useState(false);
   const [newAd, setNewAd] = useState({ title: '', description: '', image_url: '', link: '' });
 
-  const bg = isDark ? 'bg-[#0f172a] text-white' : 'bg-gray-50 text-gray-800';
-  const card = isDark ? 'bg-slate-800/70 border-slate-700' : 'bg-white border-gray-200';
-  const input = isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-gray-100 border-gray-300 text-gray-800';
-  const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
-  const header = isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/90 border-gray-200';
+  // Premium design styling variables
+  const mainBg = isDark ? 'bg-mesh-dark text-white' : 'bg-mesh-light text-slate-800';
+  const cardStyle = isDark 
+    ? 'bg-slate-900/65 backdrop-blur-xl border border-slate-800/80 rounded-3xl shadow-[0_12px_40px_rgba(0,0,0,0.25)]' 
+    : 'bg-white/75 backdrop-blur-xl border border-white/60 rounded-3xl shadow-[0_12px_40px_rgba(31,38,135,0.04)]';
+  const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
+  const textLabel = isDark ? 'text-slate-400' : 'text-slate-600';
+  const inputStyle = isDark
+    ? 'bg-slate-950/40 border-slate-800/80 text-white placeholder-slate-500 focus:border-indigo-500/80 focus:shadow-[0_0_15px_rgba(99,102,241,0.15)] outline-none transition-all duration-300'
+    : 'bg-white/60 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-indigo-600/80 focus:shadow-[0_0_15px_rgba(99,102,241,0.08)] outline-none transition-all duration-300';
+  const headerStyle = isDark ? 'bg-slate-900/60 border-slate-800/80' : 'bg-white/70 border-slate-200/50';
 
   useEffect(() => {
     fetchAllData();
@@ -55,6 +62,26 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const fetchAllData = async () => {
     setLoading(true);
     try {
+      // Sync manager profile on mount to get correct society details
+      authAPI.getProfile().then(res => {
+        if (res.data && res.data.society_name) {
+          setManagerSociety(res.data.society_name);
+          // Sync back to local storage
+          const stored = localStorage.getItem('user');
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored);
+              const updated = { ...parsed, ...res.data };
+              localStorage.setItem('user', JSON.stringify(updated));
+            } catch (e) {
+              console.error('Failed to sync stored user from manager profile:', e);
+            }
+          }
+        }
+      }).catch(err => {
+        console.error('Error fetching manager profile:', err);
+      });
+
       const [pendingRes, ticketsRes, staffRes, logsRes, residentsRes, adsRes, emergencyRes] = await Promise.all([
         managerAPI.getPendingResidents(),
         serviceAPI.getAllRequests(),
@@ -108,6 +135,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
     try {
       await managerAPI.approveResident(id, { status: 'active' });
       setPendingResidents(pendingResidents.filter(r => r.id !== id));
+      await fetchAllData();
     } catch (err) {
       alert('Approval failed');
     } finally {
@@ -121,6 +149,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
     try {
       await managerAPI.approveResident(id, { status: 'rejected' });
       setPendingResidents(pendingResidents.filter(r => r.id !== id));
+      await fetchAllData();
     } catch (err) {
       alert('Rejection failed');
     } finally {
@@ -192,285 +221,705 @@ const ManagerDashboard = ({ user, onLogout }) => {
   if (loading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#0f172a] text-white">
-        <Loader2 className="animate-spin text-indigo-500 mb-2" size={40} />
-        <p className="text-slate-400">Loading Manager Dashboard...</p>
+        <div className="relative w-16 h-16 mb-4">
+          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 border-t-indigo-500 animate-spin" />
+        </div>
+        <p className="text-slate-400 font-heading font-semibold animate-pulse">Loading Manager Dashboard...</p>
       </div>
     );
   }
 
   return (
-    <div className={`min-h-screen pb-4 transition-colors duration-300 ${bg}`}>
-      {/* Header */}
-      <header className={`sticky top-0 z-40 px-4 py-3 border-b backdrop-blur-md flex items-center justify-between ${header}`}>
+    <div className={`min-h-screen pb-16 transition-all duration-500 ${mainBg}`}>
+      {/* Background Graphic Elements */}
+      <div className="absolute top-0 left-[20%] w-[40%] h-[30%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[10%] right-[10%] w-[35%] h-[35%] rounded-full bg-emerald-500/80 dark:bg-emerald-500/5 blur-[140px] opacity-10 pointer-events-none" />
+
+      {/* Floating Frosted Glass Header */}
+      <header className={`sticky top-0 z-40 px-6 py-4 border-b backdrop-blur-xl flex items-center justify-between shadow-[0_4px_30px_rgba(0,0,0,0.03)] ${headerStyle}`}>
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center">
-            <ShieldCheck size={18} className="text-white" />
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[1.5px] shadow-[0_8px_20px_rgba(99,102,241,0.2)] hover:scale-105 transition-transform duration-300">
+            <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center">
+              <ShieldCheck size={20} className="text-indigo-400" />
+            </div>
           </div>
           <div>
-            <h1 className="font-extrabold text-sm leading-tight">Manager Dashboard</h1>
-            <ISTClock showDate className={subtext} />
+            <h1 className="font-extrabold text-sm sm:text-base leading-tight tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300">
+              Manager Panel
+            </h1>
+            <ISTClock showDate className={`text-[10px] font-bold ${subtext}`} />
           </div>
         </div>
-        <div className="flex items-center gap-2">
+
+        <div className="flex items-center gap-3.5">
           {pendingResidents.length > 0 && (
-            <div className="relative">
-              <Bell size={20} className="text-yellow-400" />
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
+            <div className="relative cursor-pointer group" onClick={() => setActiveTab('approvals')}>
+              <div className="w-9 h-9 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 group-hover:scale-105 transition-all">
+                <Bell size={16} className="animate-sos-pulse" />
+              </div>
+              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black shadow-md border-2 border-slate-950">
                 {pendingResidents.length}
               </span>
             </div>
           )}
-          <button onClick={() => setShowProfile(true)} className={`p-2 rounded-xl border flex items-center justify-center ${isDark ? 'border-slate-700 text-slate-400 hover:text-indigo-400' : 'border-gray-200 text-gray-400 hover:text-indigo-500'}`}>
+          
+          <button 
+            onClick={() => setShowProfile(true)} 
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all hover:scale-105 ${
+              isDark ? 'border-slate-800 text-slate-400 hover:text-indigo-400 bg-slate-950/20' : 'border-gray-200 text-gray-500 hover:text-indigo-500 bg-white/40'
+            }`}
+          >
             <User size={15} />
           </button>
-          <button onClick={onLogout} className={`p-2 rounded-xl border ${isDark ? 'border-slate-700 text-slate-400 hover:text-red-400' : 'border-gray-200 text-gray-400 hover:text-red-400'}`}>
-            <LogOut size={16} />
+          
+          <button 
+            onClick={onLogout} 
+            className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all hover:scale-105 ${
+              isDark ? 'border-slate-800 text-slate-400 hover:text-red-400 bg-slate-950/20' : 'border-gray-200 text-gray-500 hover:text-red-400 bg-white/40'
+            }`}
+          >
+            <LogOut size={15} />
           </button>
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className={`flex overflow-x-auto gap-1 px-4 py-2 border-b sticky top-[57px] z-30 backdrop-blur-md ${header}`}>
-        {tabs.map(({ key, label, icon: Icon }) => (
-          <button key={key} onClick={() => setActiveTab(key)}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all relative
-              ${activeTab === key ? 'bg-indigo-600 text-white' : isDark ? 'text-slate-400 hover:text-white' : 'text-gray-500 hover:text-gray-800'}`}>
-            <Icon size={13} /> {label}
-            {key === 'approvals' && pendingResidents.length > 0 && (
-              <span className="ml-1 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold">{pendingResidents.length}</span>
-            )}
-          </button>
-        ))}
+      {/* Modern Capsule Tabs Navigation */}
+      <div className={`sticky top-[73px] z-30 px-6 py-2.5 border-b backdrop-blur-xl overflow-x-auto flex gap-2.5 scrollbar-none ${headerStyle}`}>
+        {tabs.map(({ key, label, icon: Icon }) => {
+          const isActive = activeTab === key;
+          return (
+            <button 
+              key={key} 
+              onClick={() => setActiveTab(key)}
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all duration-300 relative group
+                ${isActive 
+                  ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-[0_8px_20px_rgba(99,102,241,0.25)] scale-[1.02]' 
+                  : isDark 
+                    ? 'text-slate-400 hover:text-white hover:bg-slate-900/40 bg-slate-950/10 border border-slate-900/50' 
+                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/40 bg-white/20 border border-slate-200/40'
+                }`}
+            >
+              <Icon size={14} className={isActive ? 'text-white' : 'text-indigo-400'} />
+              <span>{label}</span>
+              {key === 'approvals' && pendingResidents.length > 0 && (
+                <span className="ml-1 bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black border border-slate-950">
+                  {pendingResidents.length}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="p-4 max-w-4xl mx-auto space-y-4">
+      {/* Main Dynamic Dashboard Grid */}
+      <div className="p-6 max-w-5xl mx-auto space-y-6">
 
-        {/* DASHBOARD TAB */}
+        {/* ─── TAB: DASHBOARD ────────────────────────────────────────── */}
         {activeTab === 'dashboard' && (
-          <>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="space-y-6 animate-slide-up">
+            
+            {/* Quick Hero Banner */}
+            <div className="relative rounded-[32px] overflow-hidden h-36 bg-mesh-dark border border-slate-800/80 flex items-center px-8 shadow-xl">
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/40 to-slate-900/10" />
+              <div className="relative z-10 space-y-1 max-w-md">
+                <span className="text-[9px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
+                  🛡️ GATEKEEPER COMMAND
+                </span>
+                <h2 className="text-xl sm:text-2xl font-black text-white leading-tight drop-shadow-md font-heading mt-2">
+                  Welcome Back, {user?.name || 'Manager'}
+                </h2>
+                <p className="text-xs text-white/70 font-semibold drop-shadow flex items-center gap-1.5 mt-1">
+                  🏢 Society: <span className="text-indigo-300 font-extrabold">{managerSociety || user?.society_name || 'Loading Society...'}</span> &bull; Status: Real-time active monitoring
+                </p>
+              </div>
+              <div className="absolute right-8 bottom-0 top-0 items-center justify-center hidden md:flex opacity-10">
+                <ShieldCheck size={120} className="text-white" />
+              </div>
+            </div>
+
+            {/* Premium Stat Widget Cards Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: 'Pending Approvals', value: pendingResidents.length, color: 'text-yellow-400', bg: 'bg-yellow-500/10', icon: Clock },
-                { label: 'Active Tickets', value: tickets.filter(t => t.status !== 'Resolved').length, color: 'text-red-400', bg: 'bg-red-500/10', icon: AlertCircle },
-                { label: 'Resolved Tickets', value: tickets.filter(t => t.status === 'Resolved').length, color: 'text-emerald-400', bg: 'bg-emerald-500/10', icon: CheckCircle },
-                { label: 'Total Staff', value: staff.systemStaff.length + staff.externalStaff.length, color: 'text-indigo-400', bg: 'bg-indigo-500/10', icon: Users },
+                { 
+                  label: 'Pending Approvals', 
+                  value: pendingResidents.length, 
+                  color: 'text-yellow-400', 
+                  bg: 'bg-yellow-500/10 border-yellow-500/15', 
+                  icon: Clock,
+                  desc: 'Residents awaiting verification',
+                  glow: 'shadow-[0_8px_25px_rgba(234,179,8,0.15)]',
+                  onClick: () => setActiveTab('approvals')
+                },
+                { 
+                  label: 'Active Tickets', 
+                  value: tickets.filter(t => t.status !== 'Resolved').length, 
+                  color: 'text-rose-400', 
+                  bg: 'bg-rose-500/10 border-rose-500/15', 
+                  icon: AlertCircle,
+                  desc: 'In-progress & open issues',
+                  glow: 'shadow-[0_8px_25px_rgba(244,63,94,0.15)]',
+                  onClick: () => setActiveTab('tickets')
+                },
+                { 
+                  label: 'Resolved Tickets', 
+                  value: tickets.filter(t => t.status === 'Resolved').length, 
+                  color: 'text-emerald-400', 
+                  bg: 'bg-emerald-500/10 border-emerald-500/15', 
+                  icon: CheckCircle,
+                  desc: 'Helpdesk requests closed',
+                  glow: 'shadow-[0_8px_25px_rgba(16,185,129,0.15)]',
+                  onClick: () => setActiveTab('tickets')
+                },
+                { 
+                  label: 'Access Staff', 
+                  value: staff.systemStaff.length + staff.externalStaff.length, 
+                  color: 'text-indigo-400', 
+                  bg: 'bg-indigo-500/10 border-indigo-500/15', 
+                  icon: Users,
+                  desc: 'Guards, techs & helper staff',
+                  glow: 'shadow-[0_8px_25px_rgba(99,102,241,0.15)]',
+                  onClick: () => setActiveTab('staff')
+                },
               ].map(s => (
-                <div key={s.label} className={`border rounded-2xl p-4 ${card}`}>
-                  <div className={`w-9 h-9 rounded-xl ${s.bg} flex items-center justify-center mb-2`}>
-                    <s.icon size={16} className={s.color} />
+                <div 
+                  key={s.label} 
+                  onClick={s.onClick}
+                  className={`border rounded-[28px] p-5 cursor-pointer relative group transition-all duration-300 hover:scale-[1.03] ${cardStyle} ${s.glow}`}
+                >
+                  <div className={`w-10 h-10 rounded-2xl ${s.bg} flex items-center justify-center border mb-3.5 group-hover:scale-110 transition-transform duration-300`}>
+                    <s.icon size={18} className={s.color} />
                   </div>
-                  <p className={`text-2xl font-extrabold ${s.color}`}>{s.value}</p>
-                  <p className={`text-xs mt-0.5 ${subtext}`}>{s.label}</p>
+                  <p className={`text-3xl font-black ${s.color} font-heading leading-none`}>{s.value}</p>
+                  <p className="text-xs font-black text-slate-800 dark:text-slate-200 mt-2">{s.label}</p>
+                  <p className={`text-[9px] font-semibold mt-0.5 ${subtext}`}>{s.desc}</p>
+                  
+                  {/* Hover indicator arrow */}
+                  <div className="absolute top-5 right-5 text-indigo-400 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all duration-300">
+                    <ArrowRight size={14} />
+                  </div>
                 </div>
               ))}
             </div>
 
-            {/* Approvals Preview */}
+            {/* Dynamic Pending Approvals VIP section inside Dashboard */}
             {pendingResidents.length > 0 && (
-              <div className={`border rounded-2xl p-5 ${isDark ? 'bg-yellow-900/20 border-yellow-700/30' : 'bg-yellow-50 border-yellow-200'}`}>
-                <h3 className="font-bold text-yellow-400 mb-3 flex items-center gap-2"><Clock size={15} /> Pending Resident Approvals</h3>
-                {pendingResidents.slice(0, 3).map(r => (
-                  <div key={r.id} className={`flex items-center justify-between p-3 mb-2 rounded-xl ${isDark ? 'bg-slate-700/40' : 'bg-white shadow-sm'}`}>
-                    <div>
-                      <p className="font-semibold text-sm">{r.name} — Flat {r.flat_number}</p>
-                      <p className={`text-xs ${subtext}`}>{r.phone}</p>
+              <div className={`rounded-[32px] border p-6 animate-scale-up ${
+                isDark ? 'bg-yellow-500/5 border-yellow-500/20' : 'bg-yellow-50/40 border-yellow-200'
+              }`}>
+                <div className="flex items-center justify-between mb-4.5">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
+                    </span>
+                    <h3 className="font-heading font-black text-sm text-yellow-500 uppercase tracking-wider">
+                      Critical Approvals Action Requested
+                    </h3>
+                  </div>
+                  <button 
+                    onClick={() => setActiveTab('approvals')}
+                    className="text-[10px] font-black uppercase text-indigo-400 hover:underline flex items-center gap-1"
+                  >
+                    View All Approvals <ChevronRight size={12} />
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {pendingResidents.slice(0, 3).map(r => (
+                    <div 
+                      key={r.id} 
+                      className={`rounded-2xl border p-4.5 transition-all duration-300 hover:scale-[1.01] ${
+                        isDark ? 'bg-slate-900/60 border-slate-800/80 shadow-md' : 'bg-white shadow-sm border-slate-200/50'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-yellow-500 to-indigo-500 flex items-center justify-center text-white font-extrabold text-xs shadow-md">
+                          {(r.name || 'U').substring(0, 2).toUpperCase()}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-black text-xs text-slate-800 dark:text-slate-200 leading-snug truncate">{r.name}</p>
+                          <p className={`text-[10px] font-bold mt-0.5 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full inline-block`}>
+                            Flat {r.flat_number || 'N/A'}
+                          </p>
+                          <p className={`text-[9px] mt-1 ${subtext} truncate font-mono`}>{r.phone}</p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2.5 mt-4">
+                        <button 
+                          onClick={() => handleApprove(r.id)} 
+                          disabled={actionLoading}
+                          className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                          <CheckCircle size={11} /> Approve
+                        </button>
+                        <button 
+                          onClick={() => handleReject(r.id)} 
+                          disabled={actionLoading}
+                          className="px-3 py-2 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/15 rounded-xl transition-all flex items-center justify-center active:scale-95"
+                        >
+                          <XCircle size={13} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button onClick={() => handleApprove(r.id)} disabled={actionLoading} className="bg-emerald-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold">Approve</button>
-                      <button onClick={() => handleReject(r.id)} disabled={actionLoading} className="text-red-500 hover:text-red-600 p-2"><XCircle size={18}/></button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            {/* Live activity logs quick look */}
+            <div className={`rounded-[32px] p-6 border ${cardStyle}`}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-heading font-black text-sm uppercase tracking-wider flex items-center gap-2">
+                  <Activity size={15} className="text-indigo-400" /> Live Security Monitoring
+                </h3>
+                <button 
+                  onClick={() => setActiveTab('logs')}
+                  className="text-[10px] font-black uppercase text-indigo-400 hover:underline flex items-center gap-1"
+                >
+                  Full Gate Records <ChevronRight size={12} />
+                </button>
+              </div>
+
+              {entryLogs.length === 0 ? (
+                <p className={`text-xs text-center py-6 ${subtext}`}>No recent gate entries logged.</p>
+              ) : (
+                <div className="space-y-3.5">
+                  {entryLogs.slice(0, 3).map(log => {
+                    const isInside = !log.exit_time;
+                    return (
+                      <div 
+                        key={log.id} 
+                        className={`rounded-2xl border p-4 flex items-center justify-between transition-all duration-300 hover:scale-[1.01] ${
+                          isDark ? 'bg-slate-950/20 border-slate-900' : 'bg-slate-50 border-slate-100'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-slate-900/80 to-slate-800/80 flex items-center justify-center text-lg shadow-sm border border-slate-800">
+                            {log.entity_type === 'vehicle' ? '🚗' : log.entity_type === 'guest' ? '🧑' : '👷'}
+                          </div>
+                          <div>
+                            <p className="font-black text-xs text-slate-800 dark:text-slate-200">{log.entity_name || 'Visitor'}</p>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className="text-[8px] font-black uppercase px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-400 border border-indigo-500/10">
+                                {log.entity_type}
+                              </span>
+                              {log.flat_number && (
+                                <span className={`text-[9px] font-extrabold ${subtext}`}>
+                                  Flat {log.flat_number}
+                                </span>
+                              )}
+                              {log.vehicle_number && (
+                                <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded border flex items-center gap-0.5
+                                  ${isDark 
+                                    ? 'bg-amber-950/40 text-amber-300 border-amber-500/20' 
+                                    : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                  <span>{log.vehicle_number === 'Walk-in' ? '🚶' : '🚗'}</span>
+                                  <span>{log.vehicle_number}</span>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase tracking-wider ${
+                            isInside 
+                              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 animate-pulse' 
+                              : 'bg-slate-500/10 text-slate-400 border border-slate-500/25'
+                          }`}>
+                            {isInside ? '🟢 INSIDE' : '🔴 EXITED'}
+                          </span>
+                          <p className={`text-[8px] font-mono mt-1 ${subtext}`}>
+                            {new Date(log.entry_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            
+          </div>
+        )}
+
+        {/* ─── TAB: APPROVALS ────────────────────────────────────────── */}
+        {activeTab === 'approvals' && (
+          <div className="space-y-4 animate-slide-up">
+            <div className="flex items-center gap-2">
+              <ClipboardList size={18} className="text-indigo-400" />
+              <h2 className="font-heading font-black text-base uppercase tracking-wider">Resident Registration Requests</h2>
+            </div>
+            
+            {pendingResidents.length === 0 ? (
+              <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-4 animate-sos-pulse">
+                  <CheckCircle size={26} />
+                </div>
+                <p className="font-black text-slate-800 dark:text-white">All clear!</p>
+                <p className={`text-xs mt-1.5 ${subtext}`}>No pending resident registrations require approval at this time.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {pendingResidents.map(r => (
+                  <div key={r.id} className={`rounded-[30px] border p-5.5 relative overflow-hidden transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
+                    <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-indigo-500/5 to-transparent pointer-events-none" />
+                    
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-[18px] bg-gradient-to-tr from-indigo-600 to-indigo-700 text-white font-black flex items-center justify-center text-sm shadow-lg">
+                        {(r.name || 'U').substring(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="font-black text-sm text-slate-800 dark:text-slate-100 leading-snug">{r.name}</p>
+                        <p className={`text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full inline-block mt-1`}>
+                          Flat {r.flat_number || 'N/A'}
+                        </p>
+                        <div className="space-y-1 mt-3">
+                          <p className={`text-[10px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5`}>
+                            📞 Phone: <span className="font-mono font-black">{r.phone}</span>
+                          </p>
+                          <p className={`text-[10px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5`}>
+                            📅 Requested: <span className="font-bold">{new Date(r.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-3.5 mt-6 pt-4 border-t border-slate-100 dark:border-slate-800/40">
+                      <button 
+                        onClick={() => handleApprove(r.id)} 
+                        disabled={actionLoading}
+                        className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-[0.98] flex items-center justify-center gap-2 shadow-md shadow-emerald-600/10"
+                      >
+                        {actionLoading ? <Loader2 className="animate-spin" size={14}/> : <><CheckCircle size={13} /> Approve</>}
+                      </button>
+                      <button 
+                        onClick={() => handleReject(r.id)} 
+                        disabled={actionLoading}
+                        className="flex-1 py-3 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500/15 rounded-2xl text-[10px] font-black uppercase tracking-wider transition-all active:scale-[0.98]"
+                      >
+                        Reject
+                      </button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </>
+          </div>
         )}
 
-        {/* APPROVALS TAB */}
-        {activeTab === 'approvals' && (
-          <div className="space-y-3">
-            <h2 className="font-bold text-base">Resident Approval Requests</h2>
-            {pendingResidents.length === 0 ? (
-              <div className={`border rounded-2xl p-10 text-center ${card}`}>
-                <CheckCircle size={40} className="mx-auto text-emerald-400 mb-3" />
-                <p className="font-bold">All clear!</p>
-                <p className={`text-sm ${subtext}`}>No pending resident registrations.</p>
+        {/* ─── TAB: TICKETS ────────────────────────────────────────── */}
+        {activeTab === 'tickets' && (
+          <div className="space-y-4 animate-slide-up">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wrench size={18} className="text-indigo-400" />
+                <h2 className="font-heading font-black text-base uppercase tracking-wider">Service Requests Desk</h2>
+              </div>
+              <p className={`text-xs ${subtext}`}>Total: <span className="text-indigo-400 font-bold">{tickets.length} tickets</span> logged</p>
+            </div>
+            
+            {tickets.length === 0 ? (
+              <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                <Wrench size={36} className="mx-auto opacity-30 mb-3 text-indigo-500" />
+                <p className="font-black text-slate-800 dark:text-white">No tickets active</p>
+                <p className={`text-xs mt-1 ${subtext}`}>No service requests have been reported by residents yet.</p>
               </div>
             ) : (
-              pendingResidents.map(r => (
-                <div key={r.id} className={`border rounded-2xl p-4 ${card}`}>
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
-                      {r.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm">{r.name}</p>
-                      <p className={`text-xs ${subtext}`}>{r.phone} &bull; Flat {r.flat_number} &bull; Joined: {new Date(r.created_at).toLocaleDateString()}</p>
+              <div className="space-y-4">
+                {tickets.map(t => (
+                  <div key={t.id} className={`rounded-[30px] border p-5.5 transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2.5 flex-wrap">
+                          <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                            t.status === 'Open' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 animate-pulse' :
+                            t.status === 'In-progress' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
+                            'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
+                          }`}>
+                            {t.status}
+                          </span>
+                          <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
+                            Flat {t.flat_number || 'N/A'}
+                          </span>
+                          <span className={`text-[10px] font-bold ${subtext}`}>
+                            📂 {t.category}
+                          </span>
+                        </div>
+                        <p className="font-black text-sm text-slate-800 dark:text-slate-100 mt-2.5 leading-snug">{t.description}</p>
+                        <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/40">
+                          <div className="w-5 h-5 rounded-full bg-slate-800 text-white font-bold flex items-center justify-center text-[9px]">
+                            {(t.resident_name || 'U').charAt(0).toUpperCase()}
+                          </div>
+                          <span className={`text-[9px] font-semibold ${subtext}`}>
+                            By: {t.resident_name} &bull; {new Date(t.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {t.status === 'Open' && (
+                        <div className="bg-slate-950/20 dark:bg-slate-950/40 border border-slate-800/80 rounded-2xl p-4.5 sm:max-w-xs w-full shrink-0">
+                          <p className="text-[9px] font-black mb-2 text-indigo-400 uppercase tracking-widest">
+                            Assign Technician
+                          </p>
+                          <div className="flex flex-wrap gap-2">
+                            {staff.systemStaff.filter(s => s.role === 'technician').map(tech => (
+                              <button 
+                                key={tech.id} 
+                                onClick={() => handleAssignTicket(t.id, tech.id)}
+                                className="text-[9px] bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-xl font-black uppercase tracking-wider transition-all active:scale-95 shadow-sm"
+                              >
+                                {tech.name.split(' ')[0]}
+                              </button>
+                            ))}
+                            {staff.systemStaff.filter(s => s.role === 'technician').length === 0 && (
+                              <p className="text-[9px] text-red-400 font-bold border border-red-500/20 bg-red-500/10 px-2.5 py-1.5 rounded-xl">
+                                No technicians available.
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-3">
-                    <button onClick={() => handleApprove(r.id)} disabled={actionLoading} className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-                      {actionLoading ? <Loader2 className="animate-spin" size={16}/> : 'Approve Resident'}
-                    </button>
-                    <button onClick={() => handleReject(r.id)} disabled={actionLoading} className="flex-1 py-2.5 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl text-sm font-bold">
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         )}
 
-        {/* TICKETS TAB */}
-        {activeTab === 'tickets' && (
-          <div className="space-y-4">
-            <h2 className="font-bold text-base">Service Requests</h2>
-            {tickets.map(t => (
-              <div key={t.id} className={`border rounded-2xl p-4 ${card}`}>
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <p className="font-bold text-sm">{t.category} — Flat {t.flat_number}</p>
-                    <p className={`text-xs mt-0.5 ${subtext}`}>{t.description}</p>
-                    <p className={`text-[10px] mt-1 ${subtext}`}>Requested by: {t.resident_name} &bull; {new Date(t.created_at).toLocaleString()}</p>
-                  </div>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold border ${
-                    t.status === 'Open' ? 'bg-red-500/10 border-red-500/20 text-red-400' :
-                    t.status === 'In-progress' ? 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400' :
-                    'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                  }`}>{t.status}</span>
-                </div>
-                {t.status === 'Open' && (
-                  <div className="mt-4 pt-4 border-t border-glassBorder">
-                    <p className="text-[10px] font-bold mb-2 text-indigo-400 uppercase tracking-wider">Assign Technician</p>
-                    <div className="flex flex-wrap gap-2">
-                      {staff.systemStaff.filter(s => s.role === 'technician').map(tech => (
-                        <button key={tech.id} onClick={() => handleAssignTicket(t.id, tech.id)}
-                          className="text-[10px] bg-indigo-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-indigo-700 transition-colors">
-                          {tech.name}
-                        </button>
-                      ))}
-                      {staff.systemStaff.filter(s => s.role === 'technician').length === 0 && (
-                        <p className="text-[10px] text-red-400 font-bold border border-red-500/20 bg-red-500/10 px-2 py-1 rounded-md">No technicians available. Add in Staff tab.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* STAFF TAB */}
+        {/* ─── TAB: STAFF ────────────────────────────────────────── */}
         {activeTab === 'staff' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base">Society Staff</h2>
-              <button onClick={() => setShowAddStaff(!showAddStaff)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
-                {showAddStaff ? <XCircle size={16} /> : <Plus size={16} />}
-                {showAddStaff ? 'Cancel' : 'Add Staff'}
+          <div className="space-y-5 animate-slide-up">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-indigo-400" />
+                <h2 className="font-heading font-black text-base uppercase tracking-wider">Society Staff Directory</h2>
+              </div>
+              <button 
+                onClick={() => { setShowAddStaff(!showAddStaff); setEditingStaff(null); setNewStaff({ name: '', phone: '', role: 'guard', password: '' }); }} 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-indigo-600/10"
+              >
+                {showAddStaff ? <XCircle size={14} /> : <Plus size={14} />}
+                <span>{showAddStaff ? 'Cancel Form' : 'Register Staff'}</span>
               </button>
             </div>
 
             {showAddStaff && (
-              <div className={`border rounded-2xl p-5 ${isDark ? 'bg-indigo-900/20 border-indigo-700/30' : 'bg-indigo-50 border-indigo-200'}`}>
-                <h3 className="font-bold text-indigo-400 mb-3 flex items-center gap-2"><UserPlus size={15} /> New Staff Member</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                  <input placeholder="Full Name" value={newStaff.name} onChange={e => setNewStaff({...newStaff, name: e.target.value})} className={`px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
-                  <input placeholder="Phone Number" value={newStaff.phone} onChange={e => setNewStaff({...newStaff, phone: e.target.value})} className={`px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
-                  <div className={`relative flex items-center border rounded-xl px-4 py-2.5 ${input}`}>
-                    <select value={newStaff.role} onChange={e => setNewStaff({...newStaff, role: e.target.value})} className="bg-transparent w-full outline-none text-sm appearance-none cursor-pointer">
-                      <option value="guard">Security Guard</option>
-                      <option value="technician">Technician</option>
-                      <option value="maid">Maid / Helper</option>
-                      <option value="cook">Cook</option>
-                    </select>
-                    <ChevronRight size={14} className={`absolute right-3 pointer-events-none rotate-90 ${subtext}`} />
+              <div className={`rounded-[30px] border p-6 space-y-4 animate-scale-up ${
+                isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-indigo-50/40 border-indigo-200'
+              }`}>
+                <h3 className="font-heading font-black text-xs text-indigo-400 uppercase tracking-widest flex items-center gap-2">
+                  <UserPlus size={14} /> {editingStaff ? 'Update Staff Member Profile' : 'New Staff Registration Form'}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                  <div>
+                    <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Full Name</label>
+                    <input 
+                      placeholder="e.g. Laxman Rawat" 
+                      value={newStaff.name} 
+                      onChange={e => setNewStaff({...newStaff, name: e.target.value})} 
+                      className={`w-full px-4 py-3 rounded-2xl border text-xs ${inputStyle}`} 
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Phone Number</label>
+                    <input 
+                      placeholder="e.g. 9876543210" 
+                      value={newStaff.phone} 
+                      onChange={e => setNewStaff({...newStaff, phone: e.target.value})} 
+                      className={`w-full px-4 py-3 rounded-2xl border text-xs ${inputStyle}`} 
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Role</label>
+                    <div className="relative flex items-center">
+                      <select 
+                        value={newStaff.role} 
+                        onChange={e => setNewStaff({...newStaff, role: e.target.value})} 
+                        className={`w-full px-4 py-3 rounded-2xl border text-xs appearance-none cursor-pointer outline-none ${inputStyle}`}
+                      >
+                        <option value="guard">🛡️ Security Guard</option>
+                        <option value="technician">🔧 Technician</option>
+                        <option value="maid">🧹 Maid / Helper</option>
+                        <option value="cook">🍳 Cook</option>
+                      </select>
+                      <ChevronRight size={14} className={`absolute right-4 pointer-events-none rotate-90 ${subtext}`} />
+                    </div>
                   </div>
                   {['guard', 'technician'].includes(newStaff.role) && (
-                    <input placeholder={editingStaff ? "New Password (Leave blank to keep current)" : "Login Password (Min 6 chars)"} type="password" value={newStaff.password || ''} onChange={e => setNewStaff({...newStaff, password: e.target.value})} className={`px-4 py-2.5 rounded-xl border text-sm outline-none md:col-span-3 ${input}`} />
+                    <div className="sm:col-span-3">
+                      <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>
+                        {editingStaff ? "New Password (Leave blank to keep current)" : "Login Password (Min 6 chars)"}
+                      </label>
+                      <input 
+                        placeholder="Create strong password" 
+                        type="password" 
+                        value={newStaff.password || ''} 
+                        onChange={e => setNewStaff({...newStaff, password: e.target.value})} 
+                        className={`w-full px-4 py-3 rounded-2xl border text-xs ${inputStyle}`} 
+                      />
+                    </div>
                   )}
                 </div>
-                <button onClick={handleAddOrEditStaff} disabled={actionLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
-                  {actionLoading ? <Loader2 className="animate-spin" size={18} /> : (editingStaff ? 'Update Staff Member' : 'Register Staff')}
+                <button 
+                  onClick={handleAddOrEditStaff} 
+                  disabled={actionLoading} 
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-indigo-600/10"
+                >
+                  {actionLoading ? <Loader2 className="animate-spin" size={15} /> : (editingStaff ? 'Update Staff Member' : 'Register Staff')}
                 </button>
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className={`border rounded-2xl p-4 ${card}`}>
-                <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><ShieldCheck size={16} className="text-emerald-400" /> System Access Staff</h3>
-                {staff.systemStaff.length === 0 && <p className={`text-xs ${subtext}`}>No system staff found.</p>}
-                {staff.systemStaff.map(s => (
-                  <div key={s.id} className={`flex items-center justify-between p-3 mb-2 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
-                    <div>
-                      <p className="font-bold text-sm">{s.name}</p>
-                      <p className={`text-xs capitalize ${subtext}`}>{s.role} &bull; {s.phone}</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              
+              {/* System Access Staff */}
+              <div className={`rounded-[32px] border p-5 ${cardStyle}`}>
+                <h3 className="font-heading font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <ShieldCheck size={16} className="text-emerald-400" /> System Access Staff (Guards/Techs)
+                </h3>
+                {staff.systemStaff.length === 0 && <p className={`text-xs ${subtext} text-center py-6`}>No system access staff found.</p>}
+                
+                <div className="space-y-3">
+                  {staff.systemStaff.map(s => (
+                    <div key={s.id} className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                      isDark ? 'bg-slate-950/20 border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-850 border border-slate-800 flex items-center justify-center text-xs font-black">
+                          {s.role === 'guard' ? '🛡️' : '🔧'}
+                        </div>
+                        <div>
+                          <p className="font-black text-xs text-slate-800 dark:text-slate-100">{s.name}</p>
+                          <p className={`text-[10px] capitalize font-semibold mt-0.5 ${subtext}`}>
+                            {s.role} &bull; <span className="font-mono">{s.phone}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button 
+                          onClick={() => handleEditStaff(s, 'system')} 
+                          className={`p-2 rounded-xl transition-all text-indigo-400 hover:bg-indigo-500/10`}
+                        >
+                          <PenLine size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteStaff(s.id, 'system')} 
+                          className={`p-2 rounded-xl transition-all text-rose-400 hover:bg-rose-500/10`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleEditStaff(s, 'system')} className="text-indigo-400 hover:text-indigo-300 p-1">
-                        <PenLine size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteStaff(s.id, 'system')} className="text-red-400 hover:text-red-300 p-1">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
 
-              <div className={`border rounded-2xl p-4 ${card}`}>
-                <h3 className="font-bold text-sm mb-3 flex items-center gap-2"><Users size={16} className="text-indigo-400" /> Daily Helpers (QR Access)</h3>
-                {staff.externalStaff.length === 0 && <p className={`text-xs ${subtext}`}>No daily helpers found.</p>}
-                {staff.externalStaff.map(s => (
-                  <div key={s.id} className={`flex items-center justify-between p-3 mb-2 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
-                    <div>
-                      <p className="font-bold text-sm">{s.name}</p>
-                      <p className={`text-xs capitalize ${subtext}`}>{s.role} &bull; {s.phone}</p>
+              {/* Daily Helpers */}
+              <div className={`rounded-[32px] border p-5 ${cardStyle}`}>
+                <h3 className="font-heading font-black text-xs uppercase tracking-widest mb-4 flex items-center gap-2">
+                  <Users size={16} className="text-indigo-400" /> Daily Helpers (Maids/Drivers)
+                </h3>
+                {staff.externalStaff.length === 0 && <p className={`text-xs ${subtext} text-center py-6`}>No daily helpers found.</p>}
+                
+                <div className="space-y-3">
+                  {staff.externalStaff.map(s => (
+                    <div key={s.id} className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                      isDark ? 'bg-slate-950/20 border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                    }`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-850 border border-slate-800 flex items-center justify-center text-xs font-black">
+                          {s.role === 'maid' ? '🧹' : s.role === 'cook' ? '🍳' : '🚗'}
+                        </div>
+                        <div>
+                          <p className="font-black text-xs text-slate-800 dark:text-slate-100">{s.name}</p>
+                          <p className={`text-[10px] capitalize font-semibold mt-0.5 ${subtext}`}>
+                            {s.role} &bull; <span className="font-mono">{s.phone}</span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <button 
+                          onClick={() => handleEditStaff(s, 'external')} 
+                          className="p-2 rounded-xl transition-all text-indigo-400 hover:bg-indigo-500/10"
+                        >
+                          <PenLine size={14} />
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteStaff(s.id, 'external')} 
+                          className="p-2 rounded-xl transition-all text-rose-400 hover:bg-rose-500/10"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <button onClick={() => handleEditStaff(s, 'external')} className="text-indigo-400 hover:text-indigo-300 p-1">
-                        <PenLine size={16} />
-                      </button>
-                      <button onClick={() => handleDeleteStaff(s.id, 'external')} className="text-red-400 hover:text-red-300 p-1">
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
+
             </div>
           </div>
         )}
 
-        {/* RESIDENTS TAB */}
+        {/* ─── TAB: RESIDENTS ────────────────────────────────────────── */}
         {activeTab === 'residents' && (
-          <div className="space-y-3">
-            <h2 className="font-bold text-base">Active Residents ({residents.length})</h2>
+          <div className="space-y-4 animate-slide-up">
+            <div className="flex items-center gap-2">
+              <ShieldCheck size={18} className="text-indigo-400" />
+              <h2 className="font-heading font-black text-base uppercase tracking-wider">Active Verified Residents ({residents.length})</h2>
+            </div>
+            
             {residents.length === 0 ? (
-              <div className={`border rounded-2xl p-10 text-center ${card}`}>
-                <Users size={40} className="mx-auto opacity-30 mb-3" />
-                <p className={`text-sm ${subtext}`}>No active residents found</p>
+              <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                <Users size={36} className="mx-auto opacity-30 mb-3" />
+                <p className="font-black text-slate-800 dark:text-white">No active residents</p>
+                <p className={`text-xs mt-1 ${subtext}`}>No active residents have been verified in this society yet.</p>
               </div>
             ) : (
-              residents.map(r => (
-                <div key={r.id} className={`border rounded-2xl p-4 flex items-center gap-3 ${card}`}>
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
-                    {r.name.charAt(0)}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {residents.map(r => (
+                  <div key={r.id} className={`rounded-[30px] border p-5 flex items-center gap-4 transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
+                    <div className="w-11 h-11 rounded-[16px] bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[1px] shadow-md">
+                      <div className="w-full h-full rounded-[15px] bg-slate-900 flex items-center justify-center text-white font-extrabold text-xs">
+                        {(r.name || 'U').substring(0, 2).toUpperCase()}
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-black text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate">{r.name}</p>
+                      <p className={`text-[10px] ${subtext} mt-0.5 flex items-center gap-1.5`}>
+                        Flat <span className="text-indigo-400 font-extrabold">{r.flat_number || 'N/A'}</span> &bull; 📞 <span className="font-mono">{r.phone}</span>
+                      </p>
+                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                        <span className={`text-[8px] font-black uppercase tracking-wider bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-500/10 inline-block ${subtext}`}>
+                          {r.role.replace('_', ' ')}
+                        </span>
+                        {r.vehicles && r.vehicles.length > 0 && r.vehicles.map((v, idx) => (
+                          <span 
+                            key={idx}
+                            className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border flex items-center gap-1
+                              ${isDark 
+                                ? 'bg-indigo-950/40 text-indigo-300 border-indigo-500/20' 
+                                : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}
+                          >
+                            <span>{v.type?.toLowerCase()?.includes('bike') || v.type?.toLowerCase()?.includes('2') || v.type?.toLowerCase()?.includes('scooty') ? '🏍️' : '🚗'}</span>
+                            <span>{v.vehicle_number}</span>
+                            {v.brand && <span className="opacity-75">({v.brand})</span>}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1 animate-pulse">
+                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" />
+                      ACTIVE
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-sm">{r.name}</p>
-                    <p className={`text-xs ${subtext}`}>Flat <span className="text-indigo-400 font-bold">{r.flat_number || 'N/A'}</span> • {r.phone}</p>
-                    <p className={`text-xs ${subtext} capitalize`}>{r.role.replace('_', ' ')}</p>
-                  </div>
-                  <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-full">Active</span>
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </div>
         )}
 
-        {/* ENTRY LOG TAB */}
+        {/* ─── TAB: ENTRY LOG ────────────────────────────────────────── */}
         {activeTab === 'logs' && (() => {
           const filteredLogs = entryLogs.filter(log => {
             if (logSearch) {
@@ -505,63 +954,71 @@ const ManagerDashboard = ({ user, onLogout }) => {
           });
 
           return (
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <h2 className="font-bold text-base flex items-center gap-2">
-                  <Activity size={16} className="text-indigo-400" /> Society Entry & Exit History
-                </h2>
-                <p className={`text-xs ${subtext}`}>Total: <span className="text-indigo-400 font-bold">{filteredLogs.length} logs</span> found</p>
+            <div className="space-y-4 animate-slide-up">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="flex items-center gap-2">
+                  <Activity size={18} className="text-indigo-400" />
+                  <h2 className="font-heading font-black text-base uppercase tracking-wider">Gate Activity History</h2>
+                </div>
+                <p className={`text-xs ${subtext}`}>Total: <span className="text-indigo-400 font-bold">{filteredLogs.length} matching entries</span></p>
               </div>
 
-              {/* Filters Panel */}
-              <div className={`border rounded-2xl p-4 space-y-3 ${card}`}>
-                <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                  {/* Search Input */}
-                  <input
-                    type="text"
-                    placeholder="Search Name, Flat, Gate, Guard..."
-                    value={logSearch}
-                    onChange={e => setLogSearch(e.target.value)}
-                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} sm:col-span-1`}
-                  />
+              {/* Glass Filters Panel */}
+              <div className={`rounded-3xl border p-4.5 space-y-3.5 ${cardStyle}`}>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                  <div className="relative flex items-center">
+                    <Search className={`absolute left-3.5 text-slate-500`} size={13} />
+                    <input
+                      type="text"
+                      placeholder="Search Name, Flat..."
+                      value={logSearch}
+                      onChange={e => setLogSearch(e.target.value)}
+                      className={`w-full pl-9 pr-4 py-2.5 rounded-xl text-xs ${inputStyle}`}
+                    />
+                  </div>
 
-                  {/* Filter Type */}
-                  <select
-                    value={logType}
-                    onChange={e => setLogType(e.target.value)}
-                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} cursor-pointer`}
-                  >
-                    <option value="all">All Types</option>
-                    <option value="guest">Guests Only 🧑</option>
-                    <option value="vehicle">Vehicles Only 🚗</option>
-                    <option value="staff">Staff Only 👷</option>
-                  </select>
+                  <div className="relative flex items-center">
+                    <select
+                      value={logType}
+                      onChange={e => setLogType(e.target.value)}
+                      className={`w-full px-3 py-2.5 rounded-xl text-xs cursor-pointer appearance-none ${inputStyle}`}
+                    >
+                      <option value="all">All Types</option>
+                      <option value="guest">Guests Only 🧑</option>
+                      <option value="vehicle">Vehicles Only 🚗</option>
+                      <option value="staff">Staff Only 👷</option>
+                    </select>
+                    <Filter className={`absolute right-3.5 text-slate-500 pointer-events-none`} size={11} />
+                  </div>
 
-                  {/* Filter Status */}
-                  <select
-                    value={logStatus}
-                    onChange={e => setLogStatus(e.target.value)}
-                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} cursor-pointer`}
-                  >
-                    <option value="all">All Status</option>
-                    <option value="inside">Inside Society 🟢</option>
-                    <option value="exited">Checked Out 🔴</option>
-                  </select>
+                  <div className="relative flex items-center">
+                    <select
+                      value={logStatus}
+                      onChange={e => setLogStatus(e.target.value)}
+                      className={`w-full px-3 py-2.5 rounded-xl text-xs cursor-pointer appearance-none ${inputStyle}`}
+                    >
+                      <option value="all">All Status</option>
+                      <option value="inside">Inside Society 🟢</option>
+                      <option value="exited">Checked Out 🔴</option>
+                    </select>
+                    <Filter className={`absolute right-3.5 text-slate-500 pointer-events-none`} size={11} />
+                  </div>
 
-                  {/* Filter Date */}
-                  <select
-                    value={logDateFilter}
-                    onChange={e => setLogDateFilter(e.target.value)}
-                    className={`px-3 py-2 rounded-xl text-xs border outline-none ${input} cursor-pointer`}
-                  >
-                    <option value="all">All Dates</option>
-                    <option value="today">Today</option>
-                    <option value="yesterday">Yesterday</option>
-                    <option value="week">Past 7 Days</option>
-                  </select>
+                  <div className="relative flex items-center">
+                    <select
+                      value={logDateFilter}
+                      onChange={e => setLogDateFilter(e.target.value)}
+                      className={`w-full px-3 py-2.5 rounded-xl text-xs cursor-pointer appearance-none ${inputStyle}`}
+                    >
+                      <option value="all">All Dates</option>
+                      <option value="today">Today</option>
+                      <option value="yesterday">Yesterday</option>
+                      <option value="week">Past 7 Days</option>
+                    </select>
+                    <Filter className={`absolute right-3.5 text-slate-500 pointer-events-none`} size={11} />
+                  </div>
                 </div>
 
-                {/* Reset Filters */}
                 {(logSearch || logType !== 'all' || logStatus !== 'all' || logDateFilter !== 'all') && (
                   <div className="flex justify-end">
                     <button
@@ -571,9 +1028,9 @@ const ManagerDashboard = ({ user, onLogout }) => {
                         setLogStatus('all');
                         setLogDateFilter('all');
                       }}
-                      className="text-xs text-red-400 hover:text-red-300 font-bold transition-all"
+                      className="text-[10px] text-rose-400 hover:text-rose-300 font-black uppercase tracking-wider flex items-center gap-1 transition-all"
                     >
-                      Clear All Filters 🔄
+                      <RefreshCw size={11} /> Reset Filters
                     </button>
                   </div>
                 )}
@@ -581,63 +1038,72 @@ const ManagerDashboard = ({ user, onLogout }) => {
 
               {/* Logs List */}
               {filteredLogs.length === 0 ? (
-                <div className={`border rounded-2xl p-10 text-center ${card}`}>
-                  <Activity size={40} className="mx-auto opacity-30 mb-3" />
-                  <p className="font-bold text-sm">Koi records nahi mile</p>
-                  <p className={`text-xs mt-1 ${subtext}`}>Try changing your search or filters.</p>
+                <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                  <Activity size={36} className="mx-auto opacity-30 mb-3 text-indigo-500" />
+                  <p className="font-black text-slate-800 dark:text-white">No logs found</p>
+                  <p className={`text-xs mt-1 ${subtext}`}>Adjust your filters or query search term.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-3.5">
                   {filteredLogs.map(log => {
                     const isInside = !log.exit_time;
                     return (
-                      <div key={log.id} className={`border rounded-2xl p-4 ${card} transition-all hover:scale-[1.01]`}>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg ${
-                              log.entity_type === 'vehicle' ? 'bg-blue-500/20' :
-                              log.entity_type === 'guest' ? 'bg-emerald-500/20' : 'bg-purple-500/20'
+                      <div key={log.id} className={`rounded-[28px] border p-4.5 transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-3.5">
+                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-sm border ${
+                              log.entity_type === 'vehicle' ? 'bg-blue-500/10 border-blue-500/20' :
+                              log.entity_type === 'guest' ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-purple-500/10 border-purple-500/20'
                             }`}>
                               {log.entity_type === 'vehicle' ? '🚗' : log.entity_type === 'guest' ? '🧑' : '👷'}
                             </div>
                             <div>
-                              <p className="font-extrabold text-sm">{log.entity_name || 'Unknown'}</p>
-                              <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                                <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${
-                                  log.entity_type === 'vehicle' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
-                                  log.entity_type === 'guest' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                                  'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                              <p className="font-black text-sm text-slate-800 dark:text-slate-100">{log.entity_name || 'Visitor'}</p>
+                              <div className="flex items-center gap-2.5 flex-wrap mt-1">
+                                <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${
+                                  log.entity_type === 'vehicle' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/15' :
+                                  log.entity_type === 'guest' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/15' :
+                                  'bg-purple-500/10 text-purple-400 border border-purple-500/15'
                                 }`}>
                                   {log.entity_type}
                                 </span>
                                 {log.flat_number && log.flat_number !== 'N/A' && (
-                                  <span className="text-[10px] font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
+                                  <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
                                     Flat {log.flat_number}
                                   </span>
                                 )}
-                                <span className={`text-[10px] ${subtext}`}>
+                                <span className={`text-[9px] font-semibold ${subtext}`}>
                                   Gate: {log.gate_number || 'Gate 1'}
                                 </span>
+                                {log.vehicle_number && (
+                                  <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md border flex items-center gap-1
+                                    ${isDark 
+                                      ? 'bg-amber-950/40 text-amber-300 border-amber-500/20' 
+                                      : 'bg-amber-50 text-amber-600 border-amber-200'}`}>
+                                    <span>{log.vehicle_number === 'Walk-in' ? '🚶' : '🚗'}</span>
+                                    <span>{log.vehicle_number}</span>
+                                  </span>
+                                )}
                               </div>
-                              <p className={`text-[10px] mt-1 ${subtext}`}>Logged by: <span className="font-bold">{log.guard_name || 'System'}</span></p>
+                              <p className={`text-[8px] mt-1.5 ${subtext}`}>Logged by: <span className="font-black text-indigo-400">{log.guard_name || 'System'}</span></p>
                             </div>
                           </div>
                           <div className="text-left sm:text-right space-y-1">
-                            <div className="flex items-center sm:justify-end gap-1.5">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              <p className="text-xs font-semibold">
+                            <div className="flex items-center sm:justify-end gap-2">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                              <p className="text-xs font-black text-slate-800 dark:text-slate-200">
                                 In: {new Date(log.entry_time).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                               </p>
                             </div>
                             {log.exit_time ? (
-                              <div className="flex items-center sm:justify-end gap-1.5">
+                              <div className="flex items-center sm:justify-end gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>
-                                <p className="text-xs text-red-400 font-semibold">
+                                <p className="text-xs text-rose-400 font-black">
                                   Out: {new Date(log.exit_time).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                                 </p>
                               </div>
                             ) : (
-                              <span className="inline-block text-[10px] bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                              <span className="inline-block text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-2.5 py-0.5 rounded-full font-black uppercase tracking-widest mt-1 animate-pulse">
                                 Inside Society 🟢
                               </span>
                             )}
@@ -652,242 +1118,390 @@ const ManagerDashboard = ({ user, onLogout }) => {
           );
         })()}
 
-        {/* ANALYTICS TAB */}
+        {/* ─── TAB: ANALYTICS ────────────────────────────────────────── */}
         {activeTab === 'analytics' && (
-          <div className="space-y-4">
-            <h2 className="font-bold text-base flex items-center gap-2">
-              <Activity size={16} className="text-indigo-400" /> Visitor & Service Analytics
-            </h2>
-            <div className={`border rounded-2xl p-4 ${card}`}>
-              <h3 className="text-sm font-bold mb-4">Daily Entries (Past 7 Days)</h3>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={[
-                    { name: 'Mon', entries: 12 }, { name: 'Tue', entries: 19 }, { name: 'Wed', entries: 15 },
-                    { name: 'Thu', entries: 22 }, { name: 'Fri', entries: 30 }, { name: 'Sat', entries: 45 }, { name: 'Sun', entries: 38 }
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
-                    <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
-                    <RechartsTooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Line type="monotone" dataKey="entries" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 6 }} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+          <div className="space-y-5 animate-slide-up">
+            <div className="flex items-center gap-2">
+              <BarChart2 size={18} className="text-indigo-400" />
+              <h2 className="font-heading font-black text-base uppercase tracking-wider">Gate & Support Analytics</h2>
             </div>
             
-            <div className={`border rounded-2xl p-4 ${card}`}>
-              <h3 className="text-sm font-bold mb-4">Service Requests by Category</h3>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={[
-                    { name: 'Plumbing', count: 8 }, { name: 'Electrical', count: 12 }, { name: 'Cleaning', count: 5 }, { name: 'Other', count: 3 }
-                  ]}>
-                    <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
-                    <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={12} tickLine={false} axisLine={false} />
-                    <RechartsTooltip cursor={{ fill: isDark ? '#334155' : '#f1f5f9' }} contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
-                    <Bar dataKey="count" fill="#10b981" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className={`rounded-[32px] border p-6 ${cardStyle}`}>
+                <h3 className="text-xs font-black uppercase tracking-wider mb-4.5 text-slate-800 dark:text-slate-200">
+                  Daily Society Footfall (Past Week)
+                </h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={[
+                      { name: 'Mon', entries: 12 }, { name: 'Tue', entries: 19 }, { name: 'Wed', entries: 15 },
+                      { name: 'Thu', entries: 22 }, { name: 'Fri', entries: 30 }, { name: 'Sat', entries: 45 }, { name: 'Sun', entries: 38 }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
+                      <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
+                      <RechartsTooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                      <Line type="monotone" dataKey="entries" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 6 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+              
+              <div className={`rounded-[32px] border p-6 ${cardStyle}`}>
+                <h3 className="text-xs font-black uppercase tracking-wider mb-4.5 text-slate-800 dark:text-slate-200">
+                  Service Requests breakdown
+                </h3>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={[
+                      { name: 'Plumbing', count: 8 }, { name: 'Electric', count: 12 }, { name: 'Cleaning', count: 5 }, { name: 'Other', count: 3 }
+                    ]}>
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
+                      <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
+                      <RechartsTooltip cursor={{ fill: isDark ? '#334155' : '#f1f5f9' }} contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
+                      <Bar dataKey="count" fill="#10b981" radius={[8, 8, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* EMERGENCY CONTACTS TAB */}
+        {/* ─── TAB: EMERGENCY CONTACTS ────────────────────────────────── */}
         {activeTab === 'emergency' && (() => {
           const CATEGORIES = ['Police', 'Fire Brigade', 'Ambulance', 'Electrician', 'Plumber', 'Security', 'Committee', 'Other'];
           const catColors = {
-            'Police': 'bg-blue-500/20 text-blue-400 border-blue-500/30',
-            'Fire Brigade': 'bg-red-500/20 text-red-400 border-red-500/30',
-            'Ambulance': 'bg-rose-500/20 text-rose-400 border-rose-500/30',
-            'Electrician': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
-            'Plumber': 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
-            'Security': 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30',
-            'Committee': 'bg-purple-500/20 text-purple-400 border-purple-500/30',
-            'Other': 'bg-slate-500/20 text-slate-400 border-slate-500/30',
+            'Police': 'bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/15',
+            'Fire Brigade': 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/15',
+            'Ambulance': 'bg-rose-500/10 text-rose-400 border-rose-500/20 hover:bg-rose-500/15',
+            'Electrician': 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20 hover:bg-yellow-500/15',
+            'Plumber': 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20 hover:bg-cyan-500/15',
+            'Security': 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/15',
+            'Committee': 'bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/15',
+            'Other': 'bg-slate-500/10 text-slate-400 border-slate-500/20 hover:bg-slate-500/15',
           };
           return (
-            <div className="space-y-4">
+            <div className="space-y-4 animate-slide-up">
               <div className="flex items-center justify-between">
-                <h2 className="font-bold text-base flex items-center gap-2">
-                  <AlertCircle size={16} className="text-red-400" /> Emergency Contacts
-                </h2>
-                <button onClick={() => { setShowAddEmergency(!showAddEmergency); setEditingEmergency(null); setNewEmergency({ name: '', phone: '', category: 'Police', priority: 5 }); }}
-                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
-                  {showAddEmergency ? <XCircle size={15}/> : <Plus size={15}/>} {showAddEmergency ? 'Cancel' : 'Add Contact'}
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={18} className="text-red-400" />
+                  <h2 className="font-heading font-black text-base uppercase tracking-wider">Emergency Response Contacts</h2>
+                </div>
+                <button 
+                  onClick={() => { setShowAddEmergency(!showAddEmergency); setEditingEmergency(null); setNewEmergency({ name: '', phone: '', category: 'Police', priority: 5 }); }}
+                  className="bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-red-600/10"
+                >
+                  {showAddEmergency ? <XCircle size={14}/> : <Plus size={14}/>} 
+                  <span>{showAddEmergency ? 'Close Form' : 'Add Contact'}</span>
                 </button>
               </div>
 
               {showAddEmergency && (
-                <div className={`border rounded-2xl p-5 space-y-3 ${isDark ? 'bg-red-900/20 border-red-700/30' : 'bg-red-50 border-red-200'}`}>
-                  <h4 className="font-bold text-sm text-red-400 flex items-center gap-2"><PhoneCall size={14}/> {editingEmergency ? 'Update Contact' : 'New Emergency Contact'}</h4>
-                  <input placeholder="Contact Name (e.g. Local Police Station)" value={newEmergency.name}
-                    onChange={e => setNewEmergency({...newEmergency, name: e.target.value})}
-                    className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
-                  <input placeholder="Phone Number" type="tel" value={newEmergency.phone}
-                    onChange={e => setNewEmergency({...newEmergency, phone: e.target.value})}
-                    className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
-                  <select value={newEmergency.category} onChange={e => setNewEmergency({...newEmergency, category: e.target.value})}
-                    className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`}>
-                    {CATEGORIES.map(c => <option key={c}>{c}</option>)}
-                  </select>
-                  <div>
-                    <label className={`text-xs font-semibold ${subtext} block mb-1`}>Priority (1=Highest, 10=Lowest)</label>
-                    <input type="number" min={1} max={10} value={newEmergency.priority}
-                      onChange={e => setNewEmergency({...newEmergency, priority: Number(e.target.value)})}
-                      className={`w-full border rounded-xl px-3 py-2.5 text-sm outline-none ${input}`} />
+                <div className={`rounded-[30px] border p-6 space-y-4.5 animate-scale-up bg-red-500/5 border-red-500/20`}>
+                  <h4 className="font-heading font-black text-xs text-red-400 uppercase tracking-widest flex items-center gap-2">
+                    <PhoneCall size={13}/> {editingEmergency ? 'Update Emergency Contact Info' : 'New Emergency Contact Registration'}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Contact Name</label>
+                      <input 
+                        placeholder="e.g. Sector-23 Police Chowki" 
+                        value={newEmergency.name}
+                        onChange={e => setNewEmergency({...newEmergency, name: e.target.value})}
+                        className={`w-full px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`} 
+                      />
+                    </div>
+                    <div>
+                      <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Phone Number</label>
+                      <input 
+                        placeholder="e.g. 911 / 9876543210" 
+                        type="tel" 
+                        value={newEmergency.phone}
+                        onChange={e => setNewEmergency({...newEmergency, phone: e.target.value})}
+                        className={`w-full px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`} 
+                      />
+                    </div>
+                    <div>
+                      <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Category</label>
+                      <div className="relative flex items-center">
+                        <select 
+                          value={newEmergency.category} 
+                          onChange={e => setNewEmergency({...newEmergency, category: e.target.value})}
+                          className={`w-full px-4 py-3 rounded-2xl border text-xs appearance-none cursor-pointer outline-none ${inputStyle}`}
+                        >
+                          {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        <ChevronRight size={14} className={`absolute right-4 pointer-events-none rotate-90 ${subtext}`} />
+                      </div>
+                    </div>
+                    <div>
+                      <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Priority Rank (1=Highest, 10=Lowest)</label>
+                      <input 
+                        type="number" 
+                        min={1} 
+                        max={10} 
+                        value={newEmergency.priority}
+                        onChange={e => setNewEmergency({...newEmergency, priority: Number(e.target.value)})}
+                        className={`w-full px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`} 
+                      />
+                    </div>
                   </div>
-                  <button onClick={async () => {
-                    if (!newEmergency.name || !newEmergency.phone) return alert('Name and phone required');
-                    setActionLoading(true);
-                    try {
-                      if (editingEmergency) {
-                        await emergencyAPI.update(editingEmergency.id, newEmergency);
-                      } else {
-                        await emergencyAPI.create(newEmergency);
+                  <button 
+                    onClick={async () => {
+                      if (!newEmergency.name || !newEmergency.phone) return alert('Name and phone required');
+                      setActionLoading(true);
+                      try {
+                        if (editingEmergency) {
+                          await emergencyAPI.update(editingEmergency.id, newEmergency);
+                        } else {
+                          await emergencyAPI.create(newEmergency);
+                        }
+                        setNewEmergency({ name: '', phone: '', category: 'Police', priority: 5 });
+                        setShowAddEmergency(false);
+                        setEditingEmergency(null);
+                        await fetchAllData();
+                      } catch(e) { 
+                        alert('Failed to save contact'); 
+                      } finally { 
+                        setActionLoading(false); 
                       }
-                      setNewEmergency({ name: '', phone: '', category: 'Police', priority: 5 });
-                      setShowAddEmergency(false);
-                      setEditingEmergency(null);
-                      await fetchAllData();
-                    } catch(e) { alert('Failed to save contact'); }
-                    finally { setActionLoading(false); }
-                  }} disabled={actionLoading}
-                    className="w-full py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-                    {actionLoading ? <Loader2 className="animate-spin" size={16}/> : (editingEmergency ? 'Update Contact' : 'Save Contact')}
+                    }} 
+                    disabled={actionLoading}
+                    className="w-full py-3.5 bg-red-600 hover:bg-red-700 text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all shadow-md shadow-red-600/10 active:scale-95"
+                  >
+                    {actionLoading ? <Loader2 className="animate-spin" size={15}/> : <><PhoneCall size={13}/> {editingEmergency ? 'Update Emergency Contact' : 'Publish Emergency Contact'}</>}
                   </button>
                 </div>
               )}
 
-              {/* Quick Dial Strip */}
-              {emergencyContacts.length > 0 && (
-                <div className={`border rounded-2xl p-4 ${isDark ? 'bg-red-900/10 border-red-700/20' : 'bg-red-50 border-red-200'}`}>
-                  <p className="text-xs font-black text-red-400 mb-3 uppercase tracking-wider">🚨 Quick Dial</p>
-                  <div className="grid grid-cols-2 gap-2">
+              {/* VIP Quick Dialer Dial Strip */}
+              {emergencyContacts.filter(c => c.priority <= 3).length > 0 && (
+                <div className={`rounded-[30px] border p-5 bg-red-500/5 border-red-500/15 shadow-md shadow-red-500/5`}>
+                  <p className="text-[10px] font-black text-red-500 mb-3.5 uppercase tracking-widest flex items-center gap-1.5">
+                    🚨 SOS HOTLINE (Priority 1-3)
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {emergencyContacts.filter(c => c.priority <= 3).map(c => (
-                      <a key={c.id} href={`tel:${c.phone}`}
-                        className={`flex items-center gap-2 p-3 rounded-xl border font-bold text-xs transition-all active:scale-95 ${catColors[c.category] || catColors['Other']}`}>
-                        <PhoneCall size={14}/>
-                        <div>
-                          <p className="font-bold text-xs">{c.name}</p>
-                          <p className="font-mono text-xs opacity-80">{c.phone}</p>
+                      <a 
+                        key={c.id} 
+                        href={`tel:${c.phone}`}
+                        className={`flex items-center justify-between p-4 rounded-2xl border font-bold transition-all duration-300 hover:scale-[1.02] active:scale-95 ${
+                          catColors[c.category] || catColors['Other']
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400">
+                            <PhoneCall size={16}/>
+                          </div>
+                          <div>
+                            <p className="font-black text-xs">{c.name}</p>
+                            <p className="font-mono text-xs opacity-80 mt-0.5">{c.phone}</p>
+                          </div>
                         </div>
+                        <span className="text-[8px] bg-red-500 text-white font-black px-2 py-0.5 rounded-full">VIP</span>
                       </a>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* All Contacts List */}
-              <div className="space-y-2">
+              {/* All Emergency Contacts by Category */}
+              <div className="space-y-5">
                 {CATEGORIES.map(cat => {
                   const catContacts = emergencyContacts.filter(c => c.category === cat);
                   if (!catContacts.length) return null;
                   return (
-                    <div key={cat}>
-                      <p className={`text-xs font-black uppercase tracking-wider mb-2 ${subtext}`}>{cat}</p>
-                      {catContacts.map(c => (
-                        <div key={c.id} className={`border rounded-2xl p-4 flex items-center justify-between mb-2 ${card}`}>
-                          <div className="flex items-center gap-3">
-                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center border text-sm font-black ${catColors[c.category] || catColors['Other']}`}>
-                              {cat === 'Police' ? '🚓' : cat === 'Fire Brigade' ? '🔥' : cat === 'Ambulance' ? '🚑' : cat === 'Electrician' ? '⚡' : cat === 'Plumber' ? '🔧' : '📞'}
+                    <div key={cat} className="space-y-2">
+                      <p className={`text-[10px] font-black uppercase tracking-widest px-1 ${subtext}`}>{cat}</p>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        {catContacts.map(c => (
+                          <div 
+                            key={c.id} 
+                            className={`rounded-[28px] border p-4.5 flex items-center justify-between transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}
+                          >
+                            <div className="flex items-center gap-3.5">
+                              <div className={`w-9 h-9 rounded-xl flex items-center justify-center border text-sm font-black ${
+                                catColors[c.category] || catColors['Other']
+                              }`}>
+                                {cat === 'Police' ? '🚓' : cat === 'Fire Brigade' ? '🔥' : cat === 'Ambulance' ? '🚑' : cat === 'Electrician' ? '⚡' : cat === 'Plumber' ? '🔧' : '📞'}
+                              </div>
+                              <div>
+                                <p className="font-black text-xs text-slate-800 dark:text-slate-100">{c.name}</p>
+                                <a 
+                                  href={`tel:${c.phone}`} 
+                                  className="text-xs text-indigo-400 font-mono font-black hover:underline mt-0.5 block"
+                                >
+                                  {c.phone}
+                                </a>
+                              </div>
                             </div>
-                            <div>
-                              <p className="font-bold text-sm">{c.name}</p>
-                              <a href={`tel:${c.phone}`} className="text-xs text-indigo-400 font-mono font-bold hover:underline">{c.phone}</a>
+                            <div className="flex items-center gap-1">
+                              <button 
+                                onClick={() => {
+                                  setEditingEmergency(c);
+                                  setNewEmergency({ name: c.name, phone: c.phone, category: c.category, priority: c.priority });
+                                  setShowAddEmergency(true);
+                                }} 
+                                className="p-2 text-indigo-400 hover:bg-indigo-500/10 rounded-xl transition-all"
+                              >
+                                <PenLine size={13}/>
+                              </button>
+                              <button 
+                                onClick={async () => {
+                                  if (!window.confirm('Delete this contact?')) return;
+                                  try { 
+                                    await emergencyAPI.delete(c.id); 
+                                    await fetchAllData(); 
+                                  } catch { 
+                                    alert('Delete failed'); 
+                                  }
+                                }} 
+                                className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition-all"
+                              >
+                                <Trash2 size={13}/>
+                              </button>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold ${catColors[c.category] || catColors['Other']}`}>{c.category}</span>
-                            <button onClick={() => {
-                              setEditingEmergency(c);
-                              setNewEmergency({ name: c.name, phone: c.phone, category: c.category, priority: c.priority });
-                              setShowAddEmergency(true);
-                            }} className="text-indigo-400 hover:text-indigo-300 p-1"><PenLine size={14}/></button>
-                            <button onClick={async () => {
-                              if (!window.confirm('Delete this contact?')) return;
-                              try { await emergencyAPI.delete(c.id); await fetchAllData(); }
-                              catch { alert('Delete failed'); }
-                            }} className="text-red-400 hover:text-red-300 p-1"><Trash2 size={14}/></button>
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
+                
                 {emergencyContacts.length === 0 && (
-                  <div className={`border rounded-2xl p-10 text-center ${card}`}>
-                    <PhoneCall size={36} className="mx-auto opacity-30 mb-3" />
-                    <p className="font-bold text-sm">No emergency contacts added yet</p>
-                    <p className={`text-xs mt-1 ${subtext}`}>Add Police, Fire, Ambulance numbers for your society residents.</p>
+                  <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                    <PhoneCall size={36} className="mx-auto opacity-30 mb-3 text-indigo-500" />
+                    <p className="font-black text-slate-800 dark:text-white">No emergency contacts configured</p>
+                    <p className={`text-xs mt-1 ${subtext}`}>Click the button at the top to publish emergency numbers for residents.</p>
                   </div>
                 )}
               </div>
+
             </div>
           );
         })()}
 
-        {/* NOTICES TAB */}
+        {/* ─── TAB: NOTICES ────────────────────────────────────────── */}
         {activeTab === 'notices' && (
-          <AnnouncementBoard user={user} />
+          <div className="animate-slide-up">
+            <AnnouncementBoard user={user} />
+          </div>
         )}
 
-        {/* ADS TAB */}
+        {/* ─── TAB: PROMOTIONS / ADS ────────────────────────────────── */}
         {activeTab === 'ads' && (
-          <div className="space-y-4">
+          <div className="space-y-4 animate-slide-up">
             <div className="flex items-center justify-between">
-              <h2 className="font-bold text-base flex items-center gap-2">
-                <Megaphone size={16} className="text-indigo-400" /> Manage Promotions & Ads
-              </h2>
-              <button onClick={() => setShowAddAd(!showAddAd)} className="bg-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2">
-                {showAddAd ? <XCircle size={16} /> : <Plus size={16} />}
-                {showAddAd ? 'Cancel' : 'New Ad'}
+              <div className="flex items-center gap-2">
+                <Megaphone size={18} className="text-indigo-400" />
+                <h2 className="font-heading font-black text-base uppercase tracking-wider">Manage Society Ads & Promos</h2>
+              </div>
+              <button 
+                onClick={() => setShowAddAd(!showAddAd)} 
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-indigo-600/10"
+              >
+                {showAddAd ? <XCircle size={14} /> : <Plus size={14} />}
+                <span>{showAddAd ? 'Cancel Form' : 'Create New Ad'}</span>
               </button>
             </div>
 
             {showAddAd && (
-              <div className={`border rounded-2xl p-5 ${isDark ? 'bg-indigo-900/20 border-indigo-700/30' : 'bg-indigo-50 border-indigo-200'}`}>
-                <h3 className="font-bold text-indigo-400 mb-3">Create New Promotion</h3>
-                <div className="space-y-3 mb-4">
-                  <input placeholder="Ad Title (e.g. 50% Off Plumbing)" value={newAd.title} onChange={e => setNewAd({...newAd, title: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
-                  <textarea placeholder="Description" rows={2} value={newAd.description} onChange={e => setNewAd({...newAd, description: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none resize-none ${input}`} />
-                  <input placeholder="Image URL (e.g. https://imgur.com/...)" value={newAd.image_url} onChange={e => setNewAd({...newAd, image_url: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
-                  <input placeholder="Click Link URL (Optional)" value={newAd.link} onChange={e => setNewAd({...newAd, link: e.target.value})} className={`w-full px-4 py-2.5 rounded-xl border text-sm outline-none ${input}`} />
+              <div className={`rounded-[30px] border p-6 space-y-4 animate-scale-up bg-indigo-500/5 border-indigo-500/20`}>
+                <h3 className="font-heading font-black text-xs text-indigo-400 uppercase tracking-widest">Create New Society Promotion</h3>
+                <div className="space-y-3.5">
+                  <div>
+                    <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Ad Title</label>
+                    <input 
+                      placeholder="e.g. 20% Discount on Home Cleaning Services" 
+                      value={newAd.title} 
+                      onChange={e => setNewAd({...newAd, title: e.target.value})} 
+                      className={`w-full px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`} 
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Ad Description</label>
+                    <textarea 
+                      placeholder="Provide full coupon details or helper description..." 
+                      rows={2.5} 
+                      value={newAd.description} 
+                      onChange={e => setNewAd({...newAd, description: e.target.value})} 
+                      className={`w-full px-4 py-3 rounded-2xl border text-xs outline-none resize-none ${inputStyle}`} 
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Promo Banner Image URL</label>
+                    <input 
+                      placeholder="e.g. https://imgur.com/yourimage.jpg" 
+                      value={newAd.image_url} 
+                      onChange={e => setNewAd({...newAd, image_url: e.target.value})} 
+                      className={`w-full px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`} 
+                    />
+                  </div>
+                  <div>
+                    <label className={`text-[9px] font-black uppercase tracking-widest mb-1.5 block ${textLabel}`}>Target Action Click URL (Optional)</label>
+                    <input 
+                      placeholder="e.g. https://wa.me/919999999999" 
+                      value={newAd.link} 
+                      onChange={e => setNewAd({...newAd, link: e.target.value})} 
+                      className={`w-full px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`} 
+                    />
+                  </div>
                 </div>
-                <button onClick={handleAddAd} disabled={actionLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all">
-                  {actionLoading ? <Loader2 className="animate-spin" size={18} /> : 'Publish Ad'}
+                <button 
+                  onClick={handleAddAd} 
+                  disabled={actionLoading} 
+                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95 shadow-md shadow-indigo-600/10"
+                >
+                  {actionLoading ? <Loader2 className="animate-spin" size={15} /> : 'Publish Ad'}
                 </button>
               </div>
             )}
 
             {ads.length === 0 ? (
-              <div className={`border rounded-2xl p-10 text-center ${card}`}>
-                <Megaphone size={40} className="mx-auto opacity-30 mb-3" />
-                <p className={`text-sm ${subtext}`}>No active promotions. Residents see generic ads.</p>
+              <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                <Megaphone size={36} className="mx-auto opacity-30 mb-3 text-indigo-500" />
+                <p className="font-black text-slate-800 dark:text-white">No active promotions</p>
+                <p className={`text-xs mt-1 ${subtext}`}>Residents currently see default organic ads. Create one to broadcast customized promos.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3">
+              <div className="grid grid-cols-1 gap-3.5">
                 {ads.map(ad => (
-                  <div key={ad.id} className={`flex flex-col sm:flex-row items-center gap-4 border rounded-2xl p-4 ${card}`}>
-                    <div className="w-full sm:w-24 h-24 rounded-xl overflow-hidden bg-slate-800 shrink-0">
+                  <div key={ad.id} className={`flex flex-col sm:flex-row items-center gap-4 border rounded-[30px] p-5 transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
+                    <div className="w-full sm:w-24 h-24 rounded-2xl overflow-hidden bg-slate-850 border border-slate-800/80 shrink-0 flex items-center justify-center">
                       {ad.image_url ? (
                         <img src={ad.image_url} alt={ad.title} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold text-xs text-center p-2">No Image</div>
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 font-black text-[9px] text-center p-2 uppercase tracking-wider">
+                          Promo Banner
+                        </div>
                       )}
                     </div>
-                    <div className="flex-1 text-center sm:text-left">
-                      <p className="font-bold text-sm mb-1">{ad.title}</p>
-                      <p className={`text-xs ${subtext} mb-2`}>{ad.description}</p>
-                      <div className="flex items-center justify-center sm:justify-start gap-3">
-                        {ad.link && ad.link !== '#' && <a href={ad.link} target="_blank" rel="noreferrer" className="text-xs text-indigo-400 font-bold hover:underline">Test Link</a>}
-                        <p className={`text-[10px] ${subtext}`}>Posted: {new Date(ad.created_at).toLocaleDateString()}</p>
+                    <div className="flex-1 text-center sm:text-left min-w-0">
+                      <p className="font-black text-sm text-slate-800 dark:text-slate-100">{ad.title}</p>
+                      <p className={`text-xs ${subtext} mt-1 leading-snug`}>{ad.description}</p>
+                      <div className="flex items-center justify-center sm:justify-start gap-3 mt-3">
+                        {ad.link && ad.link !== '#' && (
+                          <a 
+                            href={ad.link} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="text-[10px] text-indigo-400 font-black uppercase tracking-wider hover:underline"
+                          >
+                            🔗 Visit Promo Link
+                          </a>
+                        )}
+                        <p className={`text-[9px] font-bold ${subtext}`}>
+                          Posted: {new Date(ad.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                        </p>
                       </div>
                     </div>
-                    <button onClick={() => handleDeleteAd(ad.id)} className="p-2 rounded-xl bg-red-500/10 text-red-500 hover:bg-red-500/20 shrink-0">
-                      <Trash2 size={16} />
+                    <button 
+                      onClick={() => handleDeleteAd(ad.id)} 
+                      className="p-3 rounded-2xl bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-all duration-300 shrink-0 active:scale-95"
+                    >
+                      <Trash2 size={15} />
                     </button>
                   </div>
                 ))}

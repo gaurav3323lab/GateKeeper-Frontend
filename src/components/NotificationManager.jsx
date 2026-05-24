@@ -289,13 +289,14 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
       socket.emit('join_room', { room: 'guard_room' });
     }
     if (user.flat_number) {
-      socket.emit('join_room', { room: `flat_${user.flat_number}` });
+      const roomName = `flat_${user.tower ? user.tower + '-' : ''}${user.flat_number}`;
+      socket.emit('join_room', { room: roomName });
     }
 
     // 1. New Resident Registration (Manager/Admin)
     socket.on('new_approval_request', (data) => {
       playSound('ring');
-      addToast('approval', '🔔 Naya Registration!', `${data.name} — Flat ${data.flat_number} — Approval pending`);
+      addToast('approval', '🔔 Naya Registration!', `${data.name} — Flat ${data.tower ? data.tower + '-' : ''}${data.flat_number} — Approval pending`);
     });
 
     // 2. SOS Alert (Guard + Manager)
@@ -342,7 +343,7 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
     socket.on('visitor_decision_result', (data) => {
       addToast(data.approved ? 'success' : 'sos',
         data.approved ? '✅ Entry Approved' : '❌ Entry Denied',
-        `Flat ${data.flat_number} — ${data.visitor_name}`
+        `Flat ${data.tower ? data.tower + '-' : ''}${data.flat_number} — ${data.visitor_name}`
       );
     });
 
@@ -436,7 +437,7 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
               <button
                 onClick={() => {
                   stopSound();
-                  internalSocketRef.current?.emit('visitor_decision', { approved: false, flat_number: user.flat_number, visitor_name: activeCall.name });
+                  internalSocketRef.current?.emit('visitor_decision', { approved: false, tower: user.tower, flat_number: user.flat_number, visitor_name: activeCall.name });
                   setActiveCall(null);
                 }}
                 className="flex flex-col items-center gap-1 hover:scale-105 active:scale-95 transition-all"
@@ -450,7 +451,7 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
               <button
                 onClick={() => {
                   stopSound();
-                  internalSocketRef.current?.emit('visitor_decision', { approved: true, flat_number: user.flat_number, visitor_name: activeCall.name, leave_at_gate: true });
+                  internalSocketRef.current?.emit('visitor_decision', { approved: true, tower: user.tower, flat_number: user.flat_number, visitor_name: activeCall.name, leave_at_gate: true });
                   setActiveCall(null);
                 }}
                 className="flex flex-col items-center gap-1 hover:scale-105 active:scale-95 transition-all"
@@ -464,7 +465,7 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
               <button
                 onClick={() => {
                   stopSound();
-                  internalSocketRef.current?.emit('visitor_decision', { approved: true, flat_number: user.flat_number, visitor_name: activeCall.name });
+                  internalSocketRef.current?.emit('visitor_decision', { approved: true, tower: user.tower, flat_number: user.flat_number, visitor_name: activeCall.name });
                   setActiveCall(null);
                 }}
                 className="flex flex-col items-center gap-1 hover:scale-105 active:scale-95 transition-all"

@@ -3,7 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Users, Plus, Trash2, User, Phone, Shield, Loader2, PenLine } from 'lucide-react';
 import { familyAPI, entryAPI } from '../services/api';
 
-const MyFlat = ({ user }) => {
+const MyFlat = ({ user, sharedSocket }) => {
   const { isDark } = useTheme();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -23,7 +23,16 @@ const MyFlat = ({ user }) => {
   useEffect(() => {
     fetchMembers();
     fetchContacts();
-  }, []);
+
+    if (sharedSocket) {
+      sharedSocket.on('guards_status_update', fetchContacts);
+    }
+    return () => {
+      if (sharedSocket) {
+        sharedSocket.off('guards_status_update', fetchContacts);
+      }
+    };
+  }, [sharedSocket]);
 
   const fetchContacts = async () => {
     try {
@@ -93,7 +102,7 @@ const MyFlat = ({ user }) => {
           </div>
           <div>
             <h2 className="text-lg font-bold">{user?.name || 'Resident'}</h2>
-            <p className={`text-sm ${subtext}`}>Flat: <span className="font-semibold text-indigo-400">{user?.flat_number || 'A-101'}</span> &bull; Primary Resident</p>
+            <p className={`text-sm ${subtext}`}>Flat: <span className="font-semibold text-indigo-400">{user?.tower ? `${user.tower}-${user.flat_number}` : (user?.flat_number || 'A-101')}</span> &bull; Primary Resident</p>
           </div>
         </div>
         <div className={`flex gap-4 text-sm ${subtext}`}>
@@ -209,19 +218,74 @@ const MyFlat = ({ user }) => {
           <div className="space-y-4">
             {/* Security Guards Section */}
             {contacts.guards.length > 0 ? (
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Active Security Guards 🛡️</p>
-                {contacts.guards.map((guard, idx) => (
-                  <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
-                    <div>
-                      <p className="font-semibold text-sm">{guard.name}</p>
-                      <p className={`text-xs ${subtext}`}>Active Guard &bull; {guard.phone}</p>
-                    </div>
-                    <a href={`tel:${guard.phone}`} className="w-9 h-9 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all">
-                      <Phone size={16} />
-                    </a>
-                  </div>
-                ))}
+                {(() => {
+                  // Sort online guards to the top, then alphabetically by name
+                  const sortedGuards = [...contacts.guards].sort((a, b) => {
+                    const onlineA = !!a.is_online;
+                    const onlineB = !!b.is_online;
+                    if (onlineA && !onlineB) return -1;
+                    if (!onlineA && onlineB) return 1;
+                    return a.name.localeCompare(b.name);
+                  });
+
+                  return sortedGuards.map((guard, idx) => {
+                    const isOnline = !!guard.is_online;
+                    return (
+                      <div key={idx} className={`flex items-center justify-between p-3.5 rounded-[22px] border transition-all duration-300 hover:scale-[1.01] ${
+                        isDark 
+                          ? isOnline 
+                            ? 'bg-emerald-950/20 border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.04)]'
+                            : 'bg-slate-700/40 border-slate-600'
+                          : isOnline
+                            ? 'bg-emerald-50/50 border-emerald-200'
+                            : 'bg-gray-50 border-gray-200'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shrink-0 shadow-sm border ${
+                            isOnline 
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
+                              : 'bg-slate-900/60 border-slate-800 text-slate-400'
+                          }`}>
+                            🛡️
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-extrabold text-sm text-slate-800 dark:text-slate-100">{guard.name}</p>
+                              
+                              {/* Pulsing online badge vs offline badge */}
+                              {isOnline ? (
+                                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                  ON DUTY
+                                </span>
+                              ) : (
+                                <span className="bg-slate-500/10 border border-slate-600/30 text-slate-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                  OFFLINE
+                                </span>
+                              )}
+                            </div>
+                            <p className={`text-xs ${subtext} mt-0.5 flex items-center gap-1.5`}>
+                              <span>Mobile:</span>
+                              <a href={`tel:${guard.phone}`} className="font-mono hover:text-indigo-400 transition-colors font-semibold">
+                                {guard.phone}
+                              </a>
+                            </p>
+                          </div>
+                        </div>
+                        <a href={`tel:${guard.phone}`} className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md transition-all active:scale-95 ${
+                          isOnline
+                            ? 'bg-gradient-to-tr from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/20'
+                            : 'bg-slate-600 hover:bg-slate-700 text-slate-200'
+                        }`}>
+                          <Phone size={15} />
+                        </a>
+                      </div>
+                    );
+                  });
+                })()}
               </div>
             ) : (
               <div className="space-y-2">

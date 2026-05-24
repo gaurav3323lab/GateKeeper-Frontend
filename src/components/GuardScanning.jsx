@@ -6,7 +6,7 @@ import UserProfile from './UserProfile';
 import { 
   Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, 
   ListChecks, CameraOff, User, AlertCircle, Car, Clock, ChevronLeft,
-  ShieldAlert, Key, DoorOpen, Search, Terminal, Activity, ArrowRight, Sparkles
+  ShieldAlert, Key, DoorOpen, Search, Terminal, Activity, ArrowRight, Sparkles, Filter
 } from 'lucide-react';
 import { guardAPI, entryAPI } from '../services/api';
 
@@ -49,7 +49,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [verifiedVehicle, setVerifiedVehicle] = useState(null);
   const [verifyingPlate, setVerifyingPlate] = useState(false);
   const [showVisitorForm, setShowVisitorForm] = useState(false);
-  const [visitorForm, setVisitorForm] = useState({ name: '', phone: '', purpose: 'Guest', flat: '' });
+  const [visitorForm, setVisitorForm] = useState({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '' });
   const [preApproved, setPreApproved] = useState([]);
   const [preApprovedLoading, setPreApprovedLoading] = useState(false);
   const [enteredIds, setEnteredIds] = useState([]);
@@ -60,6 +60,10 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [pendingVehicleEntry, setPendingVehicleEntry] = useState(null);
   const [vehicleNumberInput, setVehicleNumberInput] = useState('');
   const [overlayCameraActive, setOverlayCameraActive] = useState(false);
+  const [checkoutSearch, setCheckoutSearch] = useState('');
+  const [checkoutFilter, setCheckoutFilter] = useState('all');
+  const [preapprovedSearch, setPreapprovedSearch] = useState('');
+  const [preapprovedFilter, setPreapprovedFilter] = useState('all');
 
   const fetchPreApproved = useCallback(async () => {
     setPreApprovedLoading(true);
@@ -109,7 +113,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   useEffect(() => {
     if (!sharedSocket) return;
 
-    sharedSocket.emit('join_room', { room: 'guard_room' });
+    sharedSocket.emit('join_room', { room: 'guard_room', userId: user?.id });
 
     const handleNewPreApproval = (data) => {
       console.log("[Socket] New pre-approval added by resident — auto-refreshing...", data);
@@ -117,7 +121,9 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     };
 
     const handleDecision = (data) => {
-      if (waitingForApproval && String(data.flat_number).trim() === String(visitorForm.flat).trim()) {
+      const visitorFlatMatches = String(data.flat_number).trim() === String(visitorForm.flat).trim();
+      const visitorTowerMatches = String(data.tower || '').trim() === String(visitorForm.tower || '').trim();
+      if (waitingForApproval && visitorFlatMatches && visitorTowerMatches) {
         setWaitingForApproval(false);
         if (data.approved) {
           setApprovalStatus('approved');
@@ -134,7 +140,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       sharedSocket.off('new_pre_approval', handleNewPreApproval);
       sharedSocket.off('visitor_decision_result', handleDecision);
     };
-  }, [sharedSocket, waitingForApproval, visitorForm.flat, fetchPreApproved]);
+  }, [sharedSocket, waitingForApproval, visitorForm.flat, visitorForm.tower, fetchPreApproved]);
 
   const askResidentApproval = () => {
     if (!visitorForm.name || !visitorForm.flat) {
@@ -149,6 +155,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         name: visitorForm.name,
         phone: visitorForm.phone || '',
         flat_number: visitorForm.flat,
+        tower: visitorForm.tower || '',
         purpose: visitorForm.purpose || 'Guest'
       });
     }
@@ -285,7 +292,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         setScanResult({
           type: 'success',
           title: `Gaadi Pehchani Gayi ✅`,
-          detail: `${res.data.vehicle_number} — ${res.data.brand} (${res.data.type}) • Flat ${res.data.flat_number} (${res.data.owner_name}) • Status: ${res.data.status}`,
+          detail: `${res.data.vehicle_number} — ${res.data.brand} (${res.data.type}) • ${res.data.tower ? 'Tower ' + res.data.tower + ' - ' : ''}Flat ${res.data.flat_number} (${res.data.owner_name}) • Status: ${res.data.status}`,
           time: nowIST()
         });
         setShowVisitorForm(false);
@@ -414,15 +421,16 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         visitor_name: form.name,
         visitor_phone: form.phone,
         flat_number: form.flat,
+        tower: form.tower,
         purpose: form.purpose,
         guard_id: user?.id,
         vehicle_number: vehicleNumber
       });
-      setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ Flat ${form.flat} ${vehicleNumber ? `[Gaadi: ${vehicleNumber}]` : ''}`, time: nowIST() });
-      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '' });
+      setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ ${form.tower ? 'Tower ' + form.tower + ' - ' : ''}Flat ${form.flat} ${vehicleNumber ? `[Gaadi: ${vehicleNumber}]` : ''}`, time: nowIST() });
+      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '' });
     } catch (err) {
-      setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ Flat ${form.flat}`, time: nowIST() });
-      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '' });
+      setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ ${form.tower ? 'Tower ' + form.tower + ' - ' : ''}Flat ${form.flat}`, time: nowIST() });
+      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '' });
     }
   };
 
@@ -581,6 +589,10 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     setShowVisitorForm(false);
     setEnteredPin('');
     setMatchedGuest(null);
+    setCheckoutSearch('');
+    setCheckoutFilter('all');
+    setPreapprovedSearch('');
+    setPreapprovedFilter('all');
     setActiveTab(key);
     if (key === 'pin' || key === 'preapproved') {
       fetchPreApproved();
@@ -946,7 +958,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                       
                       <div className="space-y-2 text-[11px] pt-3 border-t border-slate-800/80">
                         <p className="flex justify-between"><span className={subtext}>Owner:</span> <strong className="font-bold">{verifiedVehicle.owner_name}</strong></p>
-                        <p className="flex justify-between"><span className={subtext}>Flat:</span> <strong className="font-bold">Flat {verifiedVehicle.flat_number}</strong></p>
+                        <p className="flex justify-between"><span className={subtext}>Flat:</span> <strong className="font-bold">{verifiedVehicle.tower ? `Tower ${verifiedVehicle.tower} - ` : ''}Flat {verifiedVehicle.flat_number}</strong></p>
                         <p className="flex justify-between items-center"><span className={subtext}>Status inside flat:</span> 
                           <strong className={`font-black uppercase text-[9px] px-2 py-0.5 rounded border
                             ${verifiedVehicle.status === 'Inside' 
@@ -1022,7 +1034,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     <div className="space-y-2 text-[11px] border-t border-slate-800/80 pt-3">
                       <p className="flex justify-between"><span className={subtext}>Name:</span> <strong className="font-bold">{matchedGuest.name}</strong></p>
                       <p className="flex justify-between"><span className={subtext}>Purpose:</span> <strong className="font-bold">{matchedGuest.purpose || 'Guest'}</strong></p>
-                      <p className="flex justify-between"><span className={subtext}>Flat:</span> <strong className="font-bold">Flat {matchedGuest.flat}</strong></p>
+                      <p className="flex justify-between"><span className={subtext}>Flat:</span> <strong className="font-bold">{matchedGuest.tower ? `Tower ${matchedGuest.tower} - ` : ''}Flat {matchedGuest.flat}</strong></p>
                       <p className="flex justify-between"><span className={subtext}>Host resident:</span> <strong className="font-bold">{matchedGuest.resident_name || 'Resident'}</strong></p>
                       <p className="flex justify-between"><span className={subtext}>Valid:</span> <strong className="font-bold">{matchedGuest.valid_date ? matchedGuest.valid_date.split('T')[0] : 'Today'}</strong></p>
                     </div>
@@ -1129,14 +1141,55 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                   <p className={`text-[10px] ${subtext} mt-0.5`}>Residents dwara allowed guests list — seedha entry allow karein:</p>
                 </div>
                 
+                {/* Search & Filter bar */}
+                <div className="grid grid-cols-2 gap-3 mb-2 animate-scale-up">
+                  <div className="relative flex items-center">
+                    <Search className="absolute left-3 text-slate-500" size={13} />
+                    <input
+                      placeholder="Search name, flat..."
+                      value={preapprovedSearch}
+                      onChange={e => setPreapprovedSearch(e.target.value)}
+                      className={`w-full pl-9 pr-3 py-2 rounded-xl text-[10px] outline-none transition-all ${input}`}
+                    />
+                  </div>
+                  <div className="relative flex items-center">
+                    <select
+                      value={preapprovedFilter}
+                      onChange={e => setPreapprovedFilter(e.target.value)}
+                      className={`w-full px-3 py-2 rounded-xl text-[10px] cursor-pointer appearance-none outline-none ${input}`}
+                    >
+                      <option value="all">All Types</option>
+                      <option value="guest">Guests Only 🧑</option>
+                      <option value="delivery">Deliveries Only 📦</option>
+                    </select>
+                    <Filter className="absolute right-3 text-slate-500 pointer-events-none" size={11} />
+                  </div>
+                </div>
+
                 <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                  {preApproved.length === 0 ? (
-                    <div className="text-center py-8">
-                      <CheckCircle size={32} className="mx-auto text-slate-500 mb-2 opacity-40" />
-                      <p className={`text-xs ${subtext}`}>Aaj koi pre-approval list nahi hai</p>
-                    </div>
-                  ) : (
-                    preApproved.map(item => {
+                  {(() => {
+                    const filtered = preApproved.filter(item => {
+                      if (preapprovedSearch) {
+                        const q = preapprovedSearch.toLowerCase().trim();
+                        const nameMatch = String(item.name || '').toLowerCase().includes(q);
+                        const flatMatch = String(item.flat || '').toLowerCase().includes(q) || String(item.tower || '').toLowerCase().includes(q);
+                        const phoneMatch = String(item.phone || '').toLowerCase().includes(q);
+                        if (!nameMatch && !flatMatch && !phoneMatch) return false;
+                      }
+                      if (preapprovedFilter !== 'all' && item.type !== preapprovedFilter) return false;
+                      return true;
+                    });
+                    
+                    if (filtered.length === 0) {
+                      return (
+                        <div className="text-center py-8">
+                          <CheckCircle size={32} className="mx-auto text-slate-500 mb-2 opacity-40" />
+                          <p className={`text-xs ${subtext}`}>Koi pre-approval list nahi mili</p>
+                        </div>
+                      );
+                    }
+                    
+                    return filtered.map(item => {
                       const entered = enteredIds.includes(`${item.type}-${item.id}`);
                       return (
                         <div key={`${item.type}-${item.id}`}
@@ -1158,7 +1211,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                                 )}
                               </p>
                               <p className={`text-[10px] ${subtext} mt-0.5`}>
-                                {item.type === 'delivery' ? 'Delivery' : item.purpose || 'Guest'} → Flat {item.flat}
+                                {item.type === 'delivery' ? 'Delivery' : item.purpose || 'Guest'} → {item.tower ? 'Tower ' + item.tower + ' - ' : ''}Flat {item.flat}
                               </p>
                               <p className={`text-[9px] ${subtext} italic`}>{item.resident_name || 'Resident'} • {formatDateTime(item.valid_date)}</p>
                             </div>
@@ -1175,8 +1228,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                           )}
                         </div>
                       );
-                    })
-                  )}
+                    });
+                  })()}
                 </div>
               </div>
             )}
@@ -1230,12 +1283,20 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                   </button>
                 </div>
                 
-                <input 
-                  placeholder="Jaana kis Flat No me hai?" 
-                  value={visitorForm.flat} 
-                  onChange={e => setVisitorForm({...visitorForm, flat: e.target.value})}
-                  className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <input 
+                    placeholder="Tower / Block" 
+                    value={visitorForm.tower || ''} 
+                    onChange={e => setVisitorForm({...visitorForm, tower: e.target.value})}
+                    className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
+                  />
+                  <input 
+                    placeholder="Flat Number" 
+                    value={visitorForm.flat} 
+                    onChange={e => setVisitorForm({...visitorForm, flat: e.target.value})}
+                    className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
+                  />
+                </div>
                 
                 <select 
                   value={visitorForm.purpose} 
@@ -1331,15 +1392,23 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                   onChange={e => setVisitorForm({...visitorForm, phone: e.target.value})}
                   className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
                 />
-                <input 
-                  placeholder="Kahan Jaana Hai? (Flat No)" 
-                  value={visitorForm.flat} 
-                  onChange={e => setVisitorForm({...visitorForm, flat: e.target.value})}
-                  className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
-                />
+                <div className="grid grid-cols-2 gap-3">
+                  <input 
+                    placeholder="Tower / Block" 
+                    value={visitorForm.tower || ''} 
+                    onChange={e => setVisitorForm({...visitorForm, tower: e.target.value})}
+                    className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
+                  />
+                  <input 
+                    placeholder="Flat Number" 
+                    value={visitorForm.flat} 
+                    onChange={e => setVisitorForm({...visitorForm, flat: e.target.value})}
+                    className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
+                  />
+                </div>
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => {
-                    setScanResult({ type: 'pending', title: 'Resident to Approve 🔔', detail: `Flat ${visitorForm.flat || '?'} is reviewing this entry request`, time: nowIST() });
+                    setScanResult({ type: 'pending', title: 'Resident to Approve 🔔', detail: `${visitorForm.tower ? 'Tower ' + visitorForm.tower + ' - ' : ''}Flat ${visitorForm.flat || '?'} is reviewing this entry request`, time: nowIST() });
                     setShowVisitorForm(false);
                   }} className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-orange-950/20">
                     Send Request
@@ -1386,37 +1455,88 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     <p className={`text-[9px] ${subtext}`}>Society me koi inside guest registered nahi hai</p>
                   </div>
                 ) : (
-                  <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
-                    {insideVisitors.map(visitor => (
-                      <div key={visitor.log_id} className={`flex items-center justify-between p-3.5 rounded-2xl border ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-950/60 border border-slate-800/80 flex items-center justify-center text-lg shrink-0">
-                            {visitor.entity_type === 'delivery' ? '📦' : '🧑'}
-                          </div>
-                          <div>
-                            <p className="font-black text-xs flex items-center gap-2 flex-wrap">
-                              <span>{visitor.name}</span>
-                              {visitor.phone && visitor.phone !== 'N/A' && (
-                                <span className="text-[8px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-black">
-                                  {visitor.phone}
-                                </span>
-                              )}
-                            </p>
-                            <p className={`text-[10px] ${subtext} mt-0.5`}>
-                              {visitor.entity_type === 'delivery' ? 'Delivery' : 'Guest'} → Flat {visitor.flat}
-                            </p>
-                            <p className={`text-[9px] ${subtext} italic`}>Host: {visitor.resident_name || 'Resident'} • In: {new Date(visitor.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => handleCheckout(visitor.log_id)}
-                          className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-red-950/20"
-                        >
-                          Checkout
-                        </button>
+                  <>
+                    {/* Search & Filter bar */}
+                    <div className="grid grid-cols-2 gap-3 mb-2 animate-scale-up">
+                      <div className="relative flex items-center">
+                        <Search className="absolute left-3 text-slate-500" size={13} />
+                        <input
+                          placeholder="Search name, flat..."
+                          value={checkoutSearch}
+                          onChange={e => setCheckoutSearch(e.target.value)}
+                          className={`w-full pl-9 pr-3 py-2 rounded-xl text-[10px] outline-none transition-all ${input}`}
+                        />
                       </div>
-                    ))}
-                  </div>
+                      <div className="relative flex items-center">
+                        <select
+                          value={checkoutFilter}
+                          onChange={e => setCheckoutFilter(e.target.value)}
+                          className={`w-full px-3 py-2 rounded-xl text-[10px] cursor-pointer appearance-none outline-none ${input}`}
+                        >
+                          <option value="all">All Types</option>
+                          <option value="guest">Guests Only 🧑</option>
+                          <option value="delivery">Deliveries Only 📦</option>
+                        </select>
+                        <Filter className="absolute right-3 text-slate-500 pointer-events-none" size={11} />
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+                      {(() => {
+                        const filtered = insideVisitors.filter(visitor => {
+                          if (checkoutSearch) {
+                            const q = checkoutSearch.toLowerCase().trim();
+                            const nameMatch = String(visitor.name || '').toLowerCase().includes(q);
+                            const flatMatch = String(visitor.flat || '').toLowerCase().includes(q) || String(visitor.tower || '').toLowerCase().includes(q);
+                            const phoneMatch = String(visitor.phone || '').toLowerCase().includes(q);
+                            if (!nameMatch && !flatMatch && !phoneMatch) return false;
+                          }
+                          if (checkoutFilter !== 'all' && visitor.entity_type !== checkoutFilter) return false;
+                          return true;
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <div className="text-center py-8 space-y-1">
+                              <CheckCircle size={32} className="mx-auto text-emerald-400 mb-1 opacity-70" />
+                              <p className="text-xs font-black text-slate-300">No visitors found</p>
+                              <p className={`text-[9px] ${subtext}`}>Match hone wale inside visitors nahi mile</p>
+                            </div>
+                          );
+                        }
+
+                        return filtered.map(visitor => (
+                          <div key={visitor.log_id} className={`flex items-center justify-between p-3.5 rounded-2xl border ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <div className="flex items-center gap-3">
+                              <div className="w-9 h-9 rounded-full bg-slate-950/60 border border-slate-800/80 flex items-center justify-center text-lg shrink-0">
+                                {visitor.entity_type === 'delivery' ? '📦' : '🧑'}
+                              </div>
+                              <div>
+                                <p className="font-black text-xs flex items-center gap-2 flex-wrap">
+                                  <span>{visitor.name}</span>
+                                  {visitor.phone && visitor.phone !== 'N/A' && (
+                                    <span className="text-[8px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full font-black">
+                                      {visitor.phone}
+                                    </span>
+                                  )}
+                                </p>
+                                <p className={`text-[10px] ${subtext} mt-0.5`}>
+                                  {visitor.entity_type === 'delivery' ? 'Delivery' : 'Guest'} → {visitor.tower ? 'Tower ' + visitor.tower + ' - ' : ''}Flat {visitor.flat}
+                                </p>
+                                <p className={`text-[9px] ${subtext} italic`}>Host: {visitor.resident_name || 'Resident'} • In: {new Date(visitor.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</p>
+                              </div>
+                            </div>
+                            <button 
+                              onClick={() => handleCheckout(visitor.log_id)}
+                              className="bg-red-600 hover:bg-red-700 text-white px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider active:scale-95 transition-all shadow-md shadow-red-950/20"
+                            >
+                              Checkout
+                            </button>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </>
                 )}
               </div>
             )}
@@ -1438,7 +1558,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               <div className="absolute inset-0 rounded-full border border-indigo-500/30 animate-ping" />
             </div>
             <h3 className="text-base font-black text-white uppercase tracking-wide leading-none">Calling Flat Resident...</h3>
-            <p className={`text-[10px] ${subtext} mt-2`}>Calling Flat {visitorForm.flat} resident for gatepass authorization request</p>
+            <p className={`text-[10px] ${subtext} mt-2`}>Calling {visitorForm.tower ? 'Tower ' + visitorForm.tower + ' - ' : ''}Flat {visitorForm.flat} resident for gatepass authorization request</p>
             
             <div className="bg-slate-950/60 rounded-2xl p-3 text-left space-y-1.5 my-4 text-[10px] border border-slate-800/80">
               <p className="flex justify-between"><span className="text-slate-400">Visitor:</span> <strong className="text-slate-200">{visitorForm.name}</strong></p>
@@ -1463,7 +1583,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               <CheckCircle size={30} />
             </div>
             <h3 className="text-base font-black text-emerald-400 uppercase tracking-wide leading-none">Access Granted! ✅</h3>
-            <p className={`text-[10px] ${subtext} mt-2 leading-relaxed`}>Resident of Flat {visitorForm.flat} has authorized the entry request.</p>
+            <p className={`text-[10px] ${subtext} mt-2 leading-relaxed`}>Resident of {visitorForm.tower ? 'Tower ' + visitorForm.tower + ' - ' : ''}Flat {visitorForm.flat} has authorized the entry request.</p>
             <button
               onClick={() => {
                 setApprovalStatus(null);
@@ -1485,7 +1605,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               <X size={30} />
             </div>
             <h3 className="text-base font-black text-red-400 uppercase tracking-wide leading-none">Access Rejected! ❌</h3>
-            <p className={`text-[10px] ${subtext} mt-2 leading-relaxed`}>Resident of Flat {visitorForm.flat} has denied the request.</p>
+            <p className={`text-[10px] ${subtext} mt-2 leading-relaxed`}>Resident of {visitorForm.tower ? 'Tower ' + visitorForm.tower + ' - ' : ''}Flat {visitorForm.flat} has denied the request.</p>
             <button
               onClick={() => setApprovalStatus(null)}
               className="w-full mt-4 py-3.5 bg-red-650 hover:bg-red-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all shadow-lg"
@@ -1511,7 +1631,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               Allow Entry for {pendingVehicleEntry.data?.name || pendingVehicleEntry.data?.visitor_name || 'Visitor'}?
             </h3>
             <p className={`text-[10px] ${subtext} mt-1`}>
-              Flat {pendingVehicleEntry.data?.flat || pendingVehicleEntry.data?.flat_number || 'N/A'} • {pendingVehicleEntry.data?.purpose || 'Guest'}
+              {pendingVehicleEntry.data?.tower ? `Tower ${pendingVehicleEntry.data.tower} - ` : ''}Flat {pendingVehicleEntry.data?.flat || pendingVehicleEntry.data?.flat_number || 'N/A'} • {pendingVehicleEntry.data?.purpose || 'Guest'}
             </p>
 
             {/* Plate Input */}
@@ -1663,7 +1783,7 @@ const SOSListTab = ({ isDark, card, subtext, user }) => {
                 : 'border-slate-800 bg-slate-900/20 opacity-50'}`}>
               <div className="flex items-start justify-between gap-2">
                 <div>
-                  <p className="font-black text-xs text-red-400 flex items-center gap-1.5">🚨 FLAT {e.flat_number}</p>
+                  <p className="font-black text-xs text-red-400 flex items-center gap-1.5">🚨 {e.tower ? `TOWER ${e.tower} - ` : ''}FLAT {e.flat_number}</p>
                   <p className={`text-[10px] ${subtext} mt-1 font-bold`}>{e.user_name} • {e.phone}</p>
                   <p className={`text-[9px] ${subtext} italic`}>{new Date(e.created_at).toLocaleString('en-IN')}</p>
                 </div>
@@ -1742,7 +1862,7 @@ const VehicleStatsTab = ({ isDark, card, subtext }) => {
               <div key={log.id} className={`p-3 rounded-2xl border flex items-center justify-between transition-all animate-scale-up ${isDark ? 'bg-slate-950/40 border-slate-900' : 'bg-white border-slate-200'}`}>
                 <div>
                   <p className="font-extrabold text-xs uppercase tracking-wider text-slate-200">{log.vehicle_number}</p>
-                  <p className={`text-[9px] ${subtext} mt-0.5`}>{log.owner_name} • Flat {log.flat_number}</p>
+                  <p className={`text-[9px] ${subtext} mt-0.5`}>{log.owner_name} • {log.tower ? `Tower ${log.tower} - ` : ''}Flat {log.flat_number}</p>
                 </div>
                 <div className="text-right">
                   {log.exit_time ? (

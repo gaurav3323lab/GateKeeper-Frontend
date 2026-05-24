@@ -370,6 +370,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       await entryAPI.sos({
         user_id: user.id,
         flat_number: user.flat_number,
+        tower: user.tower,
         user_name: user.name
       });
 
@@ -377,18 +378,20 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
         sharedSocket.emit('trigger_sos', {
           user_id: user.id,
           user_name: user.name,
-          flat_number: user.flat_number
+          flat_number: user.flat_number,
+          tower: user.tower
         });
       }
 
-      alert(`🚨 SOS Alert sent! Guard aur Manager ko turant notification gayi — Flat ${user.flat_number}`);
+      alert(`🚨 SOS Alert sent! Guard aur Manager ko turant notification gayi — ${user.tower ? 'Tower ' + user.tower + ' - ' : ''}Flat ${user.flat_number}`);
     } catch (err) {
       console.error('SOS failed:', err);
       if (sharedSocket) {
         sharedSocket.emit('trigger_sos', {
           user_id: user.id,
           user_name: user.name,
-          flat_number: user.flat_number
+          flat_number: user.flat_number,
+          tower: user.tower
         });
       }
       alert('SOS bheja gaya! Guard ko notification mil gayi.');
@@ -428,7 +431,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                     {societyDetails.name || user?.society_name || 'Loading Society...'}
                   </p>
                   <p className="text-white/75 text-[10px] font-bold uppercase tracking-wider mt-1 drop-shadow flex items-center gap-1.5">
-                    📍 {societyDetails.address || user?.society_address || ''}{((societyDetails.address || user?.society_address) && (societyDetails.city || user?.society_city)) ? ', ' : ''}{societyDetails.city || user?.society_city || ''} &bull; Flat {user?.flat_number || '102'}
+                    📍 {societyDetails.address || user?.society_address || ''}{((societyDetails.address || user?.society_address) && (societyDetails.city || user?.society_city)) ? ', ' : ''}{societyDetails.city || user?.society_city || ''} &bull; {user?.tower ? `Tower ${user.tower} - ` : ''}Flat {user?.flat_number || '102'}
                   </p>
                 </div>
                 <div className="bg-emerald-500/15 border border-emerald-500/30 backdrop-blur-md text-emerald-400 text-[8px] font-black px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 animate-pulse">
@@ -585,7 +588,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                             </span>
                           </div>
                           <p className={`text-[9px] font-semibold mt-1 ${subtext}`}>
-                            {post.author_flat ? `Flat ${post.author_flat} ` : ''}&bull; {post.timeAgo} &bull; 👥 Public
+                            {post.author_flat ? `Flat ${post.author_tower ? post.author_tower + '-' : ''}${post.author_flat} ` : ''}&bull; {post.timeAgo} &bull; 👥 Public
                           </p>
                         </div>
                       </div>
@@ -790,7 +793,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
             <AdBanner />
           </div>
         );
-      case 'flat': return <MyFlat user={user} />;
+      case 'flat': return <MyFlat user={user} sharedSocket={sharedSocket} />;
       case 'garage': return <ResidentGarage />;
       case 'service': return <ServiceRequest user={user} />;
       case 'preapprove': return <PreApprove user={user} />;
@@ -814,7 +817,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-slate-100'}`}>
               <div className="flex items-center gap-1">
                 <button onClick={() => setShowProfile(true)} className="flex items-center gap-1 font-extrabold text-sm text-indigo-400 font-sans tracking-wide">
-                  <span>H {user?.flat_number || '102'}</span>
+                  <span>{user?.tower ? `${user.tower}-${user.flat_number}` : `H-${user?.flat_number || '102'}`}</span>
                   <span className="text-xs text-slate-400 font-normal">v</span>
                 </button>
               </div>
@@ -1117,6 +1120,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   return (
                     c.name?.toLowerCase().includes(q) ||
                     c.flat_number?.toLowerCase().includes(q) ||
+                    c.tower?.toLowerCase().includes(q) ||
                     c.role?.toLowerCase().includes(q) ||
                     c.category?.toLowerCase().includes(q)
                   );
@@ -1125,6 +1129,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   return (
                     c.name?.toLowerCase().includes(q) ||
                     c.flat_number?.toLowerCase().includes(q) ||
+                    c.tower?.toLowerCase().includes(q) ||
                     c.role?.toLowerCase().includes(q) ||
                     c.category?.toLowerCase().includes(q)
                   );
@@ -1140,7 +1145,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                         </span>
                       </div>
                       <p className={`text-[9px] font-medium mt-1 ${subtext}`}>
-                        {c.flat_number} &bull; {c.phone}
+                        {c.tower ? `${c.tower} - ` : ''}Flat {c.flat_number} &bull; {c.phone}
                       </p>
                     </div>
                     <a href={`tel:${c.phone}`} className="w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md shrink-0 transition-all">

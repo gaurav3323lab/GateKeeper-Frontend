@@ -8,7 +8,7 @@ const LoginPage = ({ onLoginSuccess }) => {
   const [mode, setMode] = useState('login'); // 'login' | 'register' | 'pending'
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ name: '', phone: '', password: '', flat_number: '', society_pin: '', society_id: null, society_name: '' });
+  const [form, setForm] = useState({ name: '', phone: '', password: '', tower: '', flat_number: '', society_pin: '', society_id: null, society_name: '' });
   const [verifyingPin, setVerifyingPin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -67,8 +67,8 @@ const LoginPage = ({ onLoginSuccess }) => {
   };
 
   const handleRegister = async () => {
-    if (!form.name || !form.phone || !form.password || !form.flat_number || !form.society_id) {
-      return setError('All fields, including a valid Society PIN, are required.');
+    if (!form.name || !form.phone || !form.password || !form.tower || !form.flat_number || !form.society_id) {
+      return setError('All fields, including Tower, Flat Number, and valid Society PIN, are required.');
     }
     setLoading(true);
     try {
@@ -76,6 +76,7 @@ const LoginPage = ({ onLoginSuccess }) => {
         name: form.name,
         phone: form.phone,
         password: form.password,
+        tower: form.tower,
         flat_number: form.flat_number,
         society_id: form.society_id
       });
@@ -223,19 +224,34 @@ const LoginPage = ({ onLoginSuccess }) => {
                 </div>
               </div>
 
-              {/* Registration Flat Field */}
+              {/* Registration Tower & Flat Field */}
               {mode === 'register' && (
-                <div className="animate-scale-up">
-                  <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${textLabel}`}>Flat Number</label>
-                  <div className={`flex items-center gap-2.5 border rounded-2xl px-4 py-3.5 transition-all duration-300 ${inputContainer}`}>
-                    <Home size={15} className={isDark ? 'text-slate-400' : 'text-slate-400'} />
-                    <input 
-                      name="flat_number" 
-                      value={form.flat_number} 
-                      onChange={handleChange} 
-                      placeholder="e.g. H-102"
-                      className="bg-transparent flex-1 outline-none text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white" 
-                    />
+                <div className="grid grid-cols-2 gap-3.5 animate-scale-up">
+                  <div>
+                    <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${textLabel}`}>Tower / Block</label>
+                    <div className={`flex items-center gap-2 border rounded-2xl px-3.5 py-3.5 transition-all duration-300 ${inputContainer}`}>
+                      <Home size={14} className="text-slate-400" />
+                      <input 
+                        name="tower" 
+                        value={form.tower} 
+                        onChange={handleChange} 
+                        placeholder="e.g. Tower A"
+                        className="bg-transparent flex-1 outline-none text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white" 
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${textLabel}`}>Flat Number</label>
+                    <div className={`flex items-center gap-2 border rounded-2xl px-3.5 py-3.5 transition-all duration-300 ${inputContainer}`}>
+                      <Home size={14} className="text-slate-400" />
+                      <input 
+                        name="flat_number" 
+                        value={form.flat_number} 
+                        onChange={handleChange} 
+                        placeholder="e.g. 102"
+                        className="bg-transparent flex-1 outline-none text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white" 
+                      />
+                    </div>
                   </div>
                 </div>
               )}

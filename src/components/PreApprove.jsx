@@ -327,7 +327,7 @@ const PreApprove = ({ user }) => {
                 <div className="flex justify-between">
                   <div>
                     <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Host (Flat)</p>
-                    <p className="font-bold">{user?.name || 'Resident'} ({user?.flat_number || 'A-101'})</p>
+                    <p className="font-bold">{user?.name || 'Resident'} ({user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'})</p>
                   </div>
                   <div className="text-right">
                     <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Valid Date</p>
@@ -369,8 +369,8 @@ const PreApprove = ({ user }) => {
               <a 
                 href={`whatsapp://send?text=${encodeURIComponent(
                   selectedPass.type === 'guest' 
-                    ? `*Digital Gate Pass* 🎫\n\nHi ${selectedPass.name},\nYou are invited to Flat *${user?.flat_number || 'A-101'}*!\n\nPlease tell this 6-Digit PIN Code to the security guard for instant entry:\n\n*Your PIN Code: ${selectedPass.qr_code || '123456'}*`
-                    : `*Delivery Pre-Approval* 🛵\n\nYour delivery has been pre-approved for Flat *${user?.flat_number || 'A-101'}*. Please inform the security guard upon arrival.`
+                    ? `*Digital Gate Pass* 🎫\n\nHi ${selectedPass.name},\nYou are invited to Flat *${user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'}*!\n\nPlease tell this 6-Digit PIN Code to the security guard for instant entry:\n\n*Your PIN Code: ${selectedPass.qr_code || '123456'}*`
+                    : `*Delivery Pre-Approval* 🛵\n\nYour delivery has been pre-approved for Flat *${user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'}*. Please inform the security guard upon arrival.`
                 )}`}
                 className="w-full py-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
               >

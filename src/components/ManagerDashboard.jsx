@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ISTClock from './ISTClock';
 import { useTheme } from '../context/ThemeContext';
 import {
-  LayoutDashboard, Users, ShieldCheck, Wrench, ClipboardList,
+  LayoutDashboard, Users, ShieldCheck, Wrench, ClipboardList, Car,
   LogOut, CheckCircle, XCircle, Plus, ChevronRight,
   AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity, BarChart2,
   Phone, PhoneCall, AlertTriangle, Edit3, ArrowRight, Search, Shield, Building, Filter, RefreshCw
@@ -10,9 +10,9 @@ import {
 import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI, emergencyAPI, authAPI } from '../services/api';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
-const ManagerDashboard = ({ user, onLogout }) => {
+const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [managerSociety, setManagerSociety] = useState(user?.society_name || '');
@@ -38,6 +38,15 @@ const ManagerDashboard = ({ user, onLogout }) => {
   const [logStatus, setLogStatus] = useState('all');
   const [logDateFilter, setLogDateFilter] = useState('all');
   
+  // Vehicles tab filters state
+  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [vehicleTypeFilter, setVehicleTypeFilter] = useState('all');
+  const [vehicleCountFilter, setVehicleCountFilter] = useState('all');
+  
+  // Residents tab filters state
+  const [residentSearch, setResidentSearch] = useState('');
+  const [residentTowerFilter, setResidentTowerFilter] = useState('all');
+  
   // Ads State
   const [ads, setAds] = useState([]);
   const [showAddAd, setShowAddAd] = useState(false);
@@ -58,6 +67,26 @@ const ManagerDashboard = ({ user, onLogout }) => {
   useEffect(() => {
     fetchAllData();
   }, []);
+
+  useEffect(() => {
+    if (sharedSocket) {
+      sharedSocket.on('guards_status_update', fetchStaffData);
+    }
+    return () => {
+      if (sharedSocket) {
+        sharedSocket.off('guards_status_update', fetchStaffData);
+      }
+    };
+  }, [sharedSocket]);
+
+  const fetchStaffData = async () => {
+    try {
+      const res = await managerAPI.getStaff();
+      setStaff(res.data);
+    } catch (err) {
+      console.error('Failed to fetch staff data:', err);
+    }
+  };
 
   const fetchAllData = async () => {
     setLoading(true);
@@ -211,6 +240,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
     { key: 'staff', label: 'Staff', icon: Users },
     { key: 'tickets', label: 'Tickets', icon: Wrench },
     { key: 'residents', label: 'Residents', icon: ShieldCheck },
+    { key: 'vehicles', label: 'Vehicles', icon: Car },
     { key: 'logs', label: 'Entry Log', icon: Activity },
     { key: 'analytics', label: 'Analytics', icon: BarChart2 },
     { key: 'emergency', label: 'Emergency', icon: AlertCircle },
@@ -438,9 +468,9 @@ const ManagerDashboard = ({ user, onLogout }) => {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="font-black text-xs text-slate-800 dark:text-slate-200 leading-snug truncate">{r.name}</p>
-                          <p className={`text-[10px] font-bold mt-0.5 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full inline-block`}>
-                            Flat {r.flat_number || 'N/A'}
-                          </p>
+                           <p className={`text-[10px] font-bold mt-0.5 text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-full inline-block`}>
+                             {r.tower ? 'Tower ' + r.tower + ' - ' : ''}Flat {r.flat_number || 'N/A'}
+                           </p>
                           <p className={`text-[9px] mt-1 ${subtext} truncate font-mono`}>{r.phone}</p>
                         </div>
                       </div>
@@ -505,7 +535,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
                               </span>
                               {log.flat_number && (
                                 <span className={`text-[9px] font-extrabold ${subtext}`}>
-                                  Flat {log.flat_number}
+                                  {log.tower ? log.tower + '-' : ''}Flat {log.flat_number}
                                 </span>
                               )}
                               {log.vehicle_number && (
@@ -571,7 +601,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
                       <div className="min-w-0 flex-1">
                         <p className="font-black text-sm text-slate-800 dark:text-slate-100 leading-snug">{r.name}</p>
                         <p className={`text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full inline-block mt-1`}>
-                          Flat {r.flat_number || 'N/A'}
+                          {r.tower ? 'Tower ' + r.tower + ' - ' : ''}Flat {r.flat_number || 'N/A'}
                         </p>
                         <div className="space-y-1 mt-3">
                           <p className={`text-[10px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5`}>
@@ -639,7 +669,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
                             {t.status}
                           </span>
                           <span className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
-                            Flat {t.flat_number || 'N/A'}
+                            {t.tower ? 'Tower ' + t.tower + ' - ' : ''}Flat {t.flat_number || 'N/A'}
                           </span>
                           <span className={`text-[10px] font-bold ${subtext}`}>
                             📂 {t.category}
@@ -781,21 +811,49 @@ const ManagerDashboard = ({ user, onLogout }) => {
                 {staff.systemStaff.length === 0 && <p className={`text-xs ${subtext} text-center py-6`}>No system access staff found.</p>}
                 
                 <div className="space-y-3">
-                  {staff.systemStaff.map(s => (
-                    <div key={s.id} className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
-                      isDark ? 'bg-slate-950/20 border-slate-900 hover:border-slate-800' : 'bg-slate-50 border-slate-100 hover:border-slate-200'
-                    }`}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-slate-900 to-slate-850 border border-slate-800 flex items-center justify-center text-xs font-black">
-                          {s.role === 'guard' ? '🛡️' : '🔧'}
+                  {staff.systemStaff.map(s => {
+                    const isGuard = s.role === 'guard';
+                    const isOnline = isGuard && !!s.is_online;
+                    return (
+                      <div key={s.id} className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                        isDark 
+                          ? isOnline
+                            ? 'bg-emerald-950/20 border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.04)]'
+                            : 'bg-slate-950/20 border-slate-900 hover:border-slate-800'
+                          : isOnline
+                            ? 'bg-emerald-50/50 border-emerald-200'
+                            : 'bg-slate-50 border-slate-100 hover:border-slate-200'
+                      }`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-xs font-black border ${
+                            isOnline
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold'
+                              : 'bg-gradient-to-tr from-slate-900 to-slate-850 border border-slate-800'
+                          }`}>
+                            {s.role === 'guard' ? '🛡️' : '🔧'}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="font-black text-xs text-slate-800 dark:text-slate-100">{s.name}</p>
+                              {isGuard && (
+                                isOnline ? (
+                                  <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black px-1.5 py-0.5 rounded-full flex items-center gap-0.5 animate-pulse">
+                                    <span className="w-1 h-1 rounded-full bg-emerald-400"></span>
+                                    ACTIVE
+                                  </span>
+                                ) : (
+                                  <span className="bg-slate-500/10 border border-slate-600/30 text-slate-400 text-[8px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+                                    <span className="w-1 h-1 rounded-full bg-slate-500"></span>
+                                    OFFLINE
+                                  </span>
+                                )
+                              )}
+                            </div>
+                            <p className={`text-[10px] capitalize font-semibold mt-0.5 ${subtext}`}>
+                              {s.role} &bull; <span className="font-mono">{s.phone}</span>
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-black text-xs text-slate-800 dark:text-slate-100">{s.name}</p>
-                          <p className={`text-[10px] capitalize font-semibold mt-0.5 ${subtext}`}>
-                            {s.role} &bull; <span className="font-mono">{s.phone}</span>
-                          </p>
-                        </div>
-                      </div>
                       <div className="flex items-center gap-1.5">
                         <button 
                           onClick={() => handleEditStaff(s, 'system')} 
@@ -811,7 +869,8 @@ const ManagerDashboard = ({ user, onLogout }) => {
                         </button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -862,62 +921,425 @@ const ManagerDashboard = ({ user, onLogout }) => {
         )}
 
         {/* ─── TAB: RESIDENTS ────────────────────────────────────────── */}
-        {activeTab === 'residents' && (
-          <div className="space-y-4 animate-slide-up">
-            <div className="flex items-center gap-2">
-              <ShieldCheck size={18} className="text-indigo-400" />
-              <h2 className="font-heading font-black text-base uppercase tracking-wider">Active Verified Residents ({residents.length})</h2>
-            </div>
+        {activeTab === 'residents' && (() => {
+          // Filtered list of active verified residents
+          const filteredResidents = residents.filter(r => {
+            // 1. Tower filter
+            if (residentTowerFilter !== 'all') {
+              const rTower = r.tower || 'Other';
+              if (residentTowerFilter === 'other' && r.tower) return false;
+              if (residentTowerFilter !== 'other' && rTower.toLowerCase().trim() !== residentTowerFilter.toLowerCase().trim()) return false;
+            }
             
-            {residents.length === 0 ? (
-              <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
-                <Users size={36} className="mx-auto opacity-30 mb-3" />
-                <p className="font-black text-slate-800 dark:text-white">No active residents</p>
-                <p className={`text-xs mt-1 ${subtext}`}>No active residents have been verified in this society yet.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {residents.map(r => (
-                  <div key={r.id} className={`rounded-[30px] border p-5 flex items-center gap-4 transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
-                    <div className="w-11 h-11 rounded-[16px] bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[1px] shadow-md">
-                      <div className="w-full h-full rounded-[15px] bg-slate-900 flex items-center justify-center text-white font-extrabold text-xs">
-                        {(r.name || 'U').substring(0, 2).toUpperCase()}
-                      </div>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-black text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate">{r.name}</p>
-                      <p className={`text-[10px] ${subtext} mt-0.5 flex items-center gap-1.5`}>
-                        Flat <span className="text-indigo-400 font-extrabold">{r.flat_number || 'N/A'}</span> &bull; 📞 <span className="font-mono">{r.phone}</span>
-                      </p>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                        <span className={`text-[8px] font-black uppercase tracking-wider bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-500/10 inline-block ${subtext}`}>
-                          {r.role.replace('_', ' ')}
-                        </span>
-                        {r.vehicles && r.vehicles.length > 0 && r.vehicles.map((v, idx) => (
-                          <span 
-                            key={idx}
-                            className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border flex items-center gap-1
-                              ${isDark 
-                                ? 'bg-indigo-950/40 text-indigo-300 border-indigo-500/20' 
-                                : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}
-                          >
-                            <span>{v.type?.toLowerCase()?.includes('bike') || v.type?.toLowerCase()?.includes('2') || v.type?.toLowerCase()?.includes('scooty') ? '🏍️' : '🚗'}</span>
-                            <span>{v.vehicle_number}</span>
-                            {v.brand && <span className="opacity-75">({v.brand})</span>}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1 animate-pulse">
-                      <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" />
-                      ACTIVE
-                    </span>
+            // 2. Search query
+            if (residentSearch) {
+              const q = residentSearch.toLowerCase().trim();
+              const nameMatch = String(r.name || '').toLowerCase().includes(q);
+              const flatMatch = String(r.flat_number || '').toLowerCase().includes(q) || String(r.tower || '').toLowerCase().includes(q);
+              const phoneMatch = String(r.phone || '').toLowerCase().includes(q);
+              const roleMatch = String(r.role || '').toLowerCase().includes(q);
+              
+              if (!nameMatch && !flatMatch && !phoneMatch && !roleMatch) return false;
+            }
+            return true;
+          });
+
+          // Group the filtered residents by Tower
+          const groupedResidents = {};
+          filteredResidents.forEach(r => {
+            const towerName = r.tower ? `Tower ${r.tower.toUpperCase()}` : 'Other / Unassigned';
+            if (!groupedResidents[towerName]) {
+              groupedResidents[towerName] = [];
+            }
+            groupedResidents[towerName].push(r);
+          });
+
+          // Get unique list of towers for filter dropdown (from raw residents)
+          const allTowers = Array.from(new Set(residents.map(r => r.tower).filter(Boolean))).sort();
+
+          return (
+            <div className="space-y-6 animate-slide-up">
+              {/* Header and Controls */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-indigo-400" />
+                  <h2 className="font-heading font-black text-base uppercase tracking-wider">Active Verified Residents ({filteredResidents.length})</h2>
+                </div>
+
+                {/* Search & Tower Filter Controls */}
+                <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                  {/* Search input */}
+                  <div className="relative flex items-center flex-1 sm:w-64">
+                    <Search className="absolute left-3.5 text-slate-500" size={14} />
+                    <input
+                      placeholder="Search name, flat, phone..."
+                      value={residentSearch}
+                      onChange={e => setResidentSearch(e.target.value)}
+                      className={`w-full pl-9 pr-4 py-2 rounded-xl text-xs border ${inputStyle}`}
+                    />
                   </div>
-                ))}
+
+                  {/* Tower selection filter */}
+                  <div className="relative flex items-center sm:w-48">
+                    <select
+                      value={residentTowerFilter}
+                      onChange={e => setResidentTowerFilter(e.target.value)}
+                      className={`w-full pl-4 pr-10 py-2 rounded-xl text-xs cursor-pointer appearance-none border outline-none ${inputStyle}`}
+                    >
+                      <option value="all">All Towers 🏢</option>
+                      {allTowers.map((tower, idx) => (
+                        <option key={idx} value={tower.toLowerCase()}>Tower {tower.toUpperCase()}</option>
+                      ))}
+                      <option value="other">Other / Unassigned</option>
+                    </select>
+                    <Filter className="absolute right-4 text-slate-500 pointer-events-none" size={12} />
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
-        )}
+
+              {filteredResidents.length === 0 ? (
+                <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                  <Users size={36} className="mx-auto opacity-30 mb-3" />
+                  <p className="font-black text-slate-800 dark:text-white">No active residents found</p>
+                  <p className={`text-xs mt-1 ${subtext}`}>Search filter ke matching residents nahi mile.</p>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Map through grouped tower keys */}
+                  {Object.keys(groupedResidents).sort().map(towerKey => {
+                    const towerResidents = groupedResidents[towerKey];
+                    return (
+                      <div key={towerKey} className="space-y-3">
+                        {/* Sticky Tower Header bar */}
+                        <div className={`flex items-center justify-between px-5 py-2.5 rounded-2xl border ${isDark ? 'bg-slate-900/40 border-slate-800/60' : 'bg-slate-50 border-slate-200'} sticky top-0 backdrop-blur-md z-10`}>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-black uppercase text-indigo-400 tracking-wider">{towerKey}</span>
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                            <span className={`text-[10px] ${subtext} font-bold`}>{towerResidents.length} {towerResidents.length === 1 ? 'Resident' : 'Residents'}</span>
+                          </div>
+                        </div>
+
+                        {/* Grid list of residents inside this tower */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {towerResidents.map(r => (
+                            <div key={r.id} className={`rounded-[30px] border p-5 flex items-center gap-4 transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
+                              <div className="w-11 h-11 rounded-[16px] bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[1px] shadow-md">
+                                <div className="w-full h-full rounded-[15px] bg-slate-900 flex items-center justify-center text-white font-extrabold text-xs">
+                                  {(r.name || 'U').substring(0, 2).toUpperCase()}
+                                </div>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-black text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate">{r.name}</p>
+                                <p className={`text-[10px] ${subtext} mt-0.5 flex items-center gap-1.5`}>
+                                  {r.tower ? `Tower ${r.tower.toUpperCase()} - ` : ''}Flat <span className="text-indigo-400 font-extrabold">{r.flat_number || 'N/A'}</span> &bull; 📞 <span className="font-mono">{r.phone}</span>
+                                </p>
+                                <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                  <span className={`text-[8px] font-black uppercase tracking-wider bg-slate-500/10 px-2 py-0.5 rounded-full border border-slate-500/10 inline-block ${subtext}`}>
+                                    {r.role.replace('_', ' ')}
+                                  </span>
+                                  {r.vehicles && r.vehicles.length > 0 && r.vehicles.map((v, idx) => (
+                                    <span 
+                                      key={idx}
+                                      className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border flex items-center gap-1
+                                        ${isDark 
+                                          ? 'bg-indigo-950/40 text-indigo-300 border-indigo-500/20' 
+                                          : 'bg-indigo-50 text-indigo-600 border-indigo-200'}`}
+                                    >
+                                      <span>{v.type?.toLowerCase()?.includes('bike') || v.type?.toLowerCase()?.includes('2') || v.type?.toLowerCase()?.includes('scooty') ? '🏍️' : '🚗'}</span>
+                                      <span>{v.vehicle_number}</span>
+                                      {v.brand && <span className="opacity-75">({v.brand})</span>}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                              <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-2.5 py-1 rounded-full shrink-0 flex items-center gap-1 animate-pulse">
+                                <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full inline-block" />
+                                ACTIVE
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* ─── TAB: VEHICLES ────────────────────────────────────────── */}
+        {activeTab === 'vehicles' && (() => {
+          // Filtered list of residents based on search & filters
+          const filteredResidents = residents.filter(r => {
+            const hasVehicles = r.vehicles && r.vehicles.length > 0;
+            
+            // 1. Vehicle Count filter
+            if (vehicleCountFilter === 'multi' && (!r.vehicles || r.vehicles.length <= 1)) return false;
+            if (vehicleCountFilter === 'single' && (!r.vehicles || r.vehicles.length !== 1)) return false;
+            if (vehicleCountFilter === 'none' && hasVehicles) return false;
+            
+            // 2. Vehicle Type filter
+            if (vehicleTypeFilter !== 'all') {
+              if (!hasVehicles) return false;
+              const hasMatchingType = r.vehicles.some(v => {
+                const isBike = v.type?.toLowerCase()?.includes('bike') || v.type?.toLowerCase()?.includes('2') || v.type?.toLowerCase()?.includes('scooty');
+                if (vehicleTypeFilter === 'bike') return isBike;
+                if (vehicleTypeFilter === 'car') return !isBike;
+                return true;
+              });
+              if (!hasMatchingType) return false;
+            }
+            
+            // 3. Search query
+            if (vehicleSearch) {
+              const q = vehicleSearch.toLowerCase().trim();
+              const nameMatch = String(r.name || '').toLowerCase().includes(q);
+              const flatMatch = String(r.flat_number || '').toLowerCase().includes(q) || String(r.tower || '').toLowerCase().includes(q);
+              const phoneMatch = String(r.phone || '').toLowerCase().includes(q);
+              
+              // Also search by vehicle brand/number
+              const vehicleMatch = hasVehicles && r.vehicles.some(v => 
+                String(v.vehicle_number || '').toLowerCase().includes(q) || 
+                String(v.brand || '').toLowerCase().includes(q) ||
+                String(v.type || '').toLowerCase().includes(q)
+              );
+              
+              if (!nameMatch && !flatMatch && !phoneMatch && !vehicleMatch) return false;
+            }
+            
+            return true;
+          });
+
+          // Calculate some stats for the visual dashboard cards
+          const totalVehiclesCount = residents.reduce((acc, r) => acc + (r.vehicles ? r.vehicles.length : 0), 0);
+          const totalCars = residents.reduce((acc, r) => {
+            if (!r.vehicles) return acc;
+            return acc + r.vehicles.filter(v => !(v.type?.toLowerCase()?.includes('bike') || v.type?.toLowerCase()?.includes('2') || v.type?.toLowerCase()?.includes('scooty'))).length;
+          }, 0);
+          const totalBikes = totalVehiclesCount - totalCars;
+          const multiVehicleOwners = residents.filter(r => r.vehicles && r.vehicles.length > 1).length;
+
+          return (
+            <div className="space-y-6 animate-slide-up">
+              {/* Header section */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center border border-indigo-500/20">
+                    <Car size={20} className="text-indigo-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-black text-base uppercase tracking-wider">Registered Vehicles List</h2>
+                    <p className={`text-xs ${subtext}`}>Resident-wise vehicle registrations and details</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Stats overview */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className={`p-4 rounded-3xl border ${cardStyle} flex items-center gap-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 shrink-0 border border-indigo-500/20">
+                    <Car size={18} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Total Vehicles</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-white mt-0.5">{totalVehiclesCount}</p>
+                  </div>
+                </div>
+                
+                <div className={`p-4 rounded-3xl border ${cardStyle} flex items-center gap-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0 border border-emerald-500/20">
+                    <span className="text-sm">🚗</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Cars 4-Wheeler</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-white mt-0.5">{totalCars}</p>
+                  </div>
+                </div>
+                
+                <div className={`p-4 rounded-3xl border ${cardStyle} flex items-center gap-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400 shrink-0 border border-amber-500/20">
+                    <span className="text-sm">🏍️</span>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Bikes 2-Wheeler</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-white mt-0.5">{totalBikes}</p>
+                  </div>
+                </div>
+
+                <div className={`p-4 rounded-3xl border ${cardStyle} flex items-center gap-3`}>
+                  <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/10 flex items-center justify-center text-fuchsia-400 shrink-0 border border-fuchsia-500/20">
+                    <Users size={16} />
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider">Multi-Vehicle Owners</p>
+                    <p className="text-lg font-black text-slate-800 dark:text-white mt-0.5">{multiVehicleOwners}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Advanced Filter and Search Bar */}
+              <div className={`p-4 rounded-[30px] border ${cardStyle} grid grid-cols-1 md:grid-cols-3 gap-3 items-center`}>
+                {/* Search */}
+                <div className="relative flex items-center">
+                  <Search className="absolute left-3.5 text-slate-500" size={15} />
+                  <input
+                    placeholder="Search owner, plate, flat..."
+                    value={vehicleSearch}
+                    onChange={e => setVehicleSearch(e.target.value)}
+                    className={`w-full pl-10 pr-4 py-2.5 rounded-2xl text-xs border ${inputStyle}`}
+                  />
+                </div>
+
+                {/* Filter by Vehicle Type */}
+                <div className="relative flex items-center">
+                  <select
+                    value={vehicleTypeFilter}
+                    onChange={e => setVehicleTypeFilter(e.target.value)}
+                    className={`w-full pl-4 pr-10 py-2.5 rounded-2xl text-xs cursor-pointer appearance-none border outline-none ${inputStyle}`}
+                  >
+                    <option value="all">All Vehicle Types 🏎️</option>
+                    <option value="car">4-Wheelers Only (Cars) 🚗</option>
+                    <option value="bike">2-Wheelers Only (Bikes/Scooty) 🏍️</option>
+                  </select>
+                  <Filter className="absolute right-4 text-slate-500 pointer-events-none" size={13} />
+                </div>
+
+                {/* Filter by Ownership Quantity */}
+                <div className="relative flex items-center">
+                  <select
+                    value={vehicleCountFilter}
+                    onChange={e => setVehicleCountFilter(e.target.value)}
+                    className={`w-full pl-4 pr-10 py-2.5 rounded-2xl text-xs cursor-pointer appearance-none border outline-none ${inputStyle}`}
+                  >
+                    <option value="all">All Ownerships 🏘️</option>
+                    <option value="multi">Multiple Vehicles Owner (&gt;1)</option>
+                    <option value="single">Single Vehicle Owner (1)</option>
+                    <option value="none">No Vehicles Registered (0)</option>
+                  </select>
+                  <Filter className="absolute right-4 text-slate-500 pointer-events-none" size={13} />
+                </div>
+              </div>
+              {/* Residents & Vehicles Grid */}
+              {filteredResidents.length === 0 ? (
+                <div className={`rounded-[32px] p-12 text-center border ${cardStyle}`}>
+                  <Car size={36} className="mx-auto opacity-30 mb-3 text-slate-500" />
+                  <p className="font-black text-slate-800 dark:text-white">No matching records</p>
+                  <p className={`text-xs mt-1 ${subtext}`}>Vehicles listing me search criteria ke hisab se records nahi mile.</p>
+                </div>
+              ) : (() => {
+                // Group the filtered residents by Tower
+                const groupedResidents = {};
+                filteredResidents.forEach(r => {
+                  const towerName = r.tower ? `Tower ${r.tower.toUpperCase()}` : 'Other / Unassigned';
+                  if (!groupedResidents[towerName]) {
+                    groupedResidents[towerName] = [];
+                  }
+                  groupedResidents[towerName].push(r);
+                });
+
+                return (
+                  <div className="space-y-6">
+                    {Object.keys(groupedResidents).sort().map(towerKey => {
+                      const towerResidents = groupedResidents[towerKey];
+                      // Count vehicles in this specific tower
+                      const towerVehiclesCount = towerResidents.reduce((acc, r) => acc + (r.vehicles ? r.vehicles.length : 0), 0);
+                      return (
+                        <div key={towerKey} className="space-y-3">
+                          {/* Sticky Tower Header bar */}
+                          <div className={`flex items-center justify-between px-5 py-2.5 rounded-2xl border ${isDark ? 'bg-slate-900/40 border-slate-800/60' : 'bg-slate-50 border-slate-200'} sticky top-0 backdrop-blur-md z-10`}>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-black uppercase text-indigo-400 tracking-wider">{towerKey}</span>
+                              <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
+                              <span className={`text-[10px] ${subtext} font-bold`}>
+                                {towerResidents.length} {towerResidents.length === 1 ? 'Resident' : 'Residents'} &bull; {towerVehiclesCount} {towerVehiclesCount === 1 ? 'Vehicle' : 'Vehicles'}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Grid list of residents & their vehicles inside this tower */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {towerResidents.map(r => {
+                              const rVehicles = r.vehicles || [];
+                              return (
+                                <div key={r.id} className={`rounded-[30px] border p-5 flex flex-col gap-4 transition-all duration-300 hover:scale-[1.01] ${cardStyle}`}>
+                                  {/* Resident Header inside card */}
+                                  <div className="flex items-center gap-3 border-b border-slate-800/10 dark:border-slate-800/40 pb-3">
+                                    <div className="w-10 h-10 rounded-[14px] bg-gradient-to-tr from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-extrabold text-xs shadow-sm">
+                                      {(r.name || 'U').substring(0, 2).toUpperCase()}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-black text-xs sm:text-sm text-slate-800 dark:text-slate-100 truncate">{r.name}</p>
+                                      <p className={`text-[10px] ${subtext} mt-0.5 flex items-center gap-1`}>
+                                        {r.tower ? `Tower ${r.tower.toUpperCase()} - ` : ''}Flat <span className="text-indigo-400 font-extrabold">{r.flat_number || 'N/A'}</span> &bull; 📞 <span className="font-mono">{r.phone}</span>
+                                      </p>
+                                    </div>
+                                    <div className="text-right shrink-0">
+                                      <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border
+                                        ${rVehicles.length > 0 
+                                          ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20' 
+                                          : 'bg-slate-500/10 text-slate-400 border-slate-500/20'}`}
+                                      >
+                                        {rVehicles.length} {rVehicles.length === 1 ? 'Vehicle' : 'Vehicles'}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Registered Vehicles List */}
+                                  {rVehicles.length === 0 ? (
+                                    <div className="py-4 text-center border border-dashed border-slate-850/30 dark:border-slate-800/60 rounded-2xl bg-slate-900/10">
+                                      <p className={`text-[10px] ${subtext} italic`}>No vehicles registered under this resident.</p>
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      {rVehicles.map((v, idx) => {
+                                        const isBike = v.type?.toLowerCase()?.includes('bike') || v.type?.toLowerCase()?.includes('2') || v.type?.toLowerCase()?.includes('scooty');
+                                        return (
+                                          <div 
+                                            key={idx}
+                                            className={`flex items-center justify-between p-3 rounded-2xl border transition-all duration-300
+                                              ${isDark 
+                                                ? 'bg-slate-950/40 border-slate-800 hover:border-slate-700' 
+                                                : 'bg-slate-50/50 border-slate-200 hover:border-slate-300'}`}
+                                          >
+                                            <div className="flex items-center gap-2.5">
+                                              <div className="w-8 h-8 rounded-xl bg-slate-900/60 flex items-center justify-center text-sm border border-slate-850 shrink-0">
+                                                {isBike ? '🏍️' : '🚗'}
+                                              </div>
+                                              <div>
+                                                <p className="text-xs font-black uppercase text-slate-800 dark:text-slate-200 tracking-wide">{v.vehicle_number}</p>
+                                                <p className={`text-[9px] ${subtext} capitalize mt-0.5`}>
+                                                  {v.brand || 'Unknown Brand'} &bull; {v.type || (isBike ? '2-Wheeler' : '4-Wheeler')}
+                                                </p>
+                                              </div>
+                                            </div>
+                                            <div>
+                                              <span className={`text-[8px] font-extrabold uppercase px-2 py-0.5 rounded-full border
+                                                ${isBike 
+                                                  ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                                                  : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}
+                                              >
+                                                {isBike ? '2-Wheeler' : '4-Wheeler'}
+                                              </span>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          );
+        })()}
 
         {/* ─── TAB: ENTRY LOG ────────────────────────────────────────── */}
         {activeTab === 'logs' && (() => {
@@ -925,7 +1347,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
             if (logSearch) {
               const q = logSearch.toLowerCase().trim();
               const nameMatch = String(log.entity_name || '').toLowerCase().includes(q);
-              const flatMatch = String(log.flat_number || '').toLowerCase().includes(q);
+              const flatMatch = String(log.flat_number || '').toLowerCase().includes(q) || String(log.tower || '').toLowerCase().includes(q);
               const guardMatch = String(log.guard_name || '').toLowerCase().includes(q);
               const gateMatch = String(log.gate_number || '').toLowerCase().includes(q);
               if (!nameMatch && !flatMatch && !guardMatch && !gateMatch) return false;
@@ -1069,7 +1491,7 @@ const ManagerDashboard = ({ user, onLogout }) => {
                                 </span>
                                 {log.flat_number && log.flat_number !== 'N/A' && (
                                   <span className="text-[8px] font-black text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md">
-                                    Flat {log.flat_number}
+                                    {log.tower ? log.tower + '-' : ''}Flat {log.flat_number}
                                   </span>
                                 )}
                                 <span className={`text-[9px] font-semibold ${subtext}`}>
@@ -1128,39 +1550,72 @@ const ManagerDashboard = ({ user, onLogout }) => {
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <div className={`rounded-[32px] border p-6 ${cardStyle}`}>
-                <h3 className="text-xs font-black uppercase tracking-wider mb-4.5 text-slate-800 dark:text-slate-200">
-                  Daily Society Footfall (Past Week)
+                <h3 className="text-xs font-black uppercase tracking-wider mb-4.5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <span>📈</span> Daily Society Footfall (Past Week)
                 </h3>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={[
+                    <AreaChart data={[
                       { name: 'Mon', entries: 12 }, { name: 'Tue', entries: 19 }, { name: 'Wed', entries: 15 },
                       { name: 'Thu', entries: 22 }, { name: 'Fri', entries: 30 }, { name: 'Sat', entries: 45 }, { name: 'Sun', entries: 38 }
                     ]}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
+                      <defs>
+                        <linearGradient id="colorEntries" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#6366f1" stopOpacity={0.01}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} opacity={0.3} />
                       <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
-                      <RechartsTooltip contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                      <Line type="monotone" dataKey="entries" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: isDark ? '#1e293b' : '#fff' }} activeDot={{ r: 6 }} />
-                    </LineChart>
+                      <RechartsTooltip 
+                        contentStyle={{ 
+                          backgroundColor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.85)', 
+                          borderRadius: '20px', 
+                          border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)', 
+                          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.15)',
+                          backdropFilter: 'blur(10px)',
+                          fontSize: '11px',
+                          fontWeight: 'bold'
+                        }} 
+                      />
+                      <Area type="monotone" dataKey="entries" name="Daily Entries" stroke="#6366f1" strokeWidth={3} fillOpacity={1} fill="url(#colorEntries)" dot={{ r: 4, fill: '#6366f1', strokeWidth: 2, stroke: isDark ? '#0f172a' : '#fff' }} activeDot={{ r: 6 }} />
+                    </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
               
               <div className={`rounded-[32px] border p-6 ${cardStyle}`}>
-                <h3 className="text-xs font-black uppercase tracking-wider mb-4.5 text-slate-800 dark:text-slate-200">
-                  Service Requests breakdown
+                <h3 className="text-xs font-black uppercase tracking-wider mb-4.5 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                  <span>🔧</span> Service Requests Breakdown
                 </h3>
                 <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={[
                       { name: 'Plumbing', count: 8 }, { name: 'Electric', count: 12 }, { name: 'Cleaning', count: 5 }, { name: 'Other', count: 3 }
                     ]}>
-                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} />
+                      <defs>
+                        <linearGradient id="colorRequests" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0.2}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#e2e8f0'} vertical={false} opacity={0.3} />
                       <XAxis dataKey="name" stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis stroke={isDark ? '#94a3b8' : '#64748b'} fontSize={10} tickLine={false} axisLine={false} />
-                      <RechartsTooltip cursor={{ fill: isDark ? '#334155' : '#f1f5f9' }} contentStyle={{ backgroundColor: isDark ? '#1e293b' : '#fff', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }} />
-                      <Bar dataKey="count" fill="#10b981" radius={[8, 8, 0, 0]} />
+                      <RechartsTooltip 
+                        cursor={{ fill: isDark ? 'rgba(51, 65, 85, 0.2)' : 'rgba(241, 245, 249, 0.4)' }} 
+                        contentStyle={{ 
+                          backgroundColor: isDark ? 'rgba(15, 23, 42, 0.85)' : 'rgba(255, 255, 255, 0.85)', 
+                          borderRadius: '20px', 
+                          border: isDark ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)', 
+                          boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.15)',
+                          backdropFilter: 'blur(10px)',
+                          fontSize: '11px',
+                          fontWeight: 'bold'
+                        }} 
+                      />
+                      <Bar dataKey="count" name="Total Tickets" fill="url(#colorRequests)" radius={[10, 10, 0, 0]} barSize={40} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>

@@ -421,7 +421,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                       <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-600 flex items-center justify-center text-white font-bold">{r.name.charAt(0)}</div>
                       <div>
                         <p className="font-bold text-sm">{r.name}</p>
-                        <p className={`text-xs ${sub}`}>{r.phone} &bull; Flat {r.flat_number}</p>
+                        <p className={`text-xs ${sub}`}>{r.phone} &bull; {r.tower ? `Tower ${r.tower} - ` : ''}Flat {r.flat_number}</p>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -543,7 +543,7 @@ const AdminDashboard = ({ user, onLogout }) => {
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center text-white font-bold">{r.name.charAt(0)}</div>
                     <div className="flex-1">
                       <p className="font-bold text-sm">{r.name}</p>
-                      <p className={`text-xs ${sub}`}>Flat <span className="text-indigo-500 dark:text-indigo-400 font-bold">{r.flat_number || 'N/A'}</span> &bull; {r.phone}</p>
+                      <p className={`text-xs ${sub}`}>{r.tower ? `${r.tower} - ` : ''}Flat <span className="text-indigo-500 dark:text-indigo-400 font-bold">{r.flat_number || 'N/A'}</span> &bull; {r.phone}</p>
                       <p className={`text-[9px] font-bold uppercase tracking-wider ${sub} mt-0.5`}>{r.role.replace('_', ' ')}</p>
                     </div>
                     <span className="text-[10px] bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2.5 py-0.5 rounded-full font-bold">Active</span>

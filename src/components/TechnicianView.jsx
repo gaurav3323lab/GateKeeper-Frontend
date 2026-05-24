@@ -70,7 +70,7 @@ const TechnicianView = ({ user, onLogout }) => {
               <span className="font-bold text-sm">{job.category}</span>
               <span className={`text-xs px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.color}`}>{cfg.label}</span>
             </div>
-            <p className={`text-xs ${subtext}`}>Flat {job.flat_number} &bull; {job.resident_name}</p>
+            <p className={`text-xs ${subtext}`}>{job.tower ? 'Tower ' + job.tower + ' - ' : ''}Flat {job.flat_number} &bull; {job.resident_name}</p>
             <p className={`text-sm mt-1 line-clamp-1 ${subtext}`}>{job.description}</p>
             <p className={`text-xs mt-1 flex items-center gap-1 ${subtext}`}>
               🕐 {new Date(job.created_at).toLocaleString('en-IN')}
@@ -90,7 +90,7 @@ const TechnicianView = ({ user, onLogout }) => {
           <div className={`w-full max-w-md border rounded-t-3xl p-6 ${card}`} onClick={e => e.stopPropagation()}>
             <div className="w-12 h-1 bg-slate-600 rounded-full mx-auto mb-4" />
             <p className="font-bold text-sm">{selected.category} — Kaam ki Jankari</p>
-            <p className={`text-sm mb-1 ${subtext}`}>Flat: <span className="font-semibold text-indigo-400">{selected.flat_number}</span></p>
+            <p className={`text-sm mb-1 ${subtext}`}>Flat: <span className="font-semibold text-indigo-400">{selected.tower ? `${selected.tower}-` : ''}{selected.flat_number}</span></p>
             <p className={`text-sm mb-1 leading-relaxed ${subtext}`}>{selected.description}</p>
             <p className={`text-xs mb-4 ${subtext}`}>🕐 {new Date(selected.created_at).toLocaleString('en-IN')}</p>
             <div className="space-y-2">

@@ -120,6 +120,7 @@ export const adsAPI = {
 // ── Admin Panel API ──────────────────────────────────────────
 export const adminAPI = {
   getDashboard: () => api.get('/api/admin/dashboard'),
+  getSystemStatus: () => api.get('/api/admin/system-status'),
   getManagers: () => api.get('/api/admin/managers'),
   createManager: (data) => api.post('/api/admin/create-manager', data),
   deleteManager: (id) => api.delete(`/api/admin/managers/${id}`),
@@ -130,6 +131,14 @@ export const adminAPI = {
   getPendingResidents: () => api.get('/api/admin/pending-residents'),
   approveResident: (id, data) => api.post('/api/admin/approve-resident', { userId: id, ...data }),
   getEmergencyContacts: () => api.get('/api/admin/emergency-contacts'),
+  getGlobalResidents: () => api.get('/api/admin/global-residents'),
+  getGlobalStaff: () => api.get('/api/admin/global-staff'),
+  // Society Admin management (super_admin only)
+  getAdmins: () => api.get('/api/admin/admins'),
+  createAdmin: (data) => api.post('/api/admin/create-admin', data),
+  deleteAdmin: (id) => api.delete(`/api/admin/admins/${id}`),
+  // Admin's own society dashboard (single rich endpoint)
+  getAdminDashboard: () => api.get('/api/admin/admin-dashboard'),
 };
 
 // ── Emergency Contacts (Manager) ─────────────────────────────

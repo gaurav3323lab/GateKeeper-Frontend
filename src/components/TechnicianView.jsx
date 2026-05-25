@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Briefcase, CheckCircle, Clock, AlertCircle, ChevronRight, LogOut, Loader2, User } from 'lucide-react';
 import { serviceAPI } from '../services/api';
 import UserProfile from './UserProfile';
+import ISTClock from './ISTClock';
 
 const STATUS_CONFIG = {
   Open: { color: 'text-red-400', bg: 'bg-red-500/10 border-red-500/30', icon: AlertCircle, label: 'Naya Kaam' },

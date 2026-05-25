@@ -100,6 +100,8 @@ export const societyAPI = {
   update: (id, data) => api.put(`/api/societies/${id}`, data),
   delete: (id) => api.delete(`/api/societies/${id}`),
   verifyCode: (code) => api.get(`/api/societies/verify/${code}`),
+  getSettings: (societyId) => api.get(`/api/societies/${societyId}/settings`),
+  updateSettings: (societyId, data) => api.put(`/api/societies/${societyId}/settings`, data),
 };
 
 // ── Announcements ────────────────────────────────────────────

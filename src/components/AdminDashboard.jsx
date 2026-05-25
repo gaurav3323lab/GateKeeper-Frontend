@@ -5,15 +5,62 @@ import {
   BarChart3, Activity, User, CheckCircle, XCircle, Clock,
   Loader2, UserPlus, Bell, Sun, Moon, Car, Search,
   RefreshCw, Wifi, WifiOff, ChevronDown, Key, AlertTriangle,
-  Settings, Shield, TrendingUp, Home
+  Settings, Shield, TrendingUp, Home, SlidersHorizontal
 } from 'lucide-react';
-import { adminAPI, managerAPI } from '../services/api';
+import { adminAPI, managerAPI, societyAPI } from '../services/api';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
 
 const AdminDashboard = ({ user, onLogout }) => {
   const { isDark, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('overview');
+
+  const guardSettingsKey = `guard_settings_${user?.society_id || user?.id || 'default'}`;
+  const defaultGuardSettings = {
+    anpr: true,
+    preapproved: true,
+    manual: true,
+    vehicles: true,
+    checkout: true,
+    sos: true,
+    vehicle_mandatory: false,
+  };
+  const [guardSettings, setGuardSettings] = useState(() => {
+    try {
+      const stored = localStorage.getItem(guardSettingsKey);
+      return stored ? { ...defaultGuardSettings, ...JSON.parse(stored) } : defaultGuardSettings;
+    } catch { return defaultGuardSettings; }
+  });
+
+  useEffect(() => {
+    const fetchGuardSettings = async () => {
+      try {
+        const societyId = user?.society_id;
+        if (societyId) {
+          const res = await societyAPI.getSettings(societyId);
+          setGuardSettings(res.data);
+          localStorage.setItem(guardSettingsKey, JSON.stringify(res.data));
+        }
+      } catch (err) {
+        console.error('Failed to fetch guard settings:', err);
+      }
+    };
+    fetchGuardSettings();
+  }, [user?.society_id, guardSettingsKey]);
+
+  const handleGuardSettingToggle = (key) => {
+    setGuardSettings(prev => {
+      const updated = { ...prev, [key]: !prev[key] };
+      const societyId = user?.society_id;
+      if (societyId) {
+        societyAPI.updateSettings(societyId, updated).catch(err => {
+          console.error('Failed to save settings to MySQL:', err);
+        });
+        localStorage.setItem(guardSettingsKey, JSON.stringify(updated));
+      }
+      return updated;
+    });
+  };
   const [data, setData] = useState({
     society: {}, stats: {}, managers: [], guards: [],
     pendingResidents: [], residents: [], recentLogs: []
@@ -133,6 +180,7 @@ const AdminDashboard = ({ user, onLogout }) => {
     { key: 'residents', label: 'Residents', icon: Users },
     { key: 'logs', label: 'Gate Logs', icon: Activity },
     { key: 'notices', label: 'Notices', icon: Bell },
+    { key: 'guard_settings', label: 'Guard Settings', icon: SlidersHorizontal },
   ];
 
   if (loading) return (
@@ -662,6 +710,156 @@ const AdminDashboard = ({ user, onLogout }) => {
             {activeTab === 'notices' && (
               <div className="max-w-2xl mx-auto">
                 <AnnouncementBoard user={user} />
+              </div>
+            )}
+
+            {/* ════ GUARD SETTINGS TAB ════ */}
+            {activeTab === 'guard_settings' && (
+              <div className="space-y-6 animate-slide-up max-w-2xl mx-auto">
+                <div className="flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                    isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-200'
+                  }`}>
+                    <SlidersHorizontal size={18} className="text-indigo-400" />
+                  </div>
+                  <div>
+                    <h2 className="font-heading font-black text-base uppercase tracking-wider">Guard Panel Features</h2>
+                    <p className={`text-xs ${sub} mt-0.5`}>Guard ke dashboard pe jo options dikhne chahiye wo yahan se on/off karein</p>
+                  </div>
+                </div>
+
+                {/* Info Banner */}
+                <div className={`rounded-2xl border p-4 flex items-start gap-3 ${
+                  isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200'
+                }`}>
+                  <Shield size={16} className="text-indigo-400 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-xs font-black text-indigo-400">PIN Verify hamesha ON rehta hai</p>
+                    <p className={`text-[10px] mt-0.5 ${sub} leading-relaxed`}>
+                      Neeche diye options ko off karne se wo option guard ke main screen se chhup jayega. Yeh settings society-specific hain aur turant apply ho jaate hain.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Toggle Cards */}
+                <div className="space-y-3">
+                  {[
+                    {
+                      key: 'anpr',
+                      emoji: '📸',
+                      title: 'ANPR Camera Scan',
+                      desc: 'Gaadi ka number plate camera se scan karne ka option',
+                      color: 'blue',
+                    },
+                    {
+                      key: 'preapproved',
+                      emoji: '📋',
+                      title: 'Pre-Approved List',
+                      desc: 'Residents dwara pre-approved guests ki list dekhne ka option',
+                      color: 'emerald',
+                    },
+                    {
+                      key: 'manual',
+                      emoji: '✍️',
+                      title: 'Manual Entry',
+                      desc: 'Guard khud visitor ka naam/details type karke entry log kar sake',
+                      color: 'amber',
+                    },
+                    {
+                      key: 'vehicles',
+                      emoji: '🚘',
+                      title: 'Registered Vehicles',
+                      desc: 'Society ke registered vehicles dekh aur track kar sake',
+                      color: 'violet',
+                    },
+                    {
+                      key: 'checkout',
+                      emoji: '🚪',
+                      title: 'Checkout / Exit',
+                      desc: 'Andar gaye visitors ko manually checkout/exit karne ka option',
+                      color: 'sky',
+                    },
+                    {
+                      key: 'sos',
+                      emoji: '🚨',
+                      title: 'SOS Emergency Alerts',
+                      desc: 'Active SOS alerts board — emergency situations ke liye',
+                      color: 'red',
+                    },
+                    {
+                      key: 'vehicle_mandatory',
+                      emoji: '🔢',
+                      title: 'Mandatory Vehicle Number',
+                      desc: 'Scanner ke baad gaadi ka number plate daalna compulsory karein (warna optional)',
+                      color: 'fuchsia',
+                    },
+                  ].map(({ key, emoji, title, desc, color }) => {
+                    const isOn = guardSettings[key];
+                    const colorMap = {
+                      blue: { on: 'bg-blue-500/10 border-blue-500/20', dot: 'bg-blue-500', badge: 'text-blue-400 bg-blue-500/10 border-blue-500/20', toggle: 'bg-blue-600' },
+                      emerald: { on: 'bg-emerald-500/10 border-emerald-500/20', dot: 'bg-emerald-500', badge: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', toggle: 'bg-emerald-600' },
+                      amber: { on: 'bg-amber-500/10 border-amber-500/20', dot: 'bg-amber-500', badge: 'text-amber-400 bg-amber-500/10 border-amber-500/20', toggle: 'bg-amber-500' },
+                      violet: { on: 'bg-violet-500/10 border-violet-500/20', dot: 'bg-violet-500', badge: 'text-violet-400 bg-violet-500/10 border-violet-500/20', toggle: 'bg-violet-600' },
+                      sky: { on: 'bg-sky-500/10 border-sky-500/20', dot: 'bg-sky-500', badge: 'text-sky-400 bg-sky-500/10 border-sky-500/20', toggle: 'bg-sky-600' },
+                      red: { on: 'bg-red-500/10 border-red-500/20', dot: 'bg-red-500', badge: 'text-red-400 bg-red-500/10 border-red-500/20', toggle: 'bg-red-600' },
+                      fuchsia: { on: 'bg-fuchsia-500/10 border-fuchsia-500/20', dot: 'bg-fuchsia-500', badge: 'text-fuchsia-400 bg-fuchsia-500/10 border-fuchsia-500/20', toggle: 'bg-fuchsia-600' },
+                    };
+                    const c = colorMap[color];
+                    return (
+                      <div
+                        key={key}
+                        onClick={() => handleGuardSettingToggle(key)}
+                        className={`flex items-center justify-between p-4 rounded-[28px] border cursor-pointer transition-all duration-300 hover:scale-[1.01] active:scale-[0.99] ${
+                          isOn
+                            ? `${c.on} ${isDark ? '' : 'bg-opacity-50'}` 
+                            : isDark ? 'bg-slate-900/40 border-slate-800/60' : 'bg-slate-50 border-slate-200'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3.5">
+                          <div className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl transition-all duration-300 ${
+                            isOn ? c.on : isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'
+                          } border`}>
+                            {emoji}
+                          </div>
+                          <div>
+                            <p className={`font-black text-sm ${
+                              isOn ? 'text-slate-800 dark:text-slate-100' : sub
+                            }`}>{title}</p>
+                            <p className={`text-[10px] mt-0.5 leading-snug ${sub}`}>{desc}</p>
+                          </div>
+                        </div>
+
+                        {/* Toggle Switch */}
+                        <div className={`relative w-12 h-6 rounded-full transition-all duration-300 shrink-0 ${
+                          isOn ? c.toggle : isDark ? 'bg-slate-700' : 'bg-slate-300'
+                        }`}>
+                          <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all duration-300 ${
+                            isOn ? 'left-6' : 'left-0.5'
+                          }`} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Status Summary */}
+                <div className={`rounded-2xl border p-4 ${card}`}>
+                  <p className={`text-[9px] font-black uppercase tracking-widest ${sub} mb-3`}>Current Status</p>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(guardSettings).map(([key, val]) => {
+                      const labels = { anpr: 'ANPR', preapproved: 'Pre-Approved', manual: 'Manual', vehicles: 'Vehicles', checkout: 'Checkout', sos: 'SOS', vehicle_mandatory: 'Mandatory Vehicle' };
+                      return (
+                        <span key={key} className={`text-[10px] font-black px-2.5 py-1 rounded-full border ${
+                          val
+                            ? isDark ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                            : isDark ? 'bg-slate-800 text-slate-500 border-slate-700' : 'bg-slate-100 text-slate-400 border-slate-200'
+                        }`}>
+                          {val ? '✅' : '⛔'} {labels[key] || key}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             )}
 

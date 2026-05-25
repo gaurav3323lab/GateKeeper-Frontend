@@ -8,12 +8,58 @@ import {
   ListChecks, CameraOff, User, AlertCircle, Car, Clock, ChevronLeft,
   ShieldAlert, Key, DoorOpen, Search, Terminal, Activity, ArrowRight, Sparkles, Filter
 } from 'lucide-react';
-import { guardAPI, entryAPI } from '../services/api';
+import { guardAPI, entryAPI, societyAPI } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
 const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const { isDark } = useTheme();
+
+  const guardSettingsKey = `guard_settings_${user?.society_id || 'default'}`;
+  const defaultGuardSettings = {
+    anpr: true,
+    preapproved: true,
+    manual: true,
+    vehicles: true,
+    checkout: true,
+    sos: true,
+    vehicle_mandatory: false,
+  };
+  const [guardSettings, setGuardSettings] = useState(() => {
+    try {
+      const stored = localStorage.getItem(guardSettingsKey);
+      return stored ? { ...defaultGuardSettings, ...JSON.parse(stored) } : defaultGuardSettings;
+    } catch { return defaultGuardSettings; }
+  });
+
+  useEffect(() => {
+    const fetchGuardSettings = async () => {
+      try {
+        const societyId = user?.society_id;
+        if (societyId) {
+          const res = await societyAPI.getSettings(societyId);
+          setGuardSettings(res.data);
+          localStorage.setItem(guardSettingsKey, JSON.stringify(res.data));
+        }
+      } catch (err) {
+        console.error('Failed to fetch guard settings from backend:', err);
+      }
+    };
+    fetchGuardSettings();
+  }, [user?.society_id, guardSettingsKey]);
+
+  useEffect(() => {
+    const handleStorage = (e) => {
+      if (e.key === guardSettingsKey) {
+        try {
+          const stored = localStorage.getItem(guardSettingsKey);
+          setGuardSettings(stored ? { ...defaultGuardSettings, ...JSON.parse(stored) } : defaultGuardSettings);
+        } catch {}
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [guardSettingsKey]);
   const [activeTab, setActiveTab] = useState('home');
   const [showProfile, setShowProfile] = useState(false);
 
@@ -565,7 +611,12 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
 
   const handleConfirmVehicleEntry = async () => {
     if (!pendingVehicleEntry) return;
-    const vehicleNumber = vehicleNumberInput.trim() || 'Walk-in';
+    const trimmedInput = vehicleNumberInput.trim();
+    if (guardSettings.vehicle_mandatory && (!trimmedInput || trimmedInput.toUpperCase() === 'WALK-IN')) {
+      alert('⚠️ Security Alert: Gaadi number daalna compulsory (mandatory) hai is society ke liye. Kripya valid vehicle number enter karein!');
+      return;
+    }
+    const vehicleNumber = trimmedInput || 'Walk-in';
     
     if (overlayCameraActive) {
       if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
@@ -706,111 +757,123 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     </button>
 
                     {/* ANPR AUTOMATIC SCAN */}
-                    <button 
-                      onClick={() => handleTabChange('anpr')}
-                      className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
-                        ${isDark 
-                          ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-blue-500/30' 
-                          : 'bg-white border-slate-200/60 hover:border-blue-500/30'}`}
-                    >
-                      <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
-                        <Camera size={18} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs leading-none text-blue-400">📸 ANPR Scan</h3>
-                        <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Gaadi plate auto-scan</p>
-                      </div>
-                    </button>
+                    {guardSettings.anpr && (
+                      <button 
+                        onClick={() => handleTabChange('anpr')}
+                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                          ${isDark 
+                            ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-blue-500/30' 
+                            : 'bg-white border-slate-200/60 hover:border-blue-500/30'}`}
+                      >
+                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
+                          <Camera size={18} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xs leading-none text-blue-400">📸 ANPR Scan</h3>
+                          <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Gaadi plate auto-scan</p>
+                        </div>
+                      </button>
+                    )}
 
                     {/* PRE APPROVED */}
-                    <button 
-                      onClick={() => handleTabChange('preapproved')}
-                      className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
-                        ${isDark 
-                          ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-emerald-500/30' 
-                          : 'bg-white border-slate-200/60 hover:border-emerald-500/30'}`}
-                    >
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                        <ListChecks size={18} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs leading-none text-emerald-400">📋 Pre-Approved</h3>
-                        <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Aaj ke pre-approvals list</p>
-                      </div>
-                    </button>
+                    {guardSettings.preapproved && (
+                      <button 
+                        onClick={() => handleTabChange('preapproved')}
+                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                          ${isDark 
+                            ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-emerald-500/30' 
+                            : 'bg-white border-slate-200/60 hover:border-emerald-500/30'}`}
+                      >
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
+                          <ListChecks size={18} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xs leading-none text-emerald-400">📋 Pre-Approved</h3>
+                          <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Aaj ke pre-approvals list</p>
+                        </div>
+                      </button>
+                    )}
 
                     {/* MANUAL ENTRY */}
-                    <button 
-                      onClick={() => handleTabChange('manual')}
-                      className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
-                        ${isDark 
-                          ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-amber-500/30' 
-                          : 'bg-white border-slate-200/60 hover:border-amber-500/30'}`}
-                    >
-                      <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
-                        <PenLine size={18} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs leading-none text-amber-400">✍️ Manual Entry</h3>
-                        <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Visitor details khud likhein</p>
-                      </div>
-                    </button>
+                    {guardSettings.manual && (
+                      <button 
+                        onClick={() => handleTabChange('manual')}
+                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                          ${isDark 
+                            ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-amber-500/30' 
+                            : 'bg-white border-slate-200/60 hover:border-amber-500/30'}`}
+                      >
+                        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
+                          <PenLine size={18} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xs leading-none text-amber-400">✍️ Manual Entry</h3>
+                          <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Visitor details khud likhein</p>
+                        </div>
+                      </button>
+                    )}
 
                     {/* VEHICLE REGISTER */}
-                    <button 
-                      onClick={() => handleTabChange('vehicles')}
-                      className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
-                        ${isDark 
-                          ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-violet-500/30' 
-                          : 'bg-white border-slate-200/60 hover:border-violet-500/30'}`}
-                    >
-                      <div className="w-10 h-10 rounded-2xl bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
-                        <Car size={18} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs leading-none text-violet-400">🚘 Registered</h3>
-                        <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Society registered vehicles</p>
-                      </div>
-                    </button>
+                    {guardSettings.vehicles && (
+                      <button 
+                        onClick={() => handleTabChange('vehicles')}
+                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                          ${isDark 
+                            ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-violet-500/30' 
+                            : 'bg-white border-slate-200/60 hover:border-violet-500/30'}`}
+                      >
+                        <div className="w-10 h-10 rounded-2xl bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
+                          <Car size={18} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xs leading-none text-violet-400">🚘 Registered</h3>
+                          <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Society registered vehicles</p>
+                        </div>
+                      </button>
+                    )}
 
                     {/* EXIT VISITORS CHECKOUT */}
-                    <button 
-                      onClick={() => handleTabChange('checkout')}
-                      className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
-                        ${isDark 
-                          ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-sky-500/30' 
-                          : 'bg-white border-slate-200/60 hover:border-sky-500/30'}`}
-                    >
-                      <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
-                        <DoorOpen size={18} />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-xs leading-none text-sky-400">🚪 Checkout Exit</h3>
-                        <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Visitors ki checkout time</p>
-                      </div>
-                    </button>
+                    {guardSettings.checkout && (
+                      <button 
+                        onClick={() => handleTabChange('checkout')}
+                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                          ${isDark 
+                            ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-sky-500/30' 
+                            : 'bg-white border-slate-200/60 hover:border-sky-500/30'}`}
+                      >
+                        <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
+                          <DoorOpen size={18} />
+                        </div>
+                        <div>
+                          <h3 className="font-bold text-xs leading-none text-sky-400">🚪 Checkout Exit</h3>
+                          <p className={`text-[9px] ${subtext} mt-1 leading-tight`}>Visitors ki checkout time</p>
+                        </div>
+                      </button>
+                    )}
 
                   </div>
 
                   {/* HIGH ALARM SOS ALERT CARD */}
-                  <button 
-                    onClick={() => handleTabChange('sos')}
-                    className={`w-full p-4 rounded-[28px] border text-left flex items-center justify-between transition-all duration-300 active:scale-[0.98] animate-pulse
-                      ${isDark 
-                        ? 'bg-gradient-to-r from-red-950/40 via-red-900/15 to-slate-900 border-red-500/30 hover:border-red-500/60 shadow-lg shadow-red-950/20' 
-                        : 'bg-gradient-to-r from-red-50 to-white border-red-200 hover:border-red-400 shadow-md'}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-red-500/25 text-red-400 flex items-center justify-center border border-red-500/40 animate-sos-pulse">
-                        <AlertCircle size={20} />
+                  {guardSettings.sos && (
+                    <button 
+                      onClick={() => handleTabChange('sos')}
+                      className={`w-full p-4 rounded-[28px] border text-left flex items-center justify-between transition-all duration-300 active:scale-[0.98] animate-pulse
+                        ${isDark 
+                          ? 'bg-gradient-to-r from-red-950/40 via-red-900/15 to-slate-900 border-red-500/30 hover:border-red-500/60 shadow-lg shadow-red-950/20' 
+                          : 'bg-gradient-to-r from-red-50 to-white border-red-200 hover:border-red-400 shadow-md'}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-red-500/25 text-red-400 flex items-center justify-center border border-red-500/40 animate-sos-pulse">
+                          <AlertCircle size={20} />
+                        </div>
+                        <div>
+                          <h3 className="font-black text-xs text-red-400 uppercase tracking-wide leading-none">🚨 Active SOS Alerts</h3>
+                          <p className="text-[9px] text-red-400/80 mt-1">Emergency trigger alerts board</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-black text-xs text-red-400 uppercase tracking-wide leading-none">🚨 Active SOS Alerts</h3>
-                        <p className="text-[9px] text-red-400/80 mt-1">Emergency trigger alerts board</p>
-                      </div>
-                    </div>
-                    <ArrowRight size={16} className="text-red-400" />
-                  </button>
+                      <ArrowRight size={16} className="text-red-400" />
+                    </button>
+                  )}
 
                 </div>
               </div>
@@ -1637,21 +1700,25 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
             {/* Plate Input */}
             <div className="my-4">
               <input 
-                placeholder="EX: MH-12-AB-1234" 
+                placeholder={guardSettings.vehicle_mandatory ? "GAADI NUMBER: MANDATORY" : "EX: MH-12-AB-1234 (OPTIONAL)"} 
                 value={vehicleNumberInput}
                 onChange={e => setVehicleNumberInput(e.target.value.toUpperCase())}
-                className={`w-full border rounded-2xl px-4 py-3 text-lg font-black tracking-widest uppercase outline-none text-center ${input}`}
+                className={`w-full border rounded-2xl px-4 py-3 text-lg font-black tracking-widest uppercase outline-none text-center ${
+                  guardSettings.vehicle_mandatory && !vehicleNumberInput.trim() ? 'border-red-500/50 focus:border-red-500' : input
+                }`}
               />
             </div>
 
             {/* Quick Helper Pills */}
             <div className="flex justify-center gap-2 mb-4">
-              <button 
-                onClick={() => setVehicleNumberInput('Walk-in')}
-                className="px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
-              >
-                🚶 Walk-in (No Vehicle)
-              </button>
+              {!guardSettings.vehicle_mandatory && (
+                <button 
+                  onClick={() => setVehicleNumberInput('Walk-in')}
+                  className="px-3 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 text-emerald-400 text-[9px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 flex items-center gap-1"
+                >
+                  🚶 Walk-in (No Vehicle)
+                </button>
+              )}
               <button 
                 onClick={() => setVehicleNumberInput('MH12AB1234')}
                 className="px-3 py-1.5 rounded-full border border-indigo-500/20 bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase tracking-wider transition-all hover:scale-105 active:scale-95 flex items-center gap-1"

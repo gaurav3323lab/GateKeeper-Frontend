@@ -106,12 +106,19 @@ const PushPermissionModal = ({ onAllow, onLater }) => (
 );
 
 // ── Main NotificationManager Component ──────────────────────
-const NotificationManager = ({ user, onSOS, setSocket }) => {
+const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
   const internalSocketRef = useRef(null);
   const audioRef          = useRef(new Audio());
+  const sirenRef          = useRef(null);
   const [toasts, setToasts]           = useState([]);
   const [activeCall, setActiveCall]   = useState(null);
   const [showPushModal, setShowPushModal] = useState(false);
+
+  useEffect(() => {
+    if (!globalSOS) {
+      stopSound();
+    }
+  }, [globalSOS]);
 
   // ── Toast helpers ─────────────────────────────────────────
   const addToast = (type, title, message) => {
@@ -121,15 +128,95 @@ const NotificationManager = ({ user, onSOS, setSocket }) => {
   };
   const dismissToast = (id) => setToasts(prev => prev.filter(t => t.id !== id));
 
+  const startEmergencySiren = () => {
+    try {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) return null;
+      
+      const audioCtx = new AudioContextClass();
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      osc1.type = 'sawtooth';
+      osc2.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.35, audioCtx.currentTime);
+      
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      osc1.frequency.setValueAtTime(520, audioCtx.currentTime);
+      osc2.frequency.setValueAtTime(570, audioCtx.currentTime);
+      
+      osc1.start();
+      osc2.start();
+      
+      let toggle = false;
+      const interval = setInterval(() => {
+        if (audioCtx.state === 'closed') {
+          clearInterval(interval);
+          return;
+        }
+        const now = audioCtx.currentTime;
+        if (toggle) {
+          osc1.frequency.exponentialRampToValueAtTime(880, now + 0.45);
+          osc2.frequency.exponentialRampToValueAtTime(930, now + 0.45);
+        } else {
+          osc1.frequency.exponentialRampToValueAtTime(440, now + 0.45);
+          osc2.frequency.exponentialRampToValueAtTime(490, now + 0.45);
+        }
+        toggle = !toggle;
+      }, 500);
+      
+      return {
+        stop: () => {
+          clearInterval(interval);
+          try {
+            osc1.stop();
+            osc2.stop();
+            audioCtx.close();
+          } catch (e) {}
+        }
+      };
+    } catch (e) {
+      console.error('Failed to play synthesized siren:', e);
+      return null;
+    }
+  };
+
   const playSound = (type, loop = false) => {
     try {
+      if (type === 'sos') {
+        if (sirenRef.current) {
+          sirenRef.current.stop();
+          sirenRef.current = null;
+        }
+        sirenRef.current = startEmergencySiren();
+        
+        // Auto stop after 15 seconds to prevent infinite siren loop
+        setTimeout(() => {
+          if (sirenRef.current) {
+            sirenRef.current.stop();
+            sirenRef.current = null;
+          }
+        }, 15000);
+        return;
+      }
+
       audioRef.current.src = SOUNDS[type];
       audioRef.current.loop = loop;
       audioRef.current.play().catch(e => console.warn('Audio play failed:', e));
     } catch (err) { console.error('Sound error:', err); }
   };
+
   const stopSound = () => {
     try {
+      if (sirenRef.current) {
+        sirenRef.current.stop();
+        sirenRef.current = null;
+      }
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     } catch (err) { console.error('Sound stop error:', err); }

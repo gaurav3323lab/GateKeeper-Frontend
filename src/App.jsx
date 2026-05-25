@@ -106,7 +106,7 @@ function AppContent() {
   return (
     <>
       {/* ✅ Fixed: Single NotificationManager with shared socket state */}
-      <NotificationManager user={user} onSOS={(data) => setGlobalSOS(data)} setSocket={setSharedSocket} />
+      <NotificationManager user={user} onSOS={(data) => setGlobalSOS(data)} setSocket={setSharedSocket} globalSOS={globalSOS} />
 
       {/* Global SOS Alert Modal — shows for Manager & Guard */}
       {globalSOS && (

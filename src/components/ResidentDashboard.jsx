@@ -40,6 +40,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
 
   // 2. Modal & Tab Triggers
   const [showDirectoryModal, setShowDirectoryModal] = useState(false);
+  const [directoryTab, setDirectoryTab] = useState('intercom'); // 'intercom' | 'residents'
   const [showPlannerModal, setShowPlannerModal] = useState(false);
   const [showPreapproveModal, setShowPreapproveModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
@@ -1093,7 +1094,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className={`w-full max-w-sm rounded-[30px] p-6 border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-extrabold text-sm flex items-center gap-1.5"><Search size={18} className="text-indigo-500" /> Intercom & Staff Directory</h3>
+              <h3 className="font-extrabold text-sm flex items-center gap-1.5"><Search size={18} className="text-indigo-500" /> Society Intercom & Directory</h3>
               <button 
                 onClick={() => { setShowDirectoryModal(false); setDirectorySearch(''); }} 
                 className="text-slate-400 hover:text-slate-600"
@@ -1102,12 +1103,40 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               </button>
             </div>
 
+            {/* Premium glassmorphism tab layout to switch intercom vs residents directory */}
+            <div className="flex p-1 gap-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-[10px] font-bold mb-3 border dark:border-slate-700/50">
+              <button
+                type="button"
+                onClick={() => { setDirectoryTab('intercom'); setDirectorySearch(''); }}
+                className={`flex-1 py-2 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 ${
+                  directoryTab === 'intercom'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                <Phone size={12} />
+                <span>Intercom & Staff</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setDirectoryTab('residents'); setDirectorySearch(''); }}
+                className={`flex-1 py-2 rounded-lg text-center transition-all flex items-center justify-center gap-1.5 ${
+                  directoryTab === 'residents'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                }`}
+              >
+                <Search size={12} />
+                <span>Residents Directory</span>
+              </button>
+            </div>
+
             <div className="space-y-3">
               <div className="relative">
                 <Search size={14} className="absolute left-3 top-3 text-slate-400" />
                 <input 
                   type="text" 
-                  placeholder="Search flat number, helper role, or name..." 
+                  placeholder={directoryTab === 'intercom' ? "Search guard, manager, helper, or helpline..." : "Search resident name, flat number, or tower..."}
                   value={directorySearch}
                   onChange={e => setDirectorySearch(e.target.value)}
                   className={`w-full rounded-xl border pl-9 pr-3 py-2 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
@@ -1115,44 +1144,58 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               </div>
 
               <div className="max-h-60 overflow-y-auto space-y-2 pr-1 scrollbar-thin">
-                {(realContacts.filter(c => {
+                {(() => {
                   const q = directorySearch.toLowerCase();
-                  return (
-                    c.name?.toLowerCase().includes(q) ||
-                    c.flat_number?.toLowerCase().includes(q) ||
-                    c.tower?.toLowerCase().includes(q) ||
-                    c.role?.toLowerCase().includes(q) ||
-                    c.category?.toLowerCase().includes(q)
+                  const filtered = realContacts.filter(c => {
+                    // First, filter by tab
+                    if (directoryTab === 'intercom' && c.category === 'Residents') return false;
+                    if (directoryTab === 'residents' && c.category !== 'Residents') return false;
+
+                    // Next, filter by search query
+                    return (
+                      c.name?.toLowerCase().includes(q) ||
+                      c.flat_number?.toLowerCase().includes(q) ||
+                      c.tower?.toLowerCase().includes(q) ||
+                      c.role?.toLowerCase().includes(q) ||
+                      c.category?.toLowerCase().includes(q)
+                    );
+                  });
+
+                  // If empty, show fallback
+                  const displayList = filtered.length > 0 ? filtered : (
+                    directoryTab === 'intercom' ? [
+                      { name: 'Gate Security Cabin', role: 'Main Gatehouse Intercom', flat_number: 'Gate 1', phone: '1000', category: 'Security' },
+                      { name: 'Society Helpdesk', role: 'Helpline Desk', flat_number: 'Office', phone: '1002', category: 'Security' }
+                    ] : [
+                      { name: 'No active members found', role: 'Resident', flat_number: '--', phone: '', category: 'Residents' }
+                    ]
                   );
-                }).length > 0 ? realContacts.filter(c => {
-                  const q = directorySearch.toLowerCase();
-                  return (
-                    c.name?.toLowerCase().includes(q) ||
-                    c.flat_number?.toLowerCase().includes(q) ||
-                    c.tower?.toLowerCase().includes(q) ||
-                    c.role?.toLowerCase().includes(q) ||
-                    c.category?.toLowerCase().includes(q)
-                  );
-                }) : [
-                  { name: 'Gate Security Cabin', role: 'Main Gatehouse Intercom', flat_number: 'Gate 1', phone: '1000' },
-                ]).map((c, i) => (
-                  <div key={i} className={`p-3 rounded-2xl border flex items-center justify-between animate-fade-in ${isDark ? 'bg-slate-850 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
-                    <div>
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <p className="text-xs font-black">{c.name}</p>
-                        <span className="text-[7px] bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-black uppercase px-1.5 py-0.5 rounded-full">
-                          {c.role}
-                        </span>
+
+                  return displayList.map((c, i) => (
+                    <div key={i} className={`p-3 rounded-2xl border flex items-center justify-between animate-fade-in ${isDark ? 'bg-slate-850 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
+                      <div>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-xs font-black">{c.name}</p>
+                          <span className={`text-[7px] font-black uppercase px-1.5 py-0.5 rounded-full border ${
+                            c.category === 'Residents' 
+                              ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' 
+                              : 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20'
+                          }`}>
+                            {c.role}
+                          </span>
+                        </div>
+                        <p className={`text-[9px] font-medium mt-1 ${subtext}`}>
+                          {c.tower ? `${c.tower} - ` : ''}Flat {c.flat_number} {c.phone ? `• ${c.phone}` : ''}
+                        </p>
                       </div>
-                      <p className={`text-[9px] font-medium mt-1 ${subtext}`}>
-                        {c.tower ? `${c.tower} - ` : ''}Flat {c.flat_number} &bull; {c.phone}
-                      </p>
+                      {c.phone && (
+                        <a href={`tel:${c.phone}`} className="w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md shrink-0 transition-all">
+                          <Phone size={14} />
+                        </a>
+                      )}
                     </div>
-                    <a href={`tel:${c.phone}`} className="w-8 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md shrink-0 transition-all">
-                      <Phone size={14} />
-                    </a>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             </div>
           </div>

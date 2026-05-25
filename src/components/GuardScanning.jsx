@@ -378,22 +378,34 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     const cropWidth = Math.round(videoWidth * 0.8);
     const cropHeight = Math.round(videoHeight * 0.3);
     
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    // Premium ANPR Upgrade: Upscale resolution by 1.5x to improve OCR font curves parsing accuracy
+    const upscaleScale = 1.5;
+    const drawWidth = Math.round(cropWidth * upscaleScale);
+    const drawHeight = Math.round(cropHeight * upscaleScale);
     
-    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    canvas.width = drawWidth;
+    canvas.height = drawHeight;
     
-    // Grayscale & Binary Thresholding simulation log
-    setOcrLog('Converting frame to grayscale...');
-    const imgData = ctx.getImageData(0, 0, cropWidth, cropHeight);
+    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, drawWidth, drawHeight);
+    
+    // Grayscale & Smart Dynamic Thresholding (Lighting Adaptability)
+    setOcrLog('Applying dynamic lighting filters...');
+    const imgData = ctx.getImageData(0, 0, drawWidth, drawHeight);
     const pixels = imgData.data;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const r = pixels[i];
-      const g = pixels[i + 1];
-      const b = pixels[i + 2];
-      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      const threshold = 127;
-      const v = gray > threshold ? 255 : 0;
+    
+    let sum = 0;
+    const grays = new Uint8Array(pixels.length / 4);
+    for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
+      const gray = Math.round(0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2]);
+      grays[j] = gray;
+      sum += gray;
+    }
+    
+    // Self-adjusting threshold dynamically offsets midday glares vs night shadows
+    const dynamicThreshold = sum / (pixels.length / 4);
+    
+    for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
+      const v = grays[j] > dynamicThreshold ? 255 : 0;
       pixels[i] = pixels[i + 1] = pixels[i + 2] = v;
     }
     ctx.putImageData(imgData, 0, 0);
@@ -552,21 +564,34 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     const cropWidth = Math.round(videoWidth * 0.8);
     const cropHeight = Math.round(videoHeight * 0.3);
     
-    canvas.width = cropWidth;
-    canvas.height = cropHeight;
+    // Premium ANPR Upgrade: Upscale resolution by 1.5x to improve OCR font curves parsing accuracy
+    const upscaleScale = 1.5;
+    const drawWidth = Math.round(cropWidth * upscaleScale);
+    const drawHeight = Math.round(cropHeight * upscaleScale);
     
-    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+    canvas.width = drawWidth;
+    canvas.height = drawHeight;
     
-    setOcrLog('Converting frame to grayscale...');
-    const imgData = ctx.getImageData(0, 0, cropWidth, cropHeight);
+    ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, drawWidth, drawHeight);
+    
+    // Grayscale & Smart Dynamic Thresholding (Lighting Adaptability)
+    setOcrLog('Applying dynamic lighting filters...');
+    const imgData = ctx.getImageData(0, 0, drawWidth, drawHeight);
     const pixels = imgData.data;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const r = pixels[i];
-      const g = pixels[i + 1];
-      const b = pixels[i + 2];
-      const gray = 0.299 * r + 0.587 * g + 0.114 * b;
-      const threshold = 127;
-      const v = gray > threshold ? 255 : 0;
+    
+    let sum = 0;
+    const grays = new Uint8Array(pixels.length / 4);
+    for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
+      const gray = Math.round(0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2]);
+      grays[j] = gray;
+      sum += gray;
+    }
+    
+    // Self-adjusting threshold dynamically offsets midday glares vs night shadows
+    const dynamicThreshold = sum / (pixels.length / 4);
+    
+    for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
+      const v = grays[j] > dynamicThreshold ? 255 : 0;
       pixels[i] = pixels[i + 1] = pixels[i + 2] = v;
     }
     ctx.putImageData(imgData, 0, 0);

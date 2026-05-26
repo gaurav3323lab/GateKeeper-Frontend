@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import ISTClock from './ISTClock';
 import jsQR from 'jsqr';
+import NotificationsTab from './NotificationsTab';
 import UserProfile from './UserProfile';
 import { 
   Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, 
   ListChecks, CameraOff, User, AlertCircle, Car, Clock, ChevronLeft,
-  ShieldAlert, Key, DoorOpen, Search, Terminal, Activity, ArrowRight, Sparkles, Filter
+  ShieldAlert, Key, DoorOpen, Search, Terminal, Activity, ArrowRight, Sparkles, Filter, Bell
 } from 'lucide-react';
 import { guardAPI, entryAPI, societyAPI } from '../services/api';
 
@@ -364,7 +365,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     setScanResult(null);
     setVerifiedVehicle(null);
     setScannedPlate('');
-    setOcrLog('Initializing viewport crop...');
+    setOcrLog('Cropping plate region...');
     
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -373,13 +374,14 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    const cropX = Math.round(videoWidth * 0.1);
-    const cropY = Math.round(videoHeight * 0.35);
-    const cropWidth = Math.round(videoWidth * 0.8);
-    const cropHeight = Math.round(videoHeight * 0.3);
+    // Crop center-horizontal strip where plate typically appears
+    const cropX = Math.round(videoWidth * 0.05);
+    const cropY = Math.round(videoHeight * 0.30);
+    const cropWidth = Math.round(videoWidth * 0.90);
+    const cropHeight = Math.round(videoHeight * 0.35);
     
-    // Premium ANPR Upgrade: Upscale resolution by 1.5x to improve OCR font curves parsing accuracy
-    const upscaleScale = 1.5;
+    // 2x upscale for richer pixel data for OCR
+    const upscaleScale = 2.0;
     const drawWidth = Math.round(cropWidth * upscaleScale);
     const drawHeight = Math.round(cropHeight * upscaleScale);
     
@@ -388,30 +390,52 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     
     ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, drawWidth, drawHeight);
     
-    // Grayscale & Smart Dynamic Thresholding (Lighting Adaptability)
-    setOcrLog('Applying dynamic lighting filters...');
+    // ── Image Enhancement Pipeline ──────────────────────────────────────────
+    setOcrLog('Enhancing contrast and sharpening...');
     const imgData = ctx.getImageData(0, 0, drawWidth, drawHeight);
     const pixels = imgData.data;
+    const len = pixels.length / 4;
     
-    let sum = 0;
-    const grays = new Uint8Array(pixels.length / 4);
+    // Step 1: Convert to grayscale
+    const grays = new Float32Array(len);
     for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
-      const gray = Math.round(0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2]);
-      grays[j] = gray;
-      sum += gray;
+      grays[j] = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
     }
     
-    // Self-adjusting threshold dynamically offsets midday glares vs night shadows
-    const dynamicThreshold = sum / (pixels.length / 4);
+    // Step 2: Min-Max contrast stretch (normalize full range to 0–255)
+    let minG = 255, maxG = 0;
+    for (let j = 0; j < len; j++) { if (grays[j] < minG) minG = grays[j]; if (grays[j] > maxG) maxG = grays[j]; }
+    const rangeG = maxG - minG || 1;
+    for (let j = 0; j < len; j++) { grays[j] = ((grays[j] - minG) / rangeG) * 255; }
     
+    // Step 3: Otsu-style binarization threshold computation on the stretched gray
+    const hist = new Int32Array(256);
+    for (let j = 0; j < len; j++) hist[Math.round(grays[j])]++;
+    let sum = 0;
+    for (let t = 0; t < 256; t++) sum += t * hist[t];
+    let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 128;
+    for (let t = 0; t < 256; t++) {
+      wB += hist[t];
+      if (!wB) continue;
+      wF = len - wB;
+      if (!wF) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB;
+      const mF = (sum - sumB) / wF;
+      const betweenVar = wB * wF * (mB - mF) * (mB - mF);
+      if (betweenVar > maxVar) { maxVar = betweenVar; threshold = t; }
+    }
+    
+    // Step 4: Apply threshold — white background, black text (standard plate look)
     for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
-      const v = grays[j] > dynamicThreshold ? 255 : 0;
+      const v = grays[j] > threshold ? 255 : 0;
       pixels[i] = pixels[i + 1] = pixels[i + 2] = v;
+      pixels[i + 3] = 255;
     }
     ctx.putImageData(imgData, 0, 0);
     
-    const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
-    setOcrLog('Running deep OCR character extractor...');
+    const imageBase64 = canvas.toDataURL('image/png');
+    setOcrLog('Running OCR...');
 
     try {
       const res = await fetch(`${API_URL}/api/entry/scan-plate`, {
@@ -423,25 +447,20 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       const plate = data.text?.trim()?.toUpperCase()?.replace(/[^A-Z0-9 ]/g, '');
 
       if (plate && plate.length >= 4) {
-        setOcrLog('Plate recognized successfully!');
+        setOcrLog('Plate recognized!');
         stopCamera();
         setScannedPlate(plate);
         await handleVerifyPlateInDatabase(plate);
       } else {
-        throw new Error("OCR Confidence low");
+        stopCamera();
+        setOcrLog('Plate not clear — please retry');
+        setScanResult({ type: 'unknown', title: '⚠️ Plate Not Clear', detail: 'Camera ke saamne plate clearly rakhein aur phir scan karein.', time: nowIST() });
       }
     } catch (err) {
-      console.error('ANPR Scan error, applying fallback simulation:', err);
-      setOcrLog('Retrying OCR on neural model fallback...');
-      setTimeout(async () => {
-        stopCamera();
-        const randomPlates = ['MH12AB1234', 'MH12CD5678', 'DL3C9999', 'HR26BC4321'];
-        const mockPlate = randomPlates[Math.floor(Math.random() * randomPlates.length)];
-        setScannedPlate(mockPlate);
-        await handleVerifyPlateInDatabase(mockPlate);
-        setProcessing(false);
-      }, 900);
-      return;
+      console.error('[ANPR] Scan error:', err);
+      stopCamera();
+      setOcrLog('OCR failed — check connection');
+      setScanResult({ type: 'unknown', title: '❌ Scan Failed', detail: 'Network error ya camera issue. Dubara try karein.', time: nowIST() });
     }
     setProcessing(false);
   }, [stopCamera, handleVerifyPlateInDatabase]);
@@ -550,7 +569,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const captureAndScanPlateOverlay = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     setProcessing(true);
-    setOcrLog('Initializing viewport crop...');
+    setOcrLog('Cropping plate region...');
     
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -559,13 +578,12 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    const cropX = Math.round(videoWidth * 0.1);
-    const cropY = Math.round(videoHeight * 0.35);
-    const cropWidth = Math.round(videoWidth * 0.8);
-    const cropHeight = Math.round(videoHeight * 0.3);
+    const cropX = Math.round(videoWidth * 0.05);
+    const cropY = Math.round(videoHeight * 0.30);
+    const cropWidth = Math.round(videoWidth * 0.90);
+    const cropHeight = Math.round(videoHeight * 0.35);
     
-    // Premium ANPR Upgrade: Upscale resolution by 1.5x to improve OCR font curves parsing accuracy
-    const upscaleScale = 1.5;
+    const upscaleScale = 2.0;
     const drawWidth = Math.round(cropWidth * upscaleScale);
     const drawHeight = Math.round(cropHeight * upscaleScale);
     
@@ -574,30 +592,45 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     
     ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, drawWidth, drawHeight);
     
-    // Grayscale & Smart Dynamic Thresholding (Lighting Adaptability)
-    setOcrLog('Applying dynamic lighting filters...');
+    setOcrLog('Enhancing contrast and sharpening...');
     const imgData = ctx.getImageData(0, 0, drawWidth, drawHeight);
     const pixels = imgData.data;
+    const len = pixels.length / 4;
     
-    let sum = 0;
-    const grays = new Uint8Array(pixels.length / 4);
+    const grays = new Float32Array(len);
     for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
-      const gray = Math.round(0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2]);
-      grays[j] = gray;
-      sum += gray;
+      grays[j] = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
     }
     
-    // Self-adjusting threshold dynamically offsets midday glares vs night shadows
-    const dynamicThreshold = sum / (pixels.length / 4);
+    let minG = 255, maxG = 0;
+    for (let j = 0; j < len; j++) { if (grays[j] < minG) minG = grays[j]; if (grays[j] > maxG) maxG = grays[j]; }
+    const rangeG = maxG - minG || 1;
+    for (let j = 0; j < len; j++) { grays[j] = ((grays[j] - minG) / rangeG) * 255; }
+    
+    const hist = new Int32Array(256);
+    for (let j = 0; j < len; j++) hist[Math.round(grays[j])]++;
+    let sum = 0;
+    for (let t = 0; t < 256; t++) sum += t * hist[t];
+    let sumB = 0, wB = 0, wF = 0, maxVar = 0, threshold = 128;
+    for (let t = 0; t < 256; t++) {
+      wB += hist[t]; if (!wB) continue;
+      wF = len - wB; if (!wF) break;
+      sumB += t * hist[t];
+      const mB = sumB / wB;
+      const mF = (sum - sumB) / wF;
+      const betweenVar = wB * wF * (mB - mF) * (mB - mF);
+      if (betweenVar > maxVar) { maxVar = betweenVar; threshold = t; }
+    }
     
     for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
-      const v = grays[j] > dynamicThreshold ? 255 : 0;
+      const v = grays[j] > threshold ? 255 : 0;
       pixels[i] = pixels[i + 1] = pixels[i + 2] = v;
+      pixels[i + 3] = 255;
     }
     ctx.putImageData(imgData, 0, 0);
     
-    const imageBase64 = canvas.toDataURL('image/jpeg', 0.9);
-    setOcrLog('Running character extractor...');
+    const imageBase64 = canvas.toDataURL('image/png');
+    setOcrLog('Running OCR...');
 
     try {
       const res = await fetch(`${API_URL}/api/entry/scan-plate`, {
@@ -609,27 +642,17 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       const plate = data.text?.trim()?.toUpperCase()?.replace(/[^A-Z0-9 ]/g, '');
 
       if (plate && plate.length >= 4) {
-        setOcrLog('Plate recognized successfully!');
+        setOcrLog('Plate recognized!');
         if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
         setOverlayCameraActive(false);
         setVehicleNumberInput(plate);
       } else {
-        throw new Error("OCR Confidence low");
+        setOcrLog('Plate not clear — please retry');
       }
     } catch (err) {
-      console.error('ANPR Scan error, applying fallback simulation:', err);
-      setOcrLog('Retrying OCR on fallback model...');
-      setTimeout(() => {
-        if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
-        streamRef.current = null;
-        setOverlayCameraActive(false);
-        const randomPlates = ['MH12AB1234', 'MH12CD5678', 'DL3C9999', 'HR26BC4321'];
-        const mockPlate = randomPlates[Math.floor(Math.random() * randomPlates.length)];
-        setVehicleNumberInput(mockPlate);
-        setProcessing(false);
-      }, 900);
-      return;
+      console.error('[ANPR] Overlay scan error:', err);
+      setOcrLog('OCR failed — check connection');
     }
     setProcessing(false);
   };
@@ -899,6 +922,23 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                       <ArrowRight size={16} className="text-red-400" />
                     </button>
                   )}
+
+                  <button 
+                    onClick={() => handleTabChange('notifications')}
+                    className={`w-full p-4 rounded-[28px] border text-left flex items-center justify-between transition-all duration-300 active:scale-[0.98] mt-3
+                      ${isDark ? 'bg-slate-800/80 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600' : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
+                        <Bell size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-xs text-indigo-500 uppercase tracking-wide leading-none">Alerts & Notifications</h3>
+                        <p className="text-[9px] text-slate-400 mt-1">Check recent updates and notices</p>
+                      </div>
+                    </div>
+                    <ArrowRight size={16} className={subtext} />
+                  </button>
 
                 </div>
               </div>
@@ -1514,6 +1554,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
             {activeTab === 'sos' && (
               <div className="animate-scale-up">
                 <SOSListTab isDark={isDark} card={card} subtext={subtext} user={user} />
+              </div>
+            )}
+
+            {/* NOTIFICATIONS TAB */}
+            {activeTab === 'notifications' && (
+              <div className="animate-scale-up">
+                <NotificationsTab user={user} />
               </div>
             )}
 

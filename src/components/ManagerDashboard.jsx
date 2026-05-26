@@ -3,14 +3,15 @@ import ISTClock from './ISTClock';
 import { useTheme } from '../context/ThemeContext';
 import {
   LayoutDashboard, Users, ShieldCheck, Wrench, ClipboardList, Car,
-  LogOut, CheckCircle, XCircle, Plus, ChevronRight,
+  LogOut, CheckCircle, XCircle, Plus, ChevronRight, ChevronLeft, Calendar,
   AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity, BarChart2,
   Phone, PhoneCall, AlertTriangle, Edit3, ArrowRight, Search, Shield, Building, Filter, RefreshCw,
   Settings, ToggleLeft, ToggleRight, SlidersHorizontal
 } from 'lucide-react';
-import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI, emergencyAPI, authAPI, societyAPI } from '../services/api';
+import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI, emergencyAPI, authAPI, societyAPI, adminAPI } from '../services/api';
 import UserProfile from './UserProfile';
 import AnnouncementBoard from './AnnouncementBoard';
+import NotificationsTab from './NotificationsTab';
 import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
@@ -38,6 +39,11 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
   const [logType, setLogType] = useState('all');
   const [logStatus, setLogStatus] = useState('all');
   const [logDateFilter, setLogDateFilter] = useState('all');
+  const [logCustomStartDate, setLogCustomStartDate] = useState('');
+  const [logCustomEndDate, setLogCustomEndDate] = useState('');
+  const [logViewMode, setLogViewMode] = useState('list'); // 'list' or 'calendar'
+  const [calendarSelectedDate, setCalendarSelectedDate] = useState(null);
+  const [calendarCurrentMonth, setCalendarCurrentMonth] = useState(new Date());
   
   // Vehicles tab filters state
   const [vehicleSearch, setVehicleSearch] = useState('');
@@ -100,6 +106,68 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
       return updated;
     });
   };
+
+  // ── Towers Management State & Functions ─────────────────────────
+  const [towers, setTowers] = useState([]);
+  const [newTowerName, setNewTowerName] = useState('');
+  const [towersLoading, setTowersLoading] = useState(false);
+  const [towerActionLoading, setTowerActionLoading] = useState(false);
+
+  const fetchTowers = useCallback(async () => {
+    const societyId = user?.society_id;
+    if (!societyId) return;
+    setTowersLoading(true);
+    try {
+      const res = await societyAPI.getTowers(societyId);
+      setTowers(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch society towers:', err);
+    } finally {
+      setTowersLoading(false);
+    }
+  }, [user?.society_id]);
+
+  const handleAddTower = async () => {
+    const societyId = user?.society_id;
+    if (!societyId) return;
+    if (!newTowerName || !newTowerName.trim()) {
+      return alert('Tower name is required.');
+    }
+    setTowerActionLoading(true);
+    try {
+      await societyAPI.addTower(societyId, newTowerName.trim());
+      setNewTowerName('');
+      await fetchTowers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to add tower.');
+    } finally {
+      setTowerActionLoading(false);
+    }
+  };
+
+  const handleDeleteTower = async (towerId) => {
+    const societyId = user?.society_id;
+    if (!societyId) return;
+    if (!window.confirm('Are you sure you want to delete this tower? Registered residents of this tower will not be deleted, but this tower option will be removed from selections.')) {
+      return;
+    }
+    setTowerActionLoading(true);
+    try {
+      await societyAPI.deleteTower(societyId, towerId);
+      await fetchTowers();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to delete tower.');
+    } finally {
+      setTowerActionLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'guard_settings') {
+      fetchTowers();
+    }
+  }, [activeTab, fetchTowers]);
+
 
   // Premium design styling variables
   const mainBg = isDark ? 'bg-mesh-dark text-white' : 'bg-mesh-light text-slate-800';
@@ -283,19 +351,40 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
     }
   };
 
-  const tabs = [
-    { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { key: 'approvals', label: 'Approvals', icon: ClipboardList },
-    { key: 'staff', label: 'Staff', icon: Users },
-    { key: 'tickets', label: 'Tickets', icon: Wrench },
-    { key: 'residents', label: 'Residents', icon: ShieldCheck },
-    { key: 'vehicles', label: 'Vehicles', icon: Car },
-    { key: 'logs', label: 'Entry Log', icon: Activity },
-    { key: 'analytics', label: 'Analytics', icon: BarChart2 },
-    { key: 'emergency', label: 'Emergency', icon: AlertCircle },
-    { key: 'notices', label: 'Notices', icon: Bell },
-    { key: 'ads', label: 'Promotions', icon: Megaphone },
-    { key: 'guard_settings', label: 'Guard Settings', icon: SlidersHorizontal },
+  const tabGroups = [
+    {
+      group: 'Overview',
+      items: [
+        { key: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { key: 'analytics', label: 'Analytics', icon: BarChart2 },
+        { key: 'notifications', label: 'Alerts', icon: Bell },
+      ]
+    },
+    {
+      group: 'People & Operations',
+      items: [
+        { key: 'approvals', label: 'Approvals', icon: ClipboardList },
+        { key: 'residents', label: 'Residents', icon: ShieldCheck },
+        { key: 'staff', label: 'Staff', icon: Users },
+        { key: 'tickets', label: 'Tickets', icon: Wrench },
+      ]
+    },
+    {
+      group: 'Gate & Logs',
+      items: [
+        { key: 'logs', label: 'Entry Log', icon: Activity },
+        { key: 'vehicles', label: 'Vehicles', icon: Car },
+      ]
+    },
+    {
+      group: 'Settings & More',
+      items: [
+        { key: 'emergency', label: 'Emergency', icon: AlertCircle },
+        { key: 'notices', label: 'Notices', icon: Bell },
+        { key: 'ads', label: 'Promotions', icon: Megaphone },
+        { key: 'guard_settings', label: 'Guard Settings', icon: SlidersHorizontal },
+      ]
+    }
   ];
 
   if (loading) {
@@ -310,15 +399,15 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
   }
 
   return (
-    <div className={`min-h-screen pb-16 transition-all duration-500 ${mainBg}`}>
+    <div className={`flex h-screen overflow-hidden transition-all duration-500 ${mainBg}`}>
       {/* Background Graphic Elements */}
       <div className="absolute top-0 left-[20%] w-[40%] h-[30%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[10%] right-[10%] w-[35%] h-[35%] rounded-full bg-emerald-500/80 dark:bg-emerald-500/5 blur-[140px] opacity-10 pointer-events-none" />
 
-      {/* Floating Frosted Glass Header */}
-      <header className={`sticky top-0 z-40 px-6 py-4 border-b backdrop-blur-xl flex items-center justify-between shadow-[0_4px_30px_rgba(0,0,0,0.03)] ${headerStyle}`}>
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[1.5px] shadow-[0_8px_20px_rgba(99,102,241,0.2)] hover:scale-105 transition-transform duration-300">
+      {/* Beautiful Sidebar Navigation */}
+      <aside className={`w-64 md:w-72 border-r backdrop-blur-xl flex flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.05)] ${headerStyle}`}>
+        <div className="p-6 border-b border-slate-200/50 dark:border-slate-800/80 flex items-center gap-3 shrink-0">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[1.5px] shadow-[0_8px_20px_rgba(99,102,241,0.2)]">
             <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center">
               <ShieldCheck size={20} className="text-indigo-400" />
             </div>
@@ -331,68 +420,91 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
           </div>
         </div>
 
-        <div className="flex items-center gap-3.5">
-          {pendingResidents.length > 0 && (
-            <div className="relative cursor-pointer group" onClick={() => setActiveTab('approvals')}>
-              <div className="w-9 h-9 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 group-hover:scale-105 transition-all">
-                <Bell size={16} className="animate-sos-pulse" />
+        <div className="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-thin scrollbar-thumb-indigo-500/20 hover:scrollbar-thumb-indigo-500/40">
+          {tabGroups.map((group, idx) => (
+            <div key={idx} className="space-y-1.5">
+              <h3 className={`px-3 text-[10px] font-black uppercase tracking-widest ${subtext}`}>{group.group}</h3>
+              <div className="space-y-1">
+                {group.items.map(({ key, label, icon: Icon }) => {
+                  const isActive = activeTab === key;
+                  return (
+                    <button 
+                      key={key} 
+                      onClick={() => setActiveTab(key)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 group
+                        ${isActive 
+                          ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-[0_4px_15px_rgba(99,102,241,0.25)]' 
+                          : isDark 
+                            ? 'text-slate-400 hover:text-white hover:bg-slate-900/40' 
+                            : 'text-slate-600 hover:text-indigo-600 hover:bg-indigo-50/50'
+                        }`}
+                    >
+                      <Icon size={18} className={isActive ? 'text-white' : 'text-indigo-400 group-hover:scale-110 transition-transform duration-300'} />
+                      <span>{label}</span>
+                      {key === 'approvals' && pendingResidents.length > 0 && (
+                        <span className="ml-auto bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full font-black shadow-md border border-red-400/50">
+                          {pendingResidents.length}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
-              <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-red-500 text-white text-[9px] flex items-center justify-center font-black shadow-md border-2 border-slate-950">
-                {pendingResidents.length}
-              </span>
             </div>
-          )}
-          
-          <button 
-            onClick={() => setShowProfile(true)} 
-            className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all hover:scale-105 ${
-              isDark ? 'border-slate-800 text-slate-400 hover:text-indigo-400 bg-slate-950/20' : 'border-gray-200 text-gray-500 hover:text-indigo-500 bg-white/40'
-            }`}
-          >
-            <User size={15} />
-          </button>
-          
-          <button 
-            onClick={onLogout} 
-            className={`w-9 h-9 rounded-xl border flex items-center justify-center transition-all hover:scale-105 ${
-              isDark ? 'border-slate-800 text-slate-400 hover:text-red-400 bg-slate-950/20' : 'border-gray-200 text-gray-500 hover:text-red-400 bg-white/40'
-            }`}
-          >
-            <LogOut size={15} />
-          </button>
+          ))}
         </div>
-      </header>
-
-      {/* Modern Capsule Tabs Navigation */}
-      <div className={`sticky top-[73px] z-30 px-6 py-2.5 border-b backdrop-blur-xl overflow-x-auto flex gap-2.5 scrollbar-none ${headerStyle}`}>
-        {tabs.map(({ key, label, icon: Icon }) => {
-          const isActive = activeTab === key;
-          return (
+        
+        <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/80 shrink-0">
+          <div className={`rounded-2xl p-3 border ${cardStyle} flex flex-col gap-2`}>
             <button 
-              key={key} 
-              onClick={() => setActiveTab(key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-black whitespace-nowrap transition-all duration-300 relative group
-                ${isActive 
-                  ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-[0_8px_20px_rgba(99,102,241,0.25)] scale-[1.02]' 
-                  : isDark 
-                    ? 'text-slate-400 hover:text-white hover:bg-slate-900/40 bg-slate-950/10 border border-slate-900/50' 
-                    : 'text-slate-500 hover:text-slate-800 hover:bg-white/40 bg-white/20 border border-slate-200/40'
-                }`}
+              onClick={() => setShowProfile(true)} 
+              className={`w-full py-2 px-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all hover:scale-[1.02] ${
+                isDark ? 'bg-slate-950/40 text-slate-300 hover:text-indigo-400 hover:bg-slate-900' : 'bg-slate-100 text-slate-700 hover:text-indigo-600 hover:bg-slate-200'
+              }`}
             >
-              <Icon size={14} className={isActive ? 'text-white' : 'text-indigo-400'} />
-              <span>{label}</span>
-              {key === 'approvals' && pendingResidents.length > 0 && (
-                <span className="ml-1 bg-red-500 text-white text-[9px] px-2 py-0.5 rounded-full font-black border border-slate-950">
-                  {pendingResidents.length}
-                </span>
-              )}
+              <User size={14} /> My Profile
             </button>
-          );
-        })}
-      </div>
+            <button 
+              onClick={onLogout} 
+              className={`w-full py-2 px-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all hover:scale-[1.02] ${
+                isDark ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20' : 'bg-red-50 text-red-600 hover:bg-red-100'
+              }`}
+            >
+              <LogOut size={14} /> Log Out
+            </button>
+          </div>
+        </div>
+      </aside>
 
-      {/* Main Dynamic Dashboard Grid */}
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-indigo-500/20">
+        <header className={`sticky top-0 z-40 px-8 py-4 backdrop-blur-xl flex items-center justify-between border-b ${headerStyle}`}>
+           <div>
+             <h2 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 capitalize">
+               {activeTab.replace('_', ' ')}
+             </h2>
+           </div>
+           <div className="flex items-center gap-3.5">
+              {pendingResidents.length > 0 && (
+                <div className="relative cursor-pointer group" onClick={() => setActiveTab('approvals')}>
+                  <div className="w-10 h-10 rounded-xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-yellow-500 group-hover:scale-105 transition-all shadow-sm">
+                    <Bell size={18} className="animate-sos-pulse" />
+                  </div>
+                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-black shadow-md border-2 border-slate-950">
+                    {pendingResidents.length}
+                  </span>
+                </div>
+              )}
+           </div>
+        </header>
+
+        <div className="p-6 md:p-8 max-w-6xl mx-auto w-full space-y-6 pb-24">
+
+        {activeTab === 'notifications' && (
+          <div className="animate-slide-up">
+            <NotificationsTab user={user} />
+          </div>
+        )}
 
         {/* ─── TAB: DASHBOARD ────────────────────────────────────────── */}
         {activeTab === 'dashboard' && (
@@ -1420,7 +1532,23 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                 const oneWeekAgo = new Date();
                 oneWeekAgo.setDate(now.getDate() - 7);
                 if (entryDate < oneWeekAgo) return false;
+              } else if (logDateFilter === 'custom') {
+                if (logCustomStartDate) {
+                  const start = new Date(logCustomStartDate);
+                  start.setHours(0, 0, 0, 0);
+                  if (entryDate < start) return false;
+                }
+                if (logCustomEndDate) {
+                  const end = new Date(logCustomEndDate);
+                  end.setHours(23, 59, 59, 999);
+                  if (entryDate > end) return false;
+                }
               }
+            }
+            if (logViewMode === 'calendar' && calendarSelectedDate) {
+              const entryDate = new Date(log.entry_time);
+              const selDate = new Date(calendarSelectedDate);
+              if (entryDate.toDateString() !== selDate.toDateString()) return false;
             }
             return true;
           });
@@ -1428,10 +1556,42 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
           return (
             <div className="space-y-4 animate-slide-up">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-                <div className="flex items-center gap-2">
-                  <Activity size={18} className="text-indigo-400" />
-                  <h2 className="font-heading font-black text-base uppercase tracking-wider">Gate Activity History</h2>
+                <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Activity size={18} className="text-indigo-400" />
+                    <h2 className="font-heading font-black text-base uppercase tracking-wider">Gate Activity History</h2>
+                  </div>
+                  
+                  {/* Segmented View Switcher */}
+                  <div className={`flex items-center p-0.5 rounded-xl border ${isDark ? 'bg-slate-950/80 border-white/5' : 'bg-slate-100 border-slate-200'}`}>
+                    <button
+                      type="button"
+                      onClick={() => setLogViewMode('list')}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5
+                        ${logViewMode === 'list'
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
+                          : 'text-slate-500 hover:text-indigo-400'}`}
+                    >
+                      <Activity size={11} /> List View
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogViewMode('calendar');
+                        if (!calendarSelectedDate) {
+                          setCalendarSelectedDate(new Date());
+                        }
+                      }}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5
+                        ${logViewMode === 'calendar'
+                          ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/10'
+                          : 'text-slate-500 hover:text-indigo-400'}`}
+                    >
+                      <Calendar size={11} /> Calendar View
+                    </button>
+                  </div>
                 </div>
+
                 <p className={`text-xs ${subtext}`}>Total: <span className="text-indigo-400 font-bold">{filteredLogs.length} matching entries</span></p>
               </div>
 
@@ -1486,12 +1646,36 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                       <option value="today">Today</option>
                       <option value="yesterday">Yesterday</option>
                       <option value="week">Past 7 Days</option>
+                      <option value="custom">Custom Date range 📅</option>
                     </select>
                     <Filter className={`absolute right-3.5 text-slate-500 pointer-events-none`} size={11} />
                   </div>
                 </div>
 
-                {(logSearch || logType !== 'all' || logStatus !== 'all' || logDateFilter !== 'all') && (
+                {logDateFilter === 'custom' && (
+                  <div className="grid grid-cols-2 gap-3 mt-3 animate-slide-down">
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 pl-1">Start Date</label>
+                      <input
+                        type="date"
+                        value={logCustomStartDate}
+                        onChange={e => setLogCustomStartDate(e.target.value)}
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs ${inputStyle}`}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <label className="text-[10px] uppercase font-bold tracking-wider text-slate-400 pl-1">End Date</label>
+                      <input
+                        type="date"
+                        value={logCustomEndDate}
+                        onChange={e => setLogCustomEndDate(e.target.value)}
+                        className={`w-full px-3.5 py-2.5 rounded-xl text-xs ${inputStyle}`}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {(logSearch || logType !== 'all' || logStatus !== 'all' || logDateFilter !== 'all' || logCustomStartDate || logCustomEndDate) && (
                   <div className="flex justify-end">
                     <button
                       onClick={() => {
@@ -1499,6 +1683,8 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                         setLogType('all');
                         setLogStatus('all');
                         setLogDateFilter('all');
+                        setLogCustomStartDate('');
+                        setLogCustomEndDate('');
                       }}
                       className="text-[10px] text-rose-400 hover:text-rose-300 font-black uppercase tracking-wider flex items-center gap-1 transition-all"
                     >
@@ -1507,6 +1693,162 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                   </div>
                 )}
               </div>
+
+              {logViewMode === 'calendar' && (() => {
+                const year = calendarCurrentMonth.getFullYear();
+                const month = calendarCurrentMonth.getMonth();
+
+                const firstDayIndex = new Date(year, month, 1).getDay();
+                const totalDays = new Date(year, month + 1, 0).getDate();
+
+                const days = [];
+                for (let i = 0; i < firstDayIndex; i++) {
+                  days.push(null);
+                }
+                for (let d = 1; d <= totalDays; d++) {
+                  days.push(new Date(year, month, d));
+                }
+
+                const monthNames = [
+                  'January', 'February', 'March', 'April', 'May', 'June',
+                  'July', 'August', 'September', 'October', 'November', 'December'
+                ];
+
+                const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+                const getEntriesForDate = (date) => {
+                  if (!date) return [];
+                  return entryLogs.filter(log => {
+                    const entryDate = new Date(log.entry_time);
+                    return entryDate.toDateString() === date.toDateString();
+                  });
+                };
+
+                const nextMonth = () => {
+                  setCalendarCurrentMonth(new Date(year, month + 1, 1));
+                };
+
+                const prevMonth = () => {
+                  setCalendarCurrentMonth(new Date(year, month - 1, 1));
+                };
+
+                return (
+                  <div className={`rounded-3xl border p-5 space-y-4 animate-slide-down ${cardStyle}`}>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} className="text-indigo-400" />
+                        <h3 className="font-bold text-sm tracking-wide">
+                          {monthNames[month]} {year}
+                        </h3>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={prevMonth}
+                          className={`p-1.5 rounded-lg border transition-all hover:scale-105 active:scale-95
+                            ${isDark ? 'border-white/5 bg-slate-900/60 hover:bg-slate-800 text-slate-400' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                        >
+                          <ChevronLeft size={13} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCalendarCurrentMonth(new Date());
+                            setCalendarSelectedDate(new Date());
+                          }}
+                          className={`px-2 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-wider transition-all active:scale-95
+                            ${isDark ? 'border-white/5 bg-slate-900/60 hover:bg-slate-800 text-slate-400' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                        >
+                          Today
+                        </button>
+                        <button
+                          type="button"
+                          onClick={nextMonth}
+                          className={`p-1.5 rounded-lg border transition-all hover:scale-105 active:scale-95
+                            ${isDark ? 'border-white/5 bg-slate-900/60 hover:bg-slate-800 text-slate-400' : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-600'}`}
+                        >
+                          <ChevronRight size={13} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1 text-center">
+                      {weekdays.map((day, idx) => (
+                        <span key={idx} className="text-[10px] uppercase font-black tracking-widest text-slate-500 py-1">
+                          {day}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-1">
+                      {days.map((dateObj, idx) => {
+                        if (!dateObj) {
+                          return <div key={`empty-${idx}`} className="aspect-square" />;
+                        }
+
+                        const dayLogs = getEntriesForDate(dateObj);
+                        const isSelected = calendarSelectedDate && dateObj.toDateString() === new Date(calendarSelectedDate).toDateString();
+                        const isToday = dateObj.toDateString() === new Date().toDateString();
+
+                        return (
+                          <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                              if (isSelected) {
+                                setCalendarSelectedDate(null);
+                              } else {
+                                setCalendarSelectedDate(dateObj);
+                              }
+                            }}
+                            className={`aspect-square rounded-xl flex flex-col items-center justify-center relative transition-all duration-200 border group hover:scale-105
+                              ${isSelected
+                                ? 'bg-gradient-to-br from-indigo-500 to-purple-600 border-indigo-400 text-white shadow-lg shadow-indigo-500/25 font-black scale-105'
+                                : isToday
+                                  ? 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400 font-bold'
+                                  : isDark
+                                    ? 'bg-slate-950/40 border-white/5 text-slate-300 hover:border-slate-700/80 hover:bg-slate-900'
+                                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 hover:bg-slate-50'}`}
+                          >
+                            <span className="text-[11px]">{dateObj.getDate()}</span>
+                            {dayLogs.length > 0 && (
+                              <span
+                                className={`absolute bottom-1 w-4 h-4 rounded-full flex items-center justify-center text-[7px] font-black border transition-colors
+                                  ${isSelected
+                                    ? 'bg-white text-indigo-600 border-white shadow'
+                                    : isDark
+                                      ? 'bg-indigo-900/80 text-indigo-300 border-indigo-500/30'
+                                      : 'bg-indigo-100 text-indigo-700 border-indigo-300'}`}
+                              >
+                                {dayLogs.length}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {calendarSelectedDate && (
+                      <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs
+                        ${isDark ? 'bg-indigo-500/5 border-indigo-500/20 text-slate-300' : 'bg-indigo-50/50 border-indigo-100 text-slate-700'}`}>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm">📅</span>
+                          <span>
+                            Selected Date: <strong className="text-indigo-400">{new Date(calendarSelectedDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</strong>
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setCalendarSelectedDate(null)}
+                          className="text-[9px] font-black uppercase tracking-wider text-rose-400 hover:text-rose-300 transition-colors"
+                        >
+                          Clear Selection
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Logs List */}
               {filteredLogs.length === 0 ? (
@@ -2162,9 +2504,84 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                 })}
               </div>
             </div>
+
+            {/* 🏢 Society Towers Management */}
+            <div className={`rounded-3xl border p-6 space-y-4.5 ${cardStyle}`}>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                  isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-200'
+                }`}>
+                  <span className="text-lg">🏢</span>
+                </div>
+                <div>
+                  <h3 className="font-heading font-black text-sm uppercase tracking-wider">Configure Society Towers / Wings</h3>
+                  <p className={`text-[10px] ${subtext} mt-0.5`}>Add society wings/blocks so residents and guards don't have to type them manually.</p>
+                </div>
+              </div>
+
+              {/* Add Tower Form */}
+              <div className="flex gap-2">
+                <input
+                  placeholder="e.g. Tower A, Wing B, Phase-1"
+                  value={newTowerName}
+                  onChange={e => setNewTowerName(e.target.value)}
+                  className={`flex-1 px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddTower(); }}
+                  disabled={towerActionLoading}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTower}
+                  disabled={towerActionLoading || !newTowerName.trim()}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10 active:scale-95 shrink-0"
+                >
+                  {towerActionLoading ? <Loader2 className="animate-spin" size={13} /> : '＋ Add'}
+                </button>
+              </div>
+
+              {/* Towers List */}
+              {towersLoading ? (
+                <div className="flex items-center justify-center py-4 gap-2">
+                  <Loader2 className="animate-spin text-indigo-500" size={16} />
+                  <span className="text-[10px] font-bold text-slate-500">Loading towers...</span>
+                </div>
+              ) : towers.length === 0 ? (
+                <div className="text-center py-6 border border-dashed border-slate-350 dark:border-slate-800 rounded-2xl">
+                  <p className={`text-xs font-bold ${subtext}`}>No society towers configured yet</p>
+                  <p className={`text-[10px] mt-0.5 ${subtext}`}>Configure them above to enable dropdown selections for your society.</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className={`text-[9px] font-black uppercase tracking-widest ${subtext}`}>Active Towers / Wings ({towers.length})</p>
+                  <div className="flex flex-wrap gap-2.5">
+                    {towers.map(t => (
+                      <span
+                        key={t.id}
+                        className={`text-xs font-extrabold px-3.5 py-1.5 rounded-2xl border flex items-center gap-2 transition-all hover:scale-105 duration-200
+                          ${isDark 
+                            ? 'bg-slate-950/60 border-slate-800 text-slate-200' 
+                            : 'bg-slate-50 border-slate-200 text-slate-700 shadow-sm'}`}
+                      >
+                        <span>🏢 {t.tower_name}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteTower(t.id)}
+                          className="hover:text-rose-500 text-slate-400 dark:text-slate-500 transition-colors cursor-pointer"
+                          disabled={towerActionLoading}
+                          title="Delete Tower"
+                        >
+                          ✕
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         )}
 
+        </div>
       </div>
 
       <UserProfile isOpen={showProfile} onClose={() => setShowProfile(false)} />

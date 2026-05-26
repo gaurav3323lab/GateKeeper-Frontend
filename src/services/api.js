@@ -102,6 +102,9 @@ export const societyAPI = {
   verifyCode: (code) => api.get(`/api/societies/verify/${code}`),
   getSettings: (societyId) => api.get(`/api/societies/${societyId}/settings`),
   updateSettings: (societyId, data) => api.put(`/api/societies/${societyId}/settings`, data),
+  getTowers: (societyId) => api.get(`/api/societies/${societyId}/towers`),
+  addTower: (societyId, tower_name) => api.post(`/api/societies/${societyId}/towers`, { tower_name }),
+  deleteTower: (societyId, towerId) => api.delete(`/api/societies/${societyId}/towers/${towerId}`),
 };
 
 // ── Announcements ────────────────────────────────────────────

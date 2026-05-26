@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Phone, User, Home, LogIn, UserPlus, CheckCircle, Clock, Loader2, Key, Eye, EyeOff, ShieldAlert } from 'lucide-react';
 import { authAPI, societyAPI } from '../services/api';
+import TowerSelect from './TowerSelect';
 
 const LoginPage = ({ onLoginSuccess }) => {
   const { isDark } = useTheme();
@@ -229,16 +230,16 @@ const LoginPage = ({ onLoginSuccess }) => {
                 <div className="grid grid-cols-2 gap-3.5 animate-scale-up">
                   <div>
                     <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${textLabel}`}>Tower / Block</label>
-                    <div className={`flex items-center gap-2 border rounded-2xl px-3.5 py-3.5 transition-all duration-300 ${inputContainer}`}>
-                      <Home size={14} className="text-slate-400" />
-                      <input 
-                        name="tower" 
-                        value={form.tower} 
-                        onChange={handleChange} 
-                        placeholder="e.g. Tower A"
-                        className="bg-transparent flex-1 outline-none text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white" 
-                      />
-                    </div>
+                    <TowerSelect
+                      societyId={form.society_id}
+                      value={form.tower}
+                      onChange={handleChange}
+                      name="tower"
+                      placeholder="e.g. Tower A"
+                      isDark={isDark}
+                      inputContainer={inputContainer}
+                      required
+                    />
                   </div>
                   <div>
                     <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${textLabel}`}>Flat Number</label>

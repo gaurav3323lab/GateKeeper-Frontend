@@ -9,6 +9,7 @@ import UserProfile from './UserProfile';
 import ResidentLogs from './ResidentLogs';
 import AdBanner from './AdBanner';
 import QuickActionsFAB from './QuickActionsFAB';
+import NotificationsTab from './NotificationsTab';
 import { entryAPI, announcementAPI, serviceAPI, communityAPI, authAPI } from '../services/api';
 import {
   Home, Car, Wrench, CheckCircle, LogOut, AlertTriangle,
@@ -24,6 +25,7 @@ const NAV_ITEMS = [
   { key: 'service', label: 'Service', icon: Wrench },
   { key: 'preapprove', label: 'Pre-Approve', icon: CheckCircle },
   { key: 'logs', label: 'Logs', icon: List },
+  { key: 'notifications', label: 'Alerts', icon: Bell },
 ];
 
 const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
@@ -408,6 +410,8 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const cardBg = isDark ? 'bg-slate-800/80 border-slate-700/50' : 'bg-white border-slate-200';
   const renderContent = () => {
     switch (activeTab) {
+      case 'notifications':
+        return <NotificationsTab user={user} />;
       case 'community':
         return (
           <div className="space-y-5 animate-slide-up">

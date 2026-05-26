@@ -4,6 +4,7 @@ import ISTClock from './ISTClock';
 import jsQR from 'jsqr';
 import NotificationsTab from './NotificationsTab';
 import UserProfile from './UserProfile';
+import TowerSelect from './TowerSelect';
 import { 
   Camera, QrCode, PenLine, X, CheckCircle, AlertTriangle, LogOut, 
   ListChecks, CameraOff, User, AlertCircle, Car, Clock, ChevronLeft,
@@ -1412,11 +1413,15 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                 </div>
                 
                 <div className="grid grid-cols-2 gap-3">
-                  <input 
-                    placeholder="Tower / Block" 
-                    value={visitorForm.tower || ''} 
+                  <TowerSelect
+                    societyId={user?.society_id}
+                    value={visitorForm.tower}
                     onChange={e => setVisitorForm({...visitorForm, tower: e.target.value})}
-                    className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
+                    name="tower"
+                    placeholder="Tower / Block"
+                    isDark={isDark}
+                    inputContainer={`${input} !py-2.5 w-full`}
+                    required
                   />
                   <input 
                     placeholder="Flat Number" 
@@ -1521,11 +1526,15 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                   className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
                 />
                 <div className="grid grid-cols-2 gap-3">
-                  <input 
-                    placeholder="Tower / Block" 
-                    value={visitorForm.tower || ''} 
+                  <TowerSelect
+                    societyId={user?.society_id}
+                    value={visitorForm.tower}
                     onChange={e => setVisitorForm({...visitorForm, tower: e.target.value})}
-                    className={`w-full border rounded-2xl px-4 py-3 text-xs outline-none transition-all ${input}`} 
+                    name="tower"
+                    placeholder="Tower / Block"
+                    isDark={isDark}
+                    inputContainer={`${input} !py-2.5 w-full`}
+                    required
                   />
                   <input 
                     placeholder="Flat Number" 

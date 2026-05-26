@@ -16,6 +16,7 @@ import {
   Megaphone, List, HeartHandshake, Phone, Calendar,
   Check, X, Share2, Search, MessageSquare, Bell, UserPlus,
   ChevronRight, Send, MoreVertical, ThumbsUp, ShieldCheck,
+  ArrowLeft, Pin
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -25,7 +26,6 @@ const NAV_ITEMS = [
   { key: 'service', label: 'Service', icon: Wrench },
   { key: 'preapprove', label: 'Pre-Approve', icon: CheckCircle },
   { key: 'logs', label: 'Logs', icon: List },
-  { key: 'notifications', label: 'Alerts', icon: Bell },
 ];
 
 const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
@@ -76,6 +76,10 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const [tasks, setTasks] = useState([]);
   const [newTaskText, setNewTaskText] = useState('');
   const [directorySearch, setDirectorySearch] = useState('');
+  const [noticeSearch, setNoticeSearch] = useState('');
+  const [noticeFilter, setNoticeFilter] = useState('All');
+  const [postSearch, setPostSearch] = useState('');
+  const [postFilter, setPostFilter] = useState('All');
 
   // Fetch helpers & feed functions
   const [fetchingPosts, setFetchingPosts] = useState(false);
@@ -408,10 +412,515 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const bottomNav = isDark ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-200';
   const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
   const cardBg = isDark ? 'bg-slate-800/80 border-slate-700/50' : 'bg-white border-slate-200';
+
+  const renderNoticeCard = (notice) => {
+    const categoryStyles = {
+      Emergency: {
+        bg: isDark ? 'bg-red-950/20 border-red-500/30 hover:border-red-500/50' : 'bg-red-50/50 border-red-200 hover:border-red-300',
+        accent: 'bg-red-500',
+        text: 'text-red-600 dark:text-red-400',
+        badge: 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/20',
+        emoji: '🚨',
+        glow: 'shadow-[0_0_15px_rgba(239,68,68,0.1)]'
+      },
+      Maintenance: {
+        bg: isDark ? 'bg-amber-950/20 border-amber-500/30 hover:border-amber-500/50' : 'bg-amber-50/50 border-amber-200 hover:border-amber-300',
+        accent: 'bg-amber-500',
+        text: 'text-amber-600 dark:text-amber-400',
+        badge: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/20',
+        emoji: '🔧',
+        glow: ''
+      },
+      Event: {
+        bg: isDark ? 'bg-purple-950/20 border-purple-500/30 hover:border-purple-500/50' : 'bg-purple-50/50 border-purple-200 hover:border-purple-300',
+        accent: 'bg-purple-500',
+        text: 'text-purple-600 dark:text-purple-400',
+        badge: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/20',
+        emoji: '🎉',
+        glow: ''
+      },
+      General: {
+        bg: isDark ? 'bg-blue-950/20 border-blue-500/30 hover:border-blue-500/50' : 'bg-blue-50/50 border-blue-200 hover:border-blue-300',
+        accent: 'bg-blue-500',
+        text: 'text-blue-600 dark:text-blue-400',
+        badge: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/20',
+        emoji: '📢',
+        glow: ''
+      },
+      Notice: {
+        bg: isDark ? 'bg-cyan-950/20 border-cyan-500/30 hover:border-cyan-500/50' : 'bg-cyan-50/50 border-cyan-200 hover:border-cyan-300',
+        accent: 'bg-cyan-500',
+        text: 'text-cyan-600 dark:text-cyan-400',
+        badge: 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/20',
+        emoji: '📌',
+        glow: ''
+      }
+    };
+
+    const style = categoryStyles[notice.category] || categoryStyles.General;
+    const isPinned = notice.is_pinned === 1 || !!notice.is_pinned;
+
+    return (
+      <div 
+        key={notice.id} 
+        className={`relative rounded-3xl border overflow-hidden transition-all duration-300 hover:-translate-y-0.5 shadow-sm group ${style.bg} ${style.glow} ${
+          isPinned ? 'ring-1 ring-yellow-500/30 border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.06)]' : ''
+        }`}
+      >
+        {/* Category Accent left border bar */}
+        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isPinned ? 'bg-yellow-500' : style.accent}`} />
+        
+        {notice.category === 'Event' && (
+          <div className="h-28 overflow-hidden relative">
+            <img src="/event_banner.png" alt="Event" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent" />
+          </div>
+        )}
+
+        <div className="p-5 pl-6">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${style.badge}`}>
+                {style.emoji} {notice.category}
+              </span>
+              {isPinned && (
+                <span className="text-[8px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
+                  <Pin size={8} className="fill-current" /> PINNED
+                </span>
+              )}
+            </div>
+            <span className={`text-[10px] font-medium ${subtext} flex items-center gap-1`}>
+              <Calendar size={10} />
+              {new Date(notice.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+
+          <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 leading-snug mb-2 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
+            {notice.title}
+          </h4>
+          <p className={`text-xs leading-relaxed font-normal whitespace-pre-line ${subtext}`}>
+            {notice.body}
+          </p>
+
+          <div className={`flex items-center gap-3 mt-4 pt-3.5 border-t ${isDark ? 'border-slate-800/80' : 'border-slate-100'}`}>
+            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
+              {(notice.author_name || 'M')[0].toUpperCase()}
+            </div>
+            <div>
+              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-none">
+                {notice.author_name || 'Management'}
+              </p>
+              <p className={`text-[8px] font-medium ${subtext} mt-0.5`}>
+                Society Board
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderAllNoticesView = () => {
+    const q = noticeSearch.toLowerCase();
+    const filteredNotices = realNotices.filter(notice => {
+      const matchesCategory = noticeFilter === 'All' || notice.category === noticeFilter;
+      const matchesSearch = notice.title?.toLowerCase().includes(q) || 
+                            notice.body?.toLowerCase().includes(q) || 
+                            notice.author_name?.toLowerCase().includes(q);
+      return matchesCategory && matchesSearch;
+    });
+
+    const categories = ['All', 'Emergency', 'Maintenance', 'Event', 'General', 'Notice'];
+    const categoryEmojis = { All: '🗂️', Emergency: '🚨', Maintenance: '🔧', Event: '🎉', General: '📢', Notice: '📌' };
+
+    return (
+      <div className="space-y-5 animate-slide-up pb-10">
+        {/* Header with Glassmorphism Back Navigation */}
+        <div className="flex items-center gap-3 mb-2">
+          <button 
+            onClick={() => setActiveTab('community')}
+            className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all active:scale-90 ${
+              isDark 
+                ? 'border-slate-800 bg-slate-900/50 text-indigo-400 hover:text-indigo-300 hover:border-slate-700' 
+                : 'border-slate-200 bg-white text-indigo-600 hover:text-indigo-700 hover:border-slate-300'
+            }`}
+          >
+            <ArrowLeft size={16} strokeWidth={2.5} />
+          </button>
+          <div>
+            <h2 className="font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              📢 Society Bulletin
+            </h2>
+            <p className={`text-[10px] ${subtext} font-semibold`}>
+              Official notices & management announcements
+            </p>
+          </div>
+        </div>
+
+        {/* Premium search bar with frosted glass look */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3.5 top-3.5 text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Search notices, updates or titles..."
+            value={noticeSearch}
+            onChange={e => setNoticeSearch(e.target.value)}
+            className={`w-full rounded-2xl border pl-10 pr-4 py-3 text-xs outline-none transition-all focus:ring-1 focus:ring-indigo-500/50 ${
+              isDark 
+                ? 'bg-slate-900 border-slate-800 text-white focus:border-indigo-500/50' 
+                : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-100 shadow-sm'
+            }`}
+          />
+          {noticeSearch && (
+            <button 
+              onClick={() => setNoticeSearch('')}
+              className="absolute right-3 top-3 text-slate-400 hover:text-slate-250 p-0.5 rounded-full"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Categories Horizontal Scroll Bar */}
+        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {categories.map(c => {
+            const active = noticeFilter === c;
+            const count = c === 'All' ? realNotices.length : realNotices.filter(n => n.category === c).length;
+            return (
+              <button 
+                key={c} 
+                onClick={() => setNoticeFilter(c)}
+                className={`px-3.5 py-2 rounded-2xl text-[10px] font-black whitespace-nowrap transition-all border flex items-center gap-1.5 active:scale-95 ${
+                  active
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/10'
+                    : isDark 
+                      ? 'border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-200' 
+                      : 'border-slate-200 bg-white text-slate-600 hover:text-slate-800 shadow-sm'
+                }`}
+              >
+                <span>{categoryEmojis[c]} {c}</span>
+                <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full ${
+                  active ? 'bg-indigo-700 text-indigo-100' : isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Notices list container */}
+        <div className="space-y-4">
+          {filteredNotices.length === 0 ? (
+            <div className={`border rounded-[32px] p-12 text-center backdrop-blur-xl ${
+              isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+            }`}>
+              <Megaphone size={36} className="mx-auto opacity-20 mb-3 text-slate-400" />
+              <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">No Notices Found</h4>
+              <p className={`text-[10px] mt-1 max-w-xs mx-auto ${subtext}`}>
+                Aapki search query ya selected category "<b>{noticeFilter}</b>" ke liye koi notices nahi mile. Try searching for something else.
+              </p>
+              {(noticeSearch || noticeFilter !== 'All') && (
+                <button
+                  onClick={() => { setNoticeSearch(''); setNoticeFilter('All'); }}
+                  className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm transition-all"
+                >
+                  Clear Filters 🔄
+                </button>
+              )}
+            </div>
+          ) : (
+            filteredNotices.map(notice => renderNoticeCard(notice))
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderFeedPostCard = (post) => {
+    const isPoll = post.type === 'poll';
+    const liked = post.likedByMe;
+    const likes = post.likesCount;
+    const hasComments = visibleComments[post.id];
+    const commentText = newCommentTexts[post.id] || '';
+
+    return (
+      <div key={post.id} className={`rounded-[30px] border shadow-md overflow-hidden backdrop-blur-xl animate-fade-in ${cardBg}`}>
+        {/* Header */}
+        <div className="p-4.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-xs shadow-md">
+              {(post.author_name || 'U').substring(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-none">{post.author_name}</p>
+                <span className={`text-[8px] border font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                  post.author_role === 'admin' || post.author_role === 'manager'
+                    ? 'bg-sky-500/15 border-sky-500/20 text-sky-400'
+                    : 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400'
+                }`}>
+                  {post.author_role}
+                </span>
+              </div>
+              <p className={`text-[9px] font-semibold mt-1 ${subtext}`}>
+                {post.author_flat ? `Flat ${post.author_tower ? post.author_tower + '-' : ''}${post.author_flat} ` : ''}&bull; {post.timeAgo} &bull; 👥 Public
+              </p>
+            </div>
+          </div>
+          <button className="text-slate-400 hover:text-slate-250"><MoreVertical size={16} /></button>
+        </div>
+
+        {/* Body */}
+        <div className="p-4.5 space-y-3 bg-slate-100/10 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800/40">
+          <h3 className="text-xs font-bold leading-relaxed text-slate-900 dark:text-slate-100">
+            {post.title}
+          </h3>
+          {post.body && (
+            <p className={`text-[11px] leading-relaxed ${subtext}`}>
+              {post.body}
+            </p>
+          )}
+
+          {/* If it's a poll, render options list */}
+          {isPoll && post.pollData && (
+            <div className="space-y-2.5">
+              {post.pollData.options.map((opt) => {
+                const isSelected = post.pollData.votedOption === opt;
+                const pct = post.pollData.percentages[opt] || 0;
+                const hasVoted = post.pollData.votedOption !== null;
+
+                return (
+                  <button 
+                    key={opt}
+                    onClick={() => handleVote(post.id, opt)}
+                    disabled={hasVoted}
+                    className={`w-full relative rounded-2xl p-3 flex items-center justify-between overflow-hidden border text-left transition-all ${
+                      hasVoted 
+                        ? isSelected ? 'border-indigo-500/60 bg-indigo-500/5' : 'border-slate-200 dark:border-slate-800/60' 
+                        : 'border-slate-200 dark:border-slate-800/60 hover:border-indigo-400 dark:hover:border-slate-700 bg-white/40 dark:bg-slate-800/40'
+                    }`}
+                  >
+                    {hasVoted && (
+                      <div 
+                        className="absolute left-0 top-0 bottom-0 bg-indigo-500/10 transition-all duration-1000 ease-out"
+                        style={{ width: `${pct}%` }}
+                      />
+                    )}
+                    <span className="text-xs font-bold z-10 text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                      {opt}
+                      {isSelected && <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block animate-ping" />}
+                    </span>
+                    <div className="flex items-center gap-1.5 z-10 text-xs font-black text-slate-700 dark:text-indigo-400">
+                      {isSelected && <Check size={12} className="text-indigo-500 font-bold" />}
+                      <span>{pct}%</span>
+                    </div>
+                  </button>
+                );
+              })}
+
+              <div className={`flex items-center justify-between text-[8px] pt-1 font-bold uppercase tracking-wider ${subtext}`}>
+                <span className="flex items-center gap-1">🗳️ {post.pollData.totalVotes || 0} Votes</span>
+                <span>1 Vote per flat</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Feed Card Footer Actions */}
+        <div className="px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800/40">
+          <button 
+            onClick={() => handleLike(post.id)}
+            className={`flex items-center gap-1.5 py-1 ${liked ? 'text-indigo-400 font-black' : 'text-slate-400 hover:text-slate-300'}`}
+          >
+            <ThumbsUp size={13} strokeWidth={liked ? 2.5 : 1.5} />
+            <span>{likes} Likes</span>
+          </button>
+          <button 
+            onClick={() => toggleCommentsVisibility(post.id)}
+            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-300"
+          >
+            <MessageSquare size={13} />
+            <span>{(post.comments || []).length} Comments</span>
+          </button>
+          <button 
+            onClick={() => {
+              copyToClipboard(post.title);
+            }}
+            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-300"
+          >
+            <Share2 size={13} />
+            <span>Share</span>
+          </button>
+        </div>
+
+        {/* Poll Comment Threads */}
+        {hasComments && (
+          <div className="px-4 pb-4 pt-3 border-t border-slate-100 dark:border-slate-800/40 bg-slate-50/50 dark:bg-slate-900/10">
+            <div className="space-y-3 mb-3.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+              {(post.comments || []).map((c, i) => (
+                <div key={i} className="flex gap-2.5 items-start text-[11px] leading-relaxed animate-fade-in">
+                  <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-bold flex items-center justify-center text-[8px] uppercase">
+                    {(c.author || 'U').charAt(0)}
+                  </div>
+                  <div className="flex-1 bg-slate-100/60 dark:bg-slate-850/80 p-2.5 rounded-2xl border border-slate-200/30 dark:border-slate-800/40">
+                    <p className="font-extrabold text-slate-800 dark:text-slate-200 flex justify-between items-center">
+                      <span>{c.author}</span>
+                      <span className={`text-[8px] font-normal ${subtext}`}>{c.time}</span>
+                    </p>
+                    <p className="text-slate-600 dark:text-slate-300 mt-0.5">{c.text}</p>
+                  </div>
+                </div>
+              ))}
+              {(post.comments || []).length === 0 && (
+                <p className={`text-[9px] text-center ${subtext} py-2`}>No comments yet. Start the conversation!</p>
+              )}
+            </div>
+            <form onSubmit={(e) => handleAddComment(e, post.id)} className="flex gap-2">
+              <input 
+                type="text" 
+                placeholder="Add community thoughts..." 
+                value={commentText} 
+                onChange={e => handleCommentChange(post.id, e.target.value)}
+                className={`flex-1 border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-500/60 ${
+                  isDark ? 'bg-slate-800 border-slate-700/60 text-white' : 'bg-white border-slate-200 text-gray-800'
+                }`}
+              />
+              <button type="submit" className="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md transition-all">
+                <Send size={13} />
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderAllPostsView = () => {
+    const q = postSearch.toLowerCase();
+    const filteredPosts = posts.filter(post => {
+      const matchesType = postFilter === 'All' || post.type === postFilter;
+      const matchesSearch = post.title?.toLowerCase().includes(q) || 
+                            post.body?.toLowerCase().includes(q) || 
+                            post.author_name?.toLowerCase().includes(q);
+      return matchesType && matchesSearch;
+    });
+
+    return (
+      <div className="space-y-5 animate-slide-up pb-10">
+        {/* Header with Back Navigation */}
+        <div className="flex items-center gap-3 mb-2">
+          <button 
+            onClick={() => setActiveTab('community')}
+            className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all active:scale-90 ${
+              isDark 
+                ? 'border-slate-800 bg-slate-900/50 text-indigo-400 hover:text-indigo-300 hover:border-slate-700' 
+                : 'border-slate-200 bg-white text-indigo-600 hover:text-indigo-700 hover:border-slate-300'
+            }`}
+          >
+            <ArrowLeft size={16} strokeWidth={2.5} />
+          </button>
+          <div>
+            <h2 className="font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
+              💬 Community Hub
+            </h2>
+            <p className={`text-[10px] ${subtext} font-semibold`}>
+              Society discussions, posts & dynamic polls
+            </p>
+          </div>
+        </div>
+
+        {/* Search Bar */}
+        <div className="relative">
+          <Search size={14} className="absolute left-3.5 top-3.5 text-slate-400" />
+          <input 
+            type="text" 
+            placeholder="Search discussions, polls or residents..."
+            value={postSearch}
+            onChange={e => setPostSearch(e.target.value)}
+            className={`w-full rounded-2xl border pl-10 pr-4 py-3 text-xs outline-none transition-all focus:ring-1 focus:ring-indigo-500/50 ${
+              isDark 
+                ? 'bg-slate-900 border-slate-800 text-white focus:border-indigo-500/50' 
+                : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-100 shadow-sm'
+            }`}
+          />
+          {postSearch && (
+            <button 
+              onClick={() => setPostSearch('')}
+              className="absolute right-3 top-3 text-slate-400 hover:text-slate-250 p-0.5 rounded-full"
+            >
+              <X size={12} />
+            </button>
+          )}
+        </div>
+
+        {/* Type Filter Buttons */}
+        <div className="flex gap-2">
+          {[
+            { key: 'All', label: '🗂️ All Feed', count: posts.length },
+            { key: 'post', label: '📝 Posts Only', count: posts.filter(p => p.type === 'post').length },
+            { key: 'poll', label: '📊 Polls Only', count: posts.filter(p => p.type === 'poll').length }
+          ].map(f => {
+            const active = postFilter === f.key;
+            return (
+              <button 
+                key={f.key} 
+                onClick={() => setPostFilter(f.key)}
+                className={`px-4 py-2 rounded-2xl text-[10px] font-black whitespace-nowrap transition-all border flex items-center gap-1.5 active:scale-95 ${
+                  active
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/10'
+                    : isDark 
+                      ? 'border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-200' 
+                      : 'border-slate-200 bg-white text-slate-600 hover:text-slate-800 shadow-sm'
+                }`}
+              >
+                <span>{f.label}</span>
+                <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full ${
+                  active ? 'bg-indigo-700 text-indigo-100' : isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {f.count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Posts List */}
+        <div className="space-y-4">
+          {filteredPosts.length === 0 ? (
+            <div className={`border rounded-[32px] p-12 text-center backdrop-blur-xl ${
+              isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+            }`}>
+              <MessageSquare size={36} className="mx-auto opacity-20 mb-3 text-slate-400" />
+              <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">No Posts Found</h4>
+              <p className={`text-[10px] mt-1 max-w-xs mx-auto ${subtext}`}>
+                Aapki search query ya selected filter ke liye koi discussions ya polls nahi mile.
+              </p>
+              {(postSearch || postFilter !== 'All') && (
+                <button
+                  onClick={() => { setPostSearch(''); setPostFilter('All'); }}
+                  className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm transition-all"
+                >
+                  Clear Filters 🔄
+                </button>
+              )}
+            </div>
+          ) : (
+            filteredPosts.map(post => renderFeedPostCard(post))
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'notifications':
         return <NotificationsTab user={user} />;
+      case 'all-notices':
+        return renderAllNoticesView();
+      case 'all-posts':
+        return renderAllPostsView();
       case 'community':
         return (
           <div className="space-y-5 animate-slide-up">
@@ -512,8 +1021,9 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                 { label: 'Pre-Approve', icon: ShieldCheck, color: 'text-violet-400 bg-violet-500/10 border-violet-500/10', action: () => setShowPreapproveModal(true) },
                 { label: 'Directory', icon: Search, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/10', action: () => setShowDirectoryModal(true) },
                 { label: 'Notices', icon: Megaphone, color: 'text-pink-400 bg-pink-500/10 border-pink-500/10', action: () => {
-                    setActiveTab('community');
-                    setTimeout(() => noticesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                    setActiveTab('all-notices');
+                    localStorage.setItem('notices_last_seen', String(Date.now()));
+                    setUnreadNoticeCount(0);
                   } },
                 { label: 'SOS Alert', icon: AlertTriangle, color: 'text-red-400 bg-red-500/10 border-red-500/15', action: handleSOS },
                 { label: 'My Flat', icon: Home, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/10', action: () => setActiveTab('flat') },
@@ -566,164 +1076,23 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                 <p className={`text-xs ${subtext}`}>No community posts or polls yet. Start the conversation!</p>
               </div>
             ) : (
-              posts.map((post) => {
-                const isPoll = post.type === 'poll';
-                const liked = post.likedByMe;
-                const likes = post.likesCount;
-                const hasComments = visibleComments[post.id];
-                const commentText = newCommentTexts[post.id] || '';
-
-                return (
-                  <div key={post.id} className={`rounded-[30px] border shadow-md overflow-hidden backdrop-blur-xl animate-fade-in ${cardBg}`}>
-                    {/* Header */}
-                    <div className="p-4.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-xs shadow-md">
-                          {(post.author_name || 'U').substring(0, 2).toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-none">{post.author_name}</p>
-                            <span className={`text-[8px] border font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                              post.author_role === 'admin' || post.author_role === 'manager'
-                                ? 'bg-sky-500/15 border-sky-500/20 text-sky-400'
-                                : 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400'
-                            }`}>
-                              {post.author_role}
-                            </span>
-                          </div>
-                          <p className={`text-[9px] font-semibold mt-1 ${subtext}`}>
-                            {post.author_flat ? `Flat ${post.author_tower ? post.author_tower + '-' : ''}${post.author_flat} ` : ''}&bull; {post.timeAgo} &bull; 👥 Public
-                          </p>
-                        </div>
-                      </div>
-                      <button className="text-slate-400 hover:text-slate-200"><MoreVertical size={16} /></button>
-                    </div>
-
-                    {/* Body */}
-                    <div className="p-4.5 space-y-3 bg-slate-100/10 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800/40">
-                      <h3 className="text-xs font-bold leading-relaxed text-slate-900 dark:text-slate-100">
-                        {post.title}
-                      </h3>
-                      {post.body && (
-                        <p className={`text-[11px] leading-relaxed ${subtext}`}>
-                          {post.body}
-                        </p>
-                      )}
-
-                      {/* If it's a poll, render options list */}
-                      {isPoll && post.pollData && (
-                        <div className="space-y-2.5">
-                          {post.pollData.options.map((opt) => {
-                            const isSelected = post.pollData.votedOption === opt;
-                            const pct = post.pollData.percentages[opt] || 0;
-                            const hasVoted = post.pollData.votedOption !== null;
-
-                            return (
-                              <button 
-                                key={opt}
-                                onClick={() => handleVote(post.id, opt)}
-                                disabled={hasVoted}
-                                className={`w-full relative rounded-2xl p-3 flex items-center justify-between overflow-hidden border text-left transition-all ${
-                                  hasVoted 
-                                    ? isSelected ? 'border-indigo-500/60 bg-indigo-500/5' : 'border-slate-200 dark:border-slate-800/60' 
-                                    : 'border-slate-200 dark:border-slate-800/60 hover:border-indigo-400 dark:hover:border-slate-700 bg-white/40 dark:bg-slate-800/40'
-                                }`}
-                              >
-                                {hasVoted && (
-                                  <div 
-                                    className="absolute left-0 top-0 bottom-0 bg-indigo-500/10 transition-all duration-1000 ease-out"
-                                    style={{ width: `${pct}%` }}
-                                  />
-                                )}
-                                <span className="text-xs font-bold z-10 text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                  {opt}
-                                  {isSelected && <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block animate-ping" />}
-                                </span>
-                                <div className="flex items-center gap-1.5 z-10 text-xs font-black text-slate-700 dark:text-indigo-400">
-                                  {isSelected && <Check size={12} className="text-indigo-500 font-bold" />}
-                                  <span>{pct}%</span>
-                                </div>
-                              </button>
-                            );
-                          })}
-
-                          <div className={`flex items-center justify-between text-[8px] pt-1 font-bold uppercase tracking-wider ${subtext}`}>
-                            <span className="flex items-center gap-1">🗳️ {post.pollData.totalVotes || 0} Votes</span>
-                            <span>1 Vote per flat</span>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Feed Card Footer Actions */}
-                    <div className="px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800/40">
-                      <button 
-                        onClick={() => handleLike(post.id)}
-                        className={`flex items-center gap-1.5 py-1 ${liked ? 'text-indigo-400 font-black' : 'text-slate-400 hover:text-slate-300'}`}
-                      >
-                        <ThumbsUp size={13} strokeWidth={liked ? 2.5 : 1.5} />
-                        <span>{likes} Likes</span>
-                      </button>
-                      <button 
-                        onClick={() => toggleCommentsVisibility(post.id)}
-                        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-300"
-                      >
-                        <MessageSquare size={13} />
-                        <span>{(post.comments || []).length} Comments</span>
-                      </button>
-                      <button 
-                        onClick={() => {
-                          copyToClipboard(post.title);
-                        }}
-                        className="flex items-center gap-1.5 text-slate-400 hover:text-slate-300"
-                      >
-                        <Share2 size={13} />
-                        <span>Share</span>
-                      </button>
-                    </div>
-
-                    {/* Poll Comment Threads */}
-                    {hasComments && (
-                      <div className="px-4 pb-4 pt-3 border-t border-slate-100 dark:border-slate-800/40 bg-slate-50/50 dark:bg-slate-900/10">
-                        <div className="space-y-3 mb-3.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
-                          {(post.comments || []).map((c, i) => (
-                            <div key={i} className="flex gap-2.5 items-start text-[11px] leading-relaxed animate-fade-in">
-                              <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-bold flex items-center justify-center text-[8px] uppercase">
-                                {(c.author || 'U').charAt(0)}
-                              </div>
-                              <div className="flex-1 bg-slate-100/60 dark:bg-slate-850/80 p-2.5 rounded-2xl border border-slate-200/30 dark:border-slate-800/40">
-                                <p className="font-extrabold text-slate-800 dark:text-slate-200 flex justify-between items-center">
-                                  <span>{c.author}</span>
-                                  <span className={`text-[8px] font-normal ${subtext}`}>{c.time}</span>
-                                </p>
-                                <p className="text-slate-600 dark:text-slate-300 mt-0.5">{c.text}</p>
-                              </div>
-                            </div>
-                          ))}
-                          {(post.comments || []).length === 0 && (
-                            <p className={`text-[9px] text-center ${subtext} py-2`}>No comments yet. Start the conversation!</p>
-                          )}
-                        </div>
-                        <form onSubmit={(e) => handleAddComment(e, post.id)} className="flex gap-2">
-                          <input 
-                            type="text" 
-                            placeholder="Add community thoughts..." 
-                            value={commentText} 
-                            onChange={e => handleCommentChange(post.id, e.target.value)}
-                            className={`flex-1 border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-500/60 ${
-                              isDark ? 'bg-slate-800 border-slate-700/60 text-white' : 'bg-white border-slate-200 text-gray-800'
-                            }`}
-                          />
-                          <button type="submit" className="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md transition-all">
-                            <Send size={13} />
-                          </button>
-                        </form>
-                      </div>
-                    )}
-                  </div>
-                );
-              })
+              <div className="space-y-4">
+                {posts.slice(0, 2).map((post) => renderFeedPostCard(post))}
+                
+                {posts.length > 0 && (
+                  <button
+                    onClick={() => setActiveTab('all-posts')}
+                    className={`w-full py-3.5 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                      isDark 
+                        ? 'border-emerald-500/20 bg-emerald-50/5 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.03)]' 
+                        : 'border-emerald-100 bg-emerald-50/50 text-emerald-650 hover:bg-emerald-50 hover:border-emerald-300 shadow-sm shadow-emerald-500/5'
+                    }`}
+                  >
+                    <span>View All {posts.length} Posts & Polls</span>
+                    <ChevronRight size={14} className="animate-pulse" />
+                  </button>
+                )}
+              </div>
             )}
 
             {/* 2. REAL NOTICES Board Redesign */}
@@ -742,55 +1111,21 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   <p className={`text-xs ${subtext}`}>Abhi koi notice nahi hai</p>
                 </div>
               ) : (
-                realNotices.slice(0, 3).map((notice) => {
-                  const categoryColors = {
-                    General: 'border-blue-500/20 bg-blue-500/5',
-                    Maintenance: 'border-orange-500/20 bg-orange-500/5',
-                    Emergency: 'border-red-500/30 bg-red-500/5 shadow-[0_0_15px_rgba(239,68,68,0.06)] animate-sos-pulse',
-                    Event: 'border-purple-500/25 bg-purple-500/5',
-                    Notice: 'border-yellow-500/25 bg-yellow-500/5',
-                  };
-                  const categoryEmoji = { General: '📢', Maintenance: '🔧', Emergency: '🚨', Event: '🎉', Notice: '📌' };
-                  const borderBg = categoryColors[notice.category] || categoryColors.General;
-                  return (
-                    <div key={notice.id} className={`rounded-[30px] border overflow-hidden shadow-sm ${borderBg} transition-all`}>
-                      {notice.category === 'Event' && (
-                        <div className="h-24 overflow-hidden">
-                          <img src="/event_banner.png" alt="Event" className="w-full h-full object-cover" />
-                        </div>
-                      )}
-                      <div className="p-5">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{categoryEmoji[notice.category] || '📢'}</span>
-                            <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">{notice.category}</span>
-                            {notice.is_pinned === 1 && (
-                              <span className="text-[8px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">PINNED</span>
-                            )}
-                          </div>
-                          <span className={`text-[9px] font-bold ${subtext}`}>
-                            {new Date(notice.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
-                          </span>
-                        </div>
-                        <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 leading-snug mb-1.5">{notice.title}</h4>
-                        <p className={`text-[11px] leading-relaxed ${subtext}`}>{notice.body}</p>
-                        <div className={`flex items-center gap-2.5 mt-3 pt-3 border-t ${isDark ? 'border-slate-800/80' : 'border-slate-100'}`}>
-                          <div className="w-5.5 h-5.5 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white text-[9px] font-bold">
-                            {(notice.author_name || 'M')[0]}
-                          </div>
-                          <span className={`text-[9px] font-semibold ${subtext}`}>{notice.author_name || 'Management'}</span>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
+                <div className="space-y-4">
+                  {realNotices.slice(0, 3).map((notice) => renderNoticeCard(notice))}
+                </div>
               )}
-              {realNotices.length > 3 && (
+              {realNotices.length > 0 && (
                 <button
-                  onClick={() => setActiveTab('logs')}
-                  className={`w-full py-3 rounded-2xl border text-[10px] font-bold ${isDark ? 'border-slate-800 text-slate-400 hover:bg-slate-900/30' : 'border-slate-200 text-slate-500 hover:bg-slate-50'} flex items-center justify-center gap-1.5 transition-all`}
+                  onClick={() => setActiveTab('all-notices')}
+                  className={`w-full py-3.5 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                    isDark 
+                      ? 'border-indigo-500/20 bg-indigo-50/5 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.03)]' 
+                      : 'border-indigo-100 bg-indigo-50/50 text-indigo-650 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm shadow-indigo-500/5'
+                  }`}
                 >
-                  View all {realNotices.length} notices <ChevronRight size={12} />
+                  <span>View All {realNotices.length} Notices</span>
+                  <ChevronRight size={14} className="animate-pulse" />
                 </button>
               )}
             </div>
@@ -831,8 +1166,9 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               <div className="flex items-center gap-3 text-slate-400">
                 <button className="hover:text-slate-600"><Search size={16} /></button>
                 <button className="hover:text-slate-600 relative" onClick={() => {
-                    setActiveTab('community');
-                    setTimeout(() => noticesRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+                    setActiveTab('all-notices');
+                    localStorage.setItem('notices_last_seen', String(Date.now()));
+                    setUnreadNoticeCount(0);
                   }}>
                   <Bell size={16} />
                   {unreadNoticeCount > 0 && (

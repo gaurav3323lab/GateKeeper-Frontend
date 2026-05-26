@@ -129,7 +129,9 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
 
   const handleAddTower = async () => {
     const societyId = user?.society_id;
-    if (!societyId) return;
+    if (!societyId) {
+      return alert('Error: Society ID not found. Please log out and log in again.');
+    }
     if (!newTowerName || !newTowerName.trim()) {
       return alert('Tower name is required.');
     }
@@ -147,7 +149,9 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
 
   const handleDeleteTower = async (towerId) => {
     const societyId = user?.society_id;
-    if (!societyId) return;
+    if (!societyId) {
+      return alert('Error: Society ID not found. Please log out and log in again.');
+    }
     if (!window.confirm('Are you sure you want to delete this tower? Registered residents of this tower will not be deleted, but this tower option will be removed from selections.')) {
       return;
     }
@@ -163,7 +167,7 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
   };
 
   useEffect(() => {
-    if (activeTab === 'guard_settings') {
+    if (activeTab === 'guard_settings' || activeTab === 'towers') {
       fetchTowers();
     }
   }, [activeTab, fetchTowers]);
@@ -382,6 +386,7 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
         { key: 'emergency', label: 'Emergency', icon: AlertCircle },
         { key: 'notices', label: 'Notices', icon: Bell },
         { key: 'ads', label: 'Promotions', icon: Megaphone },
+        { key: 'towers', label: 'Towers / Wings', icon: Building },
         { key: 'guard_settings', label: 'Guard Settings', icon: SlidersHorizontal },
       ]
     }
@@ -2357,6 +2362,132 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
           </div>
         )}
 
+        {/* ─── TAB: TOWERS / WINGS ─────────────────────────────────────────── */}
+        {activeTab === 'towers' && (
+          <div className="space-y-6 animate-slide-up max-w-2xl mx-auto">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-200'
+              }`}>
+                <Building size={18} className="text-indigo-400" />
+              </div>
+              <div>
+                <h2 className="font-heading font-black text-base uppercase tracking-wider">Society Towers / Wings</h2>
+                <p className={`text-xs ${subtext} mt-0.5`}>Apni society ke towers/wings yahan configure karein</p>
+              </div>
+            </div>
+
+            {/* Info Banner */}
+            <div className={`rounded-2xl border p-4 flex items-start gap-3 ${
+              isDark ? 'bg-indigo-500/5 border-indigo-500/20' : 'bg-indigo-50 border-indigo-200'
+            }`}>
+              <Building size={16} className="text-indigo-400 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-xs font-black text-indigo-400">Towers configure karne ke fayde</p>
+                <p className={`text-[10px] mt-0.5 ${subtext} leading-relaxed`}>
+                  Towers add karne se residents registration mein dropdown milega, guards ko flat search mein tower filter milega, aur entry logs mein tower dikh sakegi.
+                </p>
+              </div>
+            </div>
+
+            {/* Society ID Missing Error */}
+            {!user?.society_id && (
+              <div className={`rounded-2xl border p-4 flex items-center gap-3 ${
+                isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'
+              }`}>
+                <AlertCircle size={16} className="text-red-400 shrink-0" />
+                <div>
+                  <p className="text-xs font-black text-red-400">Society ID nahi mila</p>
+                  <p className={`text-[10px] mt-0.5 text-red-400/80`}>Please log out karke dobara login karein. Agar problem bani rahe toh admin se contact karein.</p>
+                </div>
+              </div>
+            )}
+
+            {/* Add Tower Card */}
+            <div className={`rounded-3xl border p-6 space-y-4 ${cardStyle}`}>
+              <p className={`text-[9px] font-black uppercase tracking-widest ${subtext}`}>Naya Tower / Wing Add Karein</p>
+              <div className="flex gap-2">
+                <input
+                  placeholder="e.g. Tower A, Wing B, Block-1, Phase-2"
+                  value={newTowerName}
+                  onChange={e => setNewTowerName(e.target.value)}
+                  className={`flex-1 px-4 py-3 rounded-2xl border text-sm outline-none ${inputStyle}`}
+                  onKeyDown={e => { if (e.key === 'Enter') handleAddTower(); }}
+                  disabled={towerActionLoading || !user?.society_id}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddTower}
+                  disabled={towerActionLoading || !newTowerName.trim() || !user?.society_id}
+                  className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-wider flex items-center gap-2 transition-all shadow-md shadow-indigo-600/10 active:scale-95 shrink-0"
+                >
+                  {towerActionLoading ? <Loader2 className="animate-spin" size={14} /> : <><Plus size={14} /> Add</>}
+                </button>
+              </div>
+            </div>
+
+            {/* Towers List Card */}
+            <div className={`rounded-3xl border p-6 space-y-4 ${cardStyle}`}>
+              <div className="flex items-center justify-between">
+                <p className={`text-[9px] font-black uppercase tracking-widest ${subtext}`}>
+                  Configured Towers ({towers.length})
+                </p>
+                <button
+                  onClick={fetchTowers}
+                  disabled={towersLoading}
+                  className={`text-[10px] font-bold flex items-center gap-1 transition-all ${
+                    isDark ? 'text-slate-500 hover:text-indigo-400' : 'text-slate-400 hover:text-indigo-600'
+                  }`}
+                >
+                  <RefreshCw size={11} className={towersLoading ? 'animate-spin' : ''} /> Refresh
+                </button>
+              </div>
+
+              {towersLoading ? (
+                <div className="flex items-center justify-center py-8 gap-2">
+                  <Loader2 className="animate-spin text-indigo-500" size={18} />
+                  <span className="text-xs font-bold text-slate-500">Loading towers...</span>
+                </div>
+              ) : towers.length === 0 ? (
+                <div className="text-center py-10 border border-dashed border-slate-300 dark:border-slate-800 rounded-2xl">
+                  <div className="w-12 h-12 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto mb-3">
+                    <Building size={22} className="text-indigo-400" />
+                  </div>
+                  <p className={`text-sm font-black ${subtext}`}>Koi tower configure nahi hua</p>
+                  <p className={`text-[10px] mt-1 ${subtext}`}>Upar form mein naam type karke Add button dabayein</p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  {towers.map(t => (
+                    <div
+                      key={t.id}
+                      className={`flex items-center justify-between px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${
+                        isDark
+                          ? 'bg-slate-950/50 border-slate-800 text-slate-200'
+                          : 'bg-slate-50 border-slate-200 text-slate-700 shadow-sm'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🏢</span>
+                        <span className="text-sm font-extrabold">{t.tower_name}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteTower(t.id)}
+                        disabled={towerActionLoading}
+                        title="Delete Tower"
+                        className="w-7 h-7 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all duration-200 disabled:opacity-50"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* ─── TAB: GUARD SETTINGS ────────────────────────────────────────── */}
         {activeTab === 'guard_settings' && (
           <div className="space-y-6 animate-slide-up max-w-2xl mx-auto">
@@ -2506,7 +2637,7 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
             </div>
 
             {/* 🏢 Society Towers Management */}
-            <div className={`rounded-3xl border p-6 space-y-4.5 ${cardStyle}`}>
+            <div className={`rounded-3xl border p-6 space-y-4 ${cardStyle}`}>
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
                   isDark ? 'bg-indigo-500/10 border border-indigo-500/20' : 'bg-indigo-50 border border-indigo-200'
@@ -2519,6 +2650,15 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                 </div>
               </div>
 
+              {!user?.society_id && (
+                <div className={`rounded-2xl border p-3 flex items-center gap-2 ${
+                  isDark ? 'bg-red-500/10 border-red-500/20' : 'bg-red-50 border-red-200'
+                }`}>
+                  <AlertCircle size={14} className="text-red-400 shrink-0" />
+                  <p className="text-[10px] font-bold text-red-400">Society ID nahi mila. Please log out karke dobara login karein.</p>
+                </div>
+              )}
+
               {/* Add Tower Form */}
               <div className="flex gap-2">
                 <input
@@ -2527,12 +2667,12 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                   onChange={e => setNewTowerName(e.target.value)}
                   className={`flex-1 px-4 py-3 rounded-2xl border text-xs outline-none ${inputStyle}`}
                   onKeyDown={e => { if (e.key === 'Enter') handleAddTower(); }}
-                  disabled={towerActionLoading}
+                  disabled={towerActionLoading || !user?.society_id}
                 />
                 <button
                   type="button"
                   onClick={handleAddTower}
-                  disabled={towerActionLoading || !newTowerName.trim()}
+                  disabled={towerActionLoading || !newTowerName.trim() || !user?.society_id}
                   className="bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white px-5 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 transition-all shadow-md shadow-indigo-600/10 active:scale-95 shrink-0"
                 >
                   {towerActionLoading ? <Loader2 className="animate-spin" size={13} /> : '＋ Add'}
@@ -2548,7 +2688,7 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
               ) : towers.length === 0 ? (
                 <div className="text-center py-6 border border-dashed border-slate-350 dark:border-slate-800 rounded-2xl">
                   <p className={`text-xs font-bold ${subtext}`}>No society towers configured yet</p>
-                  <p className={`text-[10px] mt-0.5 ${subtext}`}>Configure them above to enable dropdown selections for your society.</p>
+                  <p className={`text-[10px] mt-0.5 ${subtext}`}>Upar form mein tower ka naam type karke Add karein.</p>
                 </div>
               ) : (
                 <div className="space-y-2">

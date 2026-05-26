@@ -43,22 +43,15 @@ const TowerSelect = ({
     );
   }
 
-  // Fallback to text input if no towers are configured for the society
-  if (towers.length === 0) {
-    return (
-      <div className={`flex items-center gap-2 border rounded-2xl px-3.5 py-3.5 transition-all duration-300 ${inputContainer}`}>
-        <Home size={14} className="text-slate-400" />
-        <input
-          name={name}
-          value={value || ''}
-          onChange={onChange}
-          placeholder={placeholder}
-          required={required}
-          className="bg-transparent flex-1 outline-none text-xs font-bold uppercase tracking-wider text-slate-800 dark:text-white"
-        />
-      </div>
-    );
-  }
+  const displayTowers = towers.length > 0 ? towers : [
+    { id: 't-a', tower_name: 'Tower A' },
+    { id: 't-b', tower_name: 'Tower B' },
+    { id: 't-c', tower_name: 'Tower C' },
+    { id: 't-d', tower_name: 'Tower D' },
+    { id: 'w-a', tower_name: 'Wing A' },
+    { id: 'w-b', tower_name: 'Wing B' },
+    { id: 'w-c', tower_name: 'Wing C' }
+  ];
 
   return (
     <div className={`flex items-center gap-2 border rounded-2xl px-3.5 py-3.5 pr-4 transition-all duration-300 relative ${inputContainer}`}>
@@ -73,7 +66,7 @@ const TowerSelect = ({
         <option value="" disabled className={isDark ? 'bg-slate-900 text-slate-400' : 'bg-white text-slate-500'}>
           Select Tower
         </option>
-        {towers.map(t => (
+        {displayTowers.map(t => (
           <option key={t.id} value={t.tower_name} className={isDark ? 'bg-slate-900 text-white' : 'bg-white text-slate-800'}>
             {t.tower_name}
           </option>

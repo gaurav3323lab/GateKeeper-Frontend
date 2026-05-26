@@ -191,3 +191,15 @@
   50% { transform: translateX(5px); }
   75% { transform: translateX(-3px); }
 }
+
+/* Notification bar toast: slides in from top */
+@keyframes slideDownIn {
+  from { opacity: 0; transform: translateY(-18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Notification bar auto-dismiss progress bar */
+@keyframes shrinkBar {
+  from { width: 100%; }
+  to   { width: 0%; }
+}

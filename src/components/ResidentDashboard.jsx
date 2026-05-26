@@ -982,7 +982,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   const dispRole = v.type === 'Guest' ? 'Guest' : (v.type === 'Delivery' ? 'Delivery' : 'Vehicle');
 
                   return (
-                    <div key={v.id || i} className="flex flex-col items-center gap-1.5 shrink-0 relative group">
+                    <div key={`${v.type}-${v.id}-${i}`} className="flex flex-col items-center gap-1.5 shrink-0 relative group">
                       <div className="w-13 h-13 rounded-full bg-slate-900/60 border border-slate-700/60 flex items-center justify-center text-xl relative group-hover:scale-105 transition-all duration-300 shadow-md">
                         {avatar}
                         {/* Glowing green indicator ring for inside visitors, muted gray for checked-out */}

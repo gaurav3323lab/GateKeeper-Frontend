@@ -100,7 +100,18 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [visitorForm, setVisitorForm] = useState({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '' });
   const [preApproved, setPreApproved] = useState([]);
   const [preApprovedLoading, setPreApprovedLoading] = useState(false);
-  const [enteredIds, setEnteredIds] = useState([]);
+  const [enteredIds, setEnteredIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('guard_entered_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('guard_entered_ids', JSON.stringify(enteredIds));
+  }, [enteredIds]);
   const [enteredPin, setEnteredPin] = useState('');
   const [matchedGuest, setMatchedGuest] = useState(null);
   const [insideVisitors, setInsideVisitors] = useState([]);

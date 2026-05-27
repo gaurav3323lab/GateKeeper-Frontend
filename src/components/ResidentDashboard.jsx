@@ -54,6 +54,50 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const [pollQuestion, setPollQuestion] = useState('');
   const [pollOpts, setPollOpts] = useState(['', '', '']); // up to 3 options
 
+  // ─── Browser History Navigation & Modal Close on Mobile Back ───
+  const activeModal = showDirectoryModal ? 'directory' :
+                      showPlannerModal ? 'planner' :
+                      showPreapproveModal ? 'preapprove' :
+                      showPostModal ? 'post' :
+                      showProfile ? 'profile' : null;
+
+  useEffect(() => {
+    // Initialize history state on mount
+    window.history.replaceState({ tab: 'community', modal: null }, '');
+
+    const handlePopState = (event) => {
+      if (event.state) {
+        const { tab, modal } = event.state;
+        if (tab) setActiveTab(tab);
+        setShowDirectoryModal(modal === 'directory');
+        setShowPlannerModal(modal === 'planner');
+        setShowPreapproveModal(modal === 'preapprove');
+        setShowPostModal(modal === 'post');
+        setShowProfile(modal === 'profile');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const currentState = window.history.state;
+    if (currentState) {
+      const matchTab = currentState.tab === activeTab;
+      const matchModal = currentState.modal === activeModal;
+      
+      if (!matchTab || !matchModal) {
+        // If a modal was closed manually (currentState has modal, but activeModal is null)
+        if (currentState.modal && !activeModal) {
+          window.history.back();
+        } else {
+          window.history.pushState({ tab: activeTab, modal: activeModal }, '');
+        }
+      }
+    }
+  }, [activeTab, activeModal]);
+
   // 4. Real data from backend
   const [realNotices, setRealNotices] = useState([]);
   const [realContacts, setRealContacts] = useState([]);

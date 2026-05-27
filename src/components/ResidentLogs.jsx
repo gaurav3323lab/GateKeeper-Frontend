@@ -77,21 +77,50 @@ const ResidentLogs = ({ sharedSocket }) => {
                   </div>
                 </div>
                 <div className="text-right flex flex-col items-end gap-1.5">
-                  {log.exit_time ? (
-                    <span className="text-[9px] font-black text-rose-500 dark:text-rose-400 bg-rose-500/10 border border-rose-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">EXIT</span>
-                  ) : log.entry_time ? (
-                    <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
-                      <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />
-                      <span>ENTRY</span>
-                    </span>
-                  ) : (
-                    <span className="text-[9px] font-black text-indigo-500 bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full uppercase tracking-wider">ADDED</span>
-                  )}
-                  <p className={`text-[9px] font-semibold ${subtext}`}>
-                    {new Date(log.exit_time || log.entry_time || log.created_at).toLocaleString('en-IN', {
-                      month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                    })}
-                  </p>
+                  <div className="flex gap-1.5 flex-wrap justify-end">
+                    {log.entry_time && (
+                      <span className="text-[8px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                        {!log.exit_time && <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />}
+                        <span>In</span>
+                      </span>
+                    )}
+                    {log.exit_time && (
+                      <span className="text-[8px] font-black text-rose-500 dark:text-rose-455 bg-rose-500/10 border border-rose-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                        Out
+                      </span>
+                    )}
+                    {!log.entry_time && !log.exit_time && (
+                      <span className="text-[8px] font-black text-indigo-500 bg-indigo-500/10 border border-indigo-500/20 px-2 py-0.5 rounded-full uppercase tracking-wider shadow-sm">
+                        Added
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className={`text-[9px] font-semibold ${subtext} space-y-0.5 text-right mt-1 leading-normal`}>
+                    {log.entry_time && (
+                      <p>
+                        <span className="opacity-60 text-[8px] uppercase tracking-wider font-extrabold">In:</span>{" "}
+                        {new Date(log.entry_time).toLocaleString('en-IN', {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        })}
+                      </p>
+                    )}
+                    {log.exit_time && (
+                      <p className="text-rose-450 dark:text-rose-400">
+                        <span className="opacity-60 text-[8px] uppercase tracking-wider font-extrabold">Out:</span>{" "}
+                        {new Date(log.exit_time).toLocaleString('en-IN', {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        })}
+                      </p>
+                    )}
+                    {!log.entry_time && !log.exit_time && (
+                      <p>
+                        {new Date(log.created_at).toLocaleString('en-IN', {
+                          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                        })}
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             ))}

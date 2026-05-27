@@ -941,6 +941,23 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     <ArrowRight size={16} className={subtext} />
                   </button>
 
+                  <button 
+                    onClick={() => handleTabChange('logs')}
+                    className={`w-full p-4 rounded-[28px] border text-left flex items-center justify-between transition-all duration-300 active:scale-[0.98] mt-3
+                      ${isDark ? 'bg-slate-800/80 border-slate-700/50 hover:bg-slate-800 hover:border-slate-600' : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
+                        <Clock size={20} />
+                      </div>
+                      <div>
+                        <h3 className="font-black text-xs text-sky-500 uppercase tracking-wide leading-none">Society Activity Logs</h3>
+                        <p className="text-[9px] text-slate-400 mt-1">Check all entries and exits history</p>
+                      </div>
+                    </div>
+                    <ArrowRight size={16} className={subtext} />
+                  </button>
+
                 </div>
               </div>
             ) : (
@@ -1580,6 +1597,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               </div>
             )}
 
+            {/* ALL SOCIETY ACTIVITY LOGS TAB */}
+            {activeTab === 'logs' && (
+              <div className="animate-scale-up">
+                <SocietyLogsTab isDark={isDark} card={card} subtext={subtext} />
+              </div>
+            )}
+
             {/* INSIDE VISITORS EXIT CHECKOUT TAB */}
             {activeTab === 'checkout' && (
               <div className={`border rounded-[32px] p-5 ${card} animate-scale-up space-y-4`}>
@@ -2028,6 +2052,157 @@ const VehicleStatsTab = ({ isDark, card, subtext }) => {
         )}
       </div>
 
+    </div>
+  );
+};
+
+// All Society entry & exit logs tab with search and type filters
+const SocietyLogsTab = ({ isDark, card, subtext }) => {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+
+  const fetchLogs = async () => {
+    try {
+      const res = await guardAPI.getEntryLogs();
+      setLogs(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch society entry logs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchLogs();
+  }, []);
+
+  const inputClass = isDark 
+    ? 'bg-slate-950/65 border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50' 
+    : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 shadow-sm';
+
+  const filteredLogs = logs.filter(log => {
+    if (search) {
+      const q = search.toLowerCase().trim();
+      const nameMatch = String(log.entity_name || '').toLowerCase().includes(q);
+      const guardMatch = String(log.guard_name || '').toLowerCase().includes(q);
+      const typeMatch = String(log.entity_type || '').toLowerCase().includes(q);
+      if (!nameMatch && !guardMatch && !typeMatch) return false;
+    }
+    if (filter !== 'all' && log.entity_type !== filter) return false;
+    return true;
+  });
+
+  if (loading) return <div className="flex justify-center py-10"><div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className={`border rounded-[32px] p-5 ${card} space-y-4`}>
+      <div className="flex items-center justify-between">
+        <h2 className="font-extrabold text-sm flex items-center gap-2">
+          <Clock size={16} className="text-indigo-400" /> Society Activity Logs
+        </h2>
+        <span className={`text-[8px] font-black uppercase tracking-wider bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-full shadow-sm`}>
+          Last 50 Entries
+        </span>
+      </div>
+
+      {/* Search & Filter Bar */}
+      <div className="grid grid-cols-2 gap-3.5">
+        <div className="relative flex items-center">
+          <Search className="absolute left-3 text-slate-500" size={13} />
+          <input
+            placeholder="Search name, logs..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className={`w-full pl-9 pr-3 py-2 rounded-xl text-[10px] outline-none transition-all ${inputClass}`}
+          />
+        </div>
+        <div className="relative flex items-center">
+          <select
+            value={filter}
+            onChange={e => setFilter(e.target.value)}
+            className={`w-full px-3 py-2 rounded-xl text-[10px] cursor-pointer appearance-none outline-none ${inputClass}`}
+          >
+            <option value="all">All Types</option>
+            <option value="guest">Guests 🧑</option>
+            <option value="vehicle">Vehicles 🚗</option>
+            <option value="staff">Staff 👥</option>
+          </select>
+          <Filter className="absolute right-3 text-slate-500 pointer-events-none" size={11} />
+        </div>
+      </div>
+
+      {filteredLogs.length === 0 ? (
+        <div className="text-center py-10">
+          <Clock size={36} className="mx-auto mb-2 opacity-20 text-slate-450" />
+          <p className="text-xs font-bold text-slate-350">No logs found</p>
+          <p className={`text-[9px] mt-0.5 ${subtext}`}>Match hone wale entry-exit logs nahi mile</p>
+        </div>
+      ) : (
+        <div className="space-y-3 max-h-[360px] overflow-y-auto pr-1">
+          {filteredLogs.map(log => {
+            const avatar = log.entity_type === 'guest' ? '🧑' : (log.entity_type === 'vehicle' ? '🚗' : '👥');
+            const isInside = !log.exit_time && log.entry_time;
+
+            return (
+              <div 
+                key={log.id} 
+                className={`p-3.5 rounded-2xl border flex items-center justify-between gap-2.5 transition-all duration-300 hover:scale-[1.01] ${
+                  isDark ? 'bg-slate-950/40 border-slate-900 hover:border-slate-800' : 'bg-white border-slate-200 shadow-sm hover:border-slate-300'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg shrink-0 border shadow-inner
+                    ${log.entity_type === 'vehicle' ? 'bg-blue-500/10 border-blue-500/15 text-blue-400' : 
+                      log.entity_type === 'staff' ? 'bg-purple-500/10 border-purple-500/15 text-purple-400' : 
+                      'bg-emerald-500/10 border-emerald-500/15 text-emerald-400'}`}>
+                    {avatar}
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-xs text-slate-850 dark:text-slate-100 leading-snug">{log.entity_name}</h4>
+                    <p className={`text-[9px] ${subtext} mt-0.5 uppercase tracking-wider font-black flex items-center gap-1.5`}>
+                      <span>{log.entity_type}</span>
+                      {log.gate_number && <span>• Gate: {log.gate_number}</span>}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-right flex flex-col items-end gap-1 shrink-0">
+                  <div className="flex gap-1 items-center">
+                    <span className="text-[8px] font-black text-emerald-500 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+                      {isInside && <span className="w-1 h-1 bg-emerald-400 rounded-full animate-pulse" />}
+                      <span>In</span>
+                    </span>
+                    {log.exit_time && (
+                      <span className="text-[8px] font-black text-orange-500 bg-orange-500/10 border border-orange-500/20 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                        Out
+                      </span>
+                    )}
+                  </div>
+                  
+                  <div className={`text-[8px] font-semibold ${subtext} space-y-0.5 mt-0.5 leading-normal`}>
+                    {log.entry_time && (
+                      <p>
+                        <span className="opacity-60 font-extrabold">In:</span>{" "}
+                        {new Date(log.entry_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + 
+                          ', ' + new Date(log.entry_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </p>
+                    )}
+                    {log.exit_time && (
+                      <p className="text-orange-450">
+                        <span className="opacity-60 font-extrabold">Out:</span>{" "}
+                        {new Date(log.exit_time).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) + 
+                          ', ' + new Date(log.exit_time).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

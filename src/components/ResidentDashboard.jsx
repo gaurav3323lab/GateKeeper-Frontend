@@ -925,118 +925,162 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
         return (
           <div className="space-y-5 animate-slide-up">
             
-            {/* Redesigned Society Banner Hero with Glassmorphism Overlay */}
-            <div className="relative rounded-[32px] overflow-hidden h-40 shadow-2xl border border-slate-700/30 group">
+            {/* ── Premium Society Hero Banner ── */}
+            <div className="relative rounded-[28px] overflow-hidden shadow-2xl group" style={{background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 75%, #6d28d9 100%)'}}>
+              {/* Decorative animated orbs */}
+              <div className="absolute top-0 right-0 w-40 h-40 bg-violet-500/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-400/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl" />
               <img
                 src="/society_banner.png"
                 alt="Society"
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
-                onError={(e) => {
-                  // Fallback beautiful mesh background in case image is missing
-                  e.target.style.display = 'none';
-                  e.target.parentNode.classList.add('bg-mesh-dark');
-                }}
+                className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-30 group-hover:opacity-40 group-hover:scale-105 transition-all duration-700 ease-out"
+                onError={(e) => { e.target.style.display = 'none'; }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-slate-900/10" />
-              
-              <div className="absolute bottom-4 left-5 right-5 flex justify-between items-end">
-                <div>
-                  <p className="text-white font-extrabold text-lg leading-tight tracking-tight drop-shadow-md font-heading">
-                    {societyDetails.name || user?.society_name || 'Loading Society...'}
-                  </p>
-                  <p className="text-white/75 text-[10px] font-bold uppercase tracking-wider mt-1 drop-shadow flex items-center gap-1.5">
-                    📍 {societyDetails.address || user?.society_address || ''}{((societyDetails.address || user?.society_address) && (societyDetails.city || user?.society_city)) ? ', ' : ''}{societyDetails.city || user?.society_city || ''} &bull; {user?.tower ? `Tower ${user.tower} - ` : ''}Flat {user?.flat_number || '102'}
-                  </p>
-                </div>
-                <div className="bg-emerald-500/15 border border-emerald-500/30 backdrop-blur-md text-emerald-400 text-[8px] font-black px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 animate-pulse">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                  🟢 SECURE SOCIETY
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Helper Horizontal Contacts (Aesthetic Scroll Bar) */}
-            <div className="space-y-2">
-              <p className={`text-[10px] font-bold tracking-wider uppercase px-1 ${subtext}`}>Recent Flat Visitors & Pre-approvals</p>
-              <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-none px-1">
-                
-                {/* Preapprove Button */}
-                <button 
-                  onClick={() => setShowPreapproveModal(true)} 
-                  className="flex flex-col items-center gap-1.5 shrink-0 group"
-                >
-                  <div className="w-13 h-13 rounded-full border border-dashed border-indigo-500/40 bg-indigo-500/5 flex items-center justify-center text-indigo-400 group-hover:scale-105 group-hover:border-indigo-400 group-hover:bg-indigo-500/10 transition-all duration-300">
-                    <UserPlus size={20} />
-                  </div>
-                  <span className="text-[10px] font-bold tracking-tight">Pre-approve</span>
-                </button>
-
-                {/* Flat Visitors List with premium glowing border rings */}
-                {recentFlatVisitors.slice(0, 4).map((v, i) => {
-                  const isInside = v.type === 'Delivery' 
-                    ? v.purpose === 'arrived' 
-                    : (v.entry_time && !v.exit_time);
-                  
-                  const avatar = v.type === 'Guest' ? '🧑' : (v.type === 'Delivery' ? '📦' : '🚗');
-                  const dispName = v.type === 'Guest' ? (v.name ? v.name.split(' ')[0] : 'Guest') : v.name;
-                  const dispRole = v.type === 'Guest' ? 'Guest' : (v.type === 'Delivery' ? 'Delivery' : 'Vehicle');
-
-                  return (
-                    <div key={`${v.type}-${v.id}-${i}`} className="flex flex-col items-center gap-1.5 shrink-0 relative group">
-                      <div className="w-13 h-13 rounded-full bg-slate-900/60 border border-slate-700/60 flex items-center justify-center text-xl relative group-hover:scale-105 transition-all duration-300 shadow-md">
-                        {avatar}
-                        {/* Glowing green indicator ring for inside visitors, muted gray for checked-out */}
-                        <span className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-slate-950 flex items-center justify-center ${
-                          isInside ? 'bg-emerald-500 animate-sos-pulse' : 'bg-slate-500'
-                        }`} />
-                      </div>
-                      <div className="text-center">
-                        <span className="text-[10px] font-bold block max-w-[65px] truncate">{dispName}</span>
-                        <span className={`text-[8px] font-medium block truncate max-w-[65px] ${subtext}`}>{dispRole}</span>
-                      </div>
+              <div className="relative p-5 pb-4">
+                {/* Top row */}
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span className="text-emerald-300 text-[9px] font-black uppercase tracking-widest">Secure Society</span>
                     </div>
-                  );
-                })}
-
-                {/* Directory Button */}
-                <button 
-                  onClick={() => setShowDirectoryModal(true)} 
-                  className="flex flex-col items-center gap-1.5 shrink-0 group"
-                >
-                  <div className="w-13 h-13 rounded-full bg-gradient-to-tr from-indigo-500 to-indigo-600 hover:from-indigo-600 hover:to-indigo-700 text-white flex items-center justify-center shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-all duration-300">
-                    <ChevronRight size={20} />
+                    <h2 className="text-white font-black text-base leading-tight font-heading">
+                      {societyDetails.name || user?.society_name || 'My Society'}
+                    </h2>
+                    <p className="text-indigo-200/70 text-[10px] font-medium mt-0.5">
+                      📍 {user?.tower ? `Tower ${user.tower} · ` : ''}{societyDetails.city || user?.society_city || 'India'}
+                    </p>
                   </div>
-                  <span className="text-[10px] font-bold text-indigo-400">View All</span>
-                </button>
-
+                  <div className="text-right">
+                    <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-3 py-1.5">
+                      <span className="text-white font-black text-sm">{user?.tower ? `${user.tower}-` : ''}{user?.flat_number || '101'}</span>
+                    </div>
+                    <p className="text-indigo-200/60 text-[9px] font-semibold mt-1">Your Flat</p>
+                  </div>
+                </div>
+                {/* Stats row */}
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-2 border border-white/10">
+                    <p className="text-white font-black text-base leading-none">{recentFlatVisitors.filter(v => v.entry_time && !v.exit_time).length}</p>
+                    <p className="text-indigo-200/70 text-[9px] font-semibold mt-0.5">Inside Now</p>
+                  </div>
+                  <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-2 border border-white/10">
+                    <p className="text-white font-black text-base leading-none">{recentFlatVisitors.length}</p>
+                    <p className="text-indigo-200/70 text-[9px] font-semibold mt-0.5">Total Visits</p>
+                  </div>
+                  <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-2 border border-white/10">
+                    <p className={`font-black text-base leading-none ${openServiceCount > 0 ? 'text-amber-300' : 'text-white'}`}>{openServiceCount}</p>
+                    <p className="text-indigo-200/70 text-[9px] font-semibold mt-0.5">Open Tickets</p>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* Redesigned Category Shortcuts Grid */}
-            <div className={`p-5 rounded-[32px] border shadow-sm grid grid-cols-4 gap-4 backdrop-blur-xl ${cardBg}`}>
+            {/* ── Recent Flat Visitors ── */}
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between px-0.5">
+                <p className={`text-[10px] font-black tracking-widest uppercase ${subtext}`}>Recent Visitors & Pre-Approvals</p>
+                <button onClick={() => setActiveTab('logs')} className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors">See All →</button>
+              </div>
+
+              {recentFlatVisitors.length === 0 && !dataLoading ? (
+                <div className={`rounded-2xl border p-4 flex items-center gap-3 ${cardBg}`}>
+                  <div className="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-lg">🏠</div>
+                  <div>
+                    <p className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>No recent visitors</p>
+                    <p className={`text-[10px] ${subtext}`}>Pre-approve a guest to get started</p>
+                  </div>
+                  <button onClick={() => setShowPreapproveModal(true)} className="ml-auto shrink-0 px-3 py-1.5 bg-indigo-600 text-white text-[9px] font-black rounded-xl shadow-sm hover:bg-indigo-700 transition-colors">
+                    + Add
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                  {/* Add Guest button */}
+                  <button
+                    onClick={() => setShowPreapproveModal(true)}
+                    className={`shrink-0 w-[90px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 py-3.5 transition-all hover:scale-105 active:scale-95 ${
+                      isDark ? 'border-indigo-500/30 hover:border-indigo-400/50 bg-indigo-500/5' : 'border-indigo-300/60 hover:border-indigo-400 bg-indigo-50/50'
+                    }`}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-indigo-500/15 flex items-center justify-center">
+                      <UserPlus size={15} className="text-indigo-400" />
+                    </div>
+                    <span className="text-[9px] font-black text-indigo-400 text-center leading-tight">Pre-<br/>Approve</span>
+                  </button>
+
+                  {/* Visitor cards */}
+                  {recentFlatVisitors.slice(0, 5).map((v, i) => {
+                    const isInside = v.type === 'Delivery' ? v.purpose === 'arrived' : (v.entry_time && !v.exit_time);
+                    const avatar = v.type === 'Guest' ? '🧑' : (v.type === 'Delivery' ? '📦' : '🚗');
+                    const dispName = v.name ? v.name.split(' ')[0] : v.type;
+                    const timeAgo = v.entry_time ? (() => {
+                      const diff = Date.now() - new Date(v.entry_time).getTime();
+                      if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+                      if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+                      return `${Math.floor(diff/86400000)}d ago`;
+                    })() : 'Pending';
+
+                    return (
+                      <div
+                        key={`${v.type}-${v.id}-${i}`}
+                        className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center gap-1.5 py-3 px-1.5 transition-all hover:scale-105 ${
+                          isDark ? 'bg-slate-800/70 border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'
+                        }`}
+                      >
+                        <div className="relative">
+                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xl">{avatar}</div>
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${isDark ? 'border-slate-800' : 'border-white'} ${
+                            isInside ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'
+                          }`} />
+                        </div>
+                        <p className={`text-[10px] font-bold text-center truncate w-full px-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{dispName}</p>
+                        <span className={`text-[8px] font-semibold px-2 py-0.5 rounded-full ${
+                          isInside ? 'bg-emerald-500/15 text-emerald-500' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
+                        }`}>{isInside ? '● Inside' : timeAgo}</span>
+                      </div>
+                    );
+                  })}
+
+                  {/* View all button */}
+                  <button
+                    onClick={() => setActiveTab('logs')}
+                    className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center justify-center gap-1.5 py-3.5 transition-all hover:scale-105 ${
+                      isDark ? 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15' : 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 shadow-sm'
+                    }`}
+                  >
+                    <ChevronRight size={18} className="text-indigo-400" />
+                    <span className="text-[9px] font-black text-indigo-400">View All</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* ── Premium Quick Actions Grid ── */}
+            <div className="grid grid-cols-4 gap-2.5">
               {[
-                { label: 'Home Planner', icon: Calendar, color: 'text-rose-400 bg-rose-500/10 border-rose-500/10', action: () => setShowPlannerModal(true) },
-                { label: openServiceCount > 0 ? `Helpdesk (${openServiceCount})` : 'Helpdesk', icon: Wrench, color: 'text-amber-400 bg-amber-500/10 border-amber-500/10', action: () => setActiveTab('service') },
-                { label: 'My Garage', icon: Car, color: 'text-sky-400 bg-sky-500/10 border-sky-500/10', action: () => setActiveTab('garage') },
-                { label: 'Pre-Approve', icon: ShieldCheck, color: 'text-violet-400 bg-violet-500/10 border-violet-500/10', action: () => setShowPreapproveModal(true) },
-                { label: 'Directory', icon: Search, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/10', action: () => setShowDirectoryModal(true) },
-                { label: 'Notices', icon: Megaphone, color: 'text-pink-400 bg-pink-500/10 border-pink-500/10', action: () => {
+                { label: 'Planner', icon: Calendar, grad: 'from-rose-500 to-pink-600', shadow: 'shadow-rose-500/25', action: () => setShowPlannerModal(true) },
+                { label: openServiceCount > 0 ? `Helpdesk·${openServiceCount}` : 'Helpdesk', icon: Wrench, grad: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', action: () => setActiveTab('service') },
+                { label: 'Garage', icon: Car, grad: 'from-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', action: () => setActiveTab('garage') },
+                { label: 'Pre-Approve', icon: ShieldCheck, grad: 'from-violet-500 to-purple-600', shadow: 'shadow-violet-500/25', action: () => setShowPreapproveModal(true) },
+                { label: 'Directory', icon: Search, grad: 'from-indigo-500 to-indigo-700', shadow: 'shadow-indigo-500/25', action: () => setShowDirectoryModal(true) },
+                { label: 'Notices', icon: Megaphone, grad: 'from-fuchsia-500 to-pink-600', shadow: 'shadow-fuchsia-500/25', action: () => {
                     setActiveTab('all-notices');
                     localStorage.setItem('notices_last_seen', String(Date.now()));
                     setUnreadNoticeCount(0);
                   } },
-                { label: 'SOS Alert', icon: AlertTriangle, color: 'text-red-400 bg-red-500/10 border-red-500/15', action: handleSOS },
-                { label: 'My Flat', icon: Home, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/10', action: () => setActiveTab('flat') },
+                { label: 'SOS', icon: AlertTriangle, grad: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/30', action: handleSOS },
+                { label: 'My Flat', icon: Home, grad: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/25', action: () => setActiveTab('flat') },
               ].map((item, idx) => (
-                <button 
-                  key={idx} 
-                  onClick={item.action} 
-                  className="flex flex-col items-center gap-2 p-1 hover:scale-105 active:scale-95 transition-all duration-300"
+                <button
+                  key={idx}
+                  onClick={item.action}
+                  className="flex flex-col items-center gap-2 group active:scale-90 transition-all duration-200"
                 >
-                  <div className={`w-11 h-11 rounded-[18px] flex items-center justify-center border ${item.color} shadow-sm transition-colors`}>
-                    <item.icon size={20} strokeWidth={2.2} />
+                  <div className={`w-full aspect-square rounded-[20px] bg-gradient-to-br ${item.grad} shadow-lg ${item.shadow} flex items-center justify-center group-hover:scale-105 group-hover:shadow-xl transition-all duration-300`}>
+                    <item.icon size={21} strokeWidth={2} className="text-white drop-shadow" />
                   </div>
-                  <span className="text-[9px] font-extrabold text-center leading-tight tracking-tight text-slate-700 dark:text-slate-300">
+                  <span className={`text-[9px] font-bold text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
                     {item.label}
                   </span>
                 </button>
@@ -1152,44 +1196,66 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
           {/* INNER VIEWPORT */}
           <div className={`flex-1 overflow-y-auto pb-24 relative ${bg} scrollbar-none`}>
             
-            {/* Sticky Mobile Header (Image 1 top screen header) */}
-            <header className={`sticky top-0 z-40 px-4 py-3 border-b flex items-center justify-between backdrop-blur-md
-              ${isDark ? 'bg-slate-900/80 border-slate-800' : 'bg-white/80 border-slate-100'}`}>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setShowProfile(true)} className="flex items-center gap-1 font-extrabold text-sm text-indigo-400 font-sans tracking-wide">
-                  <span>{user?.tower ? `${user.tower}-${user.flat_number}` : `H-${user?.flat_number || '102'}`}</span>
-                  <span className="text-xs text-slate-400 font-normal">v</span>
-                </button>
-              </div>
+            {/* ── Premium Sticky Header ── */}
+            <header className={`sticky top-0 z-40 px-4 py-2.5 border-b flex items-center justify-between backdrop-blur-xl
+              ${isDark ? 'bg-slate-950/85 border-slate-800/60' : 'bg-white/90 border-slate-100/80 shadow-sm'}`}>
 
-              {/* Header icons: Search, bell, chat, profile, logout */}
-              <div className="flex items-center gap-3 text-slate-400">
-                <button className="hover:text-slate-600"><Search size={16} /></button>
-                <button className="hover:text-slate-600 relative" onClick={() => {
+              {/* Left: Avatar + Greeting */}
+              <button onClick={() => setShowProfile(true)} className="flex items-center gap-2.5 group">
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/30 group-hover:scale-105 transition-transform">
+                    {user?.name?.charAt(0)?.toUpperCase() || 'R'}
+                  </div>
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-950" />
+                </div>
+                <div className="leading-tight">
+                  <p className={`text-[10px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'} 👋</p>
+                  <p className="text-xs font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-violet-500">
+                    {user?.name?.split(' ')[0] || 'Resident'}
+                  </p>
+                </div>
+              </button>
+
+              {/* Right: Action icons */}
+              <div className="flex items-center gap-1.5">
+                <button
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    isDark ? 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                  }`}
+                >
+                  <Search size={14} />
+                </button>
+
+                <button
+                  onClick={() => {
                     setActiveTab('all-notices');
                     localStorage.setItem('notices_last_seen', String(Date.now()));
                     setUnreadNoticeCount(0);
-                  }}>
-                  <Bell size={16} />
+                  }}
+                  className={`w-8 h-8 rounded-full relative flex items-center justify-center transition-all ${
+                    isDark ? 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                  }`}
+                >
+                  <Bell size={14} />
                   {unreadNoticeCount > 0 && (
-                    <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[8px] font-black flex items-center justify-center px-0.5">{unreadNoticeCount}</span>
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[8px] font-black flex items-center justify-center px-0.5 shadow-sm">{unreadNoticeCount}</span>
                   )}
                 </button>
-                <button onClick={() => alert('Community Chat feature is coming soon!')} className="hover:text-slate-600 relative">
-                  <MessageSquare size={16} />
-                  <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] px-1 rounded-full font-bold">1</span>
+
+                <button
+                  onClick={() => setActiveTab('notifications')}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all relative ${
+                    isDark ? 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
+                  }`}
+                >
+                  <MessageSquare size={14} />
                 </button>
-                <button onClick={() => setShowProfile(true)} className="w-6 h-6 rounded-full overflow-hidden bg-slate-200 border border-indigo-400">
-                  <div className="w-full h-full bg-indigo-500 text-white font-bold flex items-center justify-center text-[10px]">
-                    {user?.name?.charAt(0) || 'R'}
-                  </div>
-                </button>
+
                 <button
                   onClick={onLogout}
-                  title="Logout"
-                  className="w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-500 transition-colors"
+                  className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-500 transition-all"
                 >
-                  <LogOut size={15} strokeWidth={2.5} />
+                  <LogOut size={13} strokeWidth={2.5} />
                 </button>
               </div>
             </header>
@@ -1208,24 +1274,34 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               sharedSocket={sharedSocket}
             />
 
-            {/* Bottom Tab Navigation */}
-            <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 border-t backdrop-blur-md ${bottomNav}`}>
-              <div className="flex">
+            {/* ── Premium Bottom Tab Navigation ── */}
+            <nav className={`fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-40 backdrop-blur-xl border-t ${
+              isDark ? 'bg-slate-950/90 border-slate-800/70' : 'bg-white/95 border-slate-100 shadow-[0_-4px_24px_rgba(0,0,0,0.06)]'
+            }`}>
+              <div className="flex items-center px-2 py-1.5">
                 {NAV_ITEMS.map(({ key, label, icon: Icon }) => {
                   const active = activeTab === key;
                   return (
                     <button
                       key={key}
                       onClick={() => setActiveTab(key)}
-                      className={`flex-1 py-3.5 flex flex-col items-center gap-0.5 transition-all ${
+                      className={`flex-1 flex flex-col items-center gap-1 py-1.5 rounded-2xl transition-all duration-200 ${
                         active
-                          ? 'text-indigo-500'
+                          ? isDark ? 'text-indigo-400' : 'text-indigo-600'
                           : isDark ? 'text-slate-500 hover:text-slate-300' : 'text-gray-400 hover:text-gray-600'
                       }`}
                     >
-                      <Icon size={18} strokeWidth={active ? 2.5 : 1.5} />
-                      <span className="text-[8px] font-black tracking-wide leading-none">{label}</span>
-                      {active && <div className="w-5 h-0.5 bg-indigo-500 rounded-full mt-1" />}
+                      <div className={`relative flex items-center justify-center w-8 h-8 rounded-2xl transition-all duration-300 ${
+                        active
+                          ? 'bg-indigo-500/15 dark:bg-indigo-500/20 scale-105'
+                          : 'scale-100'
+                      }`}>
+                        <Icon size={17} strokeWidth={active ? 2.5 : 1.8} />
+                        {active && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-3.5 h-0.5 bg-indigo-500 rounded-full" />}
+                      </div>
+                      <span className={`text-[8px] font-black tracking-wide leading-none ${
+                        active ? (isDark ? 'text-indigo-400' : 'text-indigo-600') : ''
+                      }`}>{label}</span>
                     </button>
                   );
                 })}
@@ -1244,7 +1320,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       {/* 1. PRE-APPROVED PASS GENERATOR MODAL */}
       {showPreapproveModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className={`w-full max-w-sm rounded-[30px] p-6 border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className={`w-full max-w-sm p-6 border animate-scale-up ${isDark ? 'glass-panel border-slate-800/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'glass-card-light border-white/60 shadow-[0_20px_50px_rgba(31,38,135,0.08)]'}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-extrabold text-sm flex items-center gap-1.5"><ShieldCheck size={18} className="text-indigo-500" /> Pre-approve Guest Pass</h3>
               <button onClick={() => { setShowPreapproveModal(false); setGuestPass(null); }} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
@@ -1362,7 +1438,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       {/* 3. HOME PLANNER TASK LIST MODAL */}
       {showPlannerModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className={`w-full max-w-sm rounded-[30px] p-6 border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className={`w-full max-w-sm p-6 border animate-scale-up ${isDark ? 'glass-panel border-slate-800/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'glass-card-light border-white/60 shadow-[0_20px_50px_rgba(31,38,135,0.08)]'}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-extrabold text-sm flex items-center gap-1.5"><Calendar size={18} className="text-rose-500" /> Home Chores Planner</h3>
               <button onClick={() => { setShowPlannerModal(false); setNewTaskText(''); }} className="text-slate-400 hover:text-slate-600"><X size={18} /></button>
@@ -1432,7 +1508,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       {/* 4. SOCIETY INTERCOM & CONTACTS DIRECTORY MODAL */}
       {showDirectoryModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className={`w-full max-w-sm rounded-[30px] p-6 border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className={`w-full max-w-sm p-6 border animate-scale-up ${isDark ? 'glass-panel border-slate-800/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'glass-card-light border-white/60 shadow-[0_20px_50px_rgba(31,38,135,0.08)]'}`}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-extrabold text-sm flex items-center gap-1.5"><Search size={18} className="text-indigo-500" /> Society Intercom & Directory</h3>
               <button 
@@ -1545,7 +1621,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       {/* 5. CREATE COMMUNITY POST MODAL */}
       {showPostModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className={`w-full max-w-sm rounded-[30px] p-6 border shadow-2xl ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+          <div className={`w-full max-w-sm p-6 border animate-scale-up ${isDark ? 'glass-panel border-slate-800/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'glass-card-light border-white/60 shadow-[0_20px_50px_rgba(31,38,135,0.08)]'}`}>
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-extrabold text-sm flex items-center gap-1.5">
                 {creatorTab === 'notice' && <Megaphone size={16} className="text-pink-500" />}

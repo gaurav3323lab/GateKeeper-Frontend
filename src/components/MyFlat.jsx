@@ -16,9 +16,9 @@ const MyFlat = ({ user, sharedSocket }) => {
   const [contacts, setContacts] = useState({ guards: [], helplines: [] });
   const [contactsLoading, setContactsLoading] = useState(true);
 
-  const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200';
-  const input = isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-gray-100 border-gray-300 text-gray-800';
-  const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
+  const card = isDark ? 'glass-panel text-white' : 'glass-card-light text-slate-800';
+  const input = isDark ? 'bg-slate-950/65 border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300 shadow-sm';
+  const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
 
   useEffect(() => {
     fetchMembers();
@@ -93,29 +93,31 @@ const MyFlat = ({ user, sharedSocket }) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-slide-up">
       {/* Flat Info Card */}
-      <div className={`border rounded-2xl p-5 ${card}`}>
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center">
-            <Shield size={22} className="text-white" />
+      <div className={`p-6 transition-all duration-300 hover:shadow-lg ${card}`}>
+        <div className="flex items-center gap-4 mb-4">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Shield size={24} className="text-white" />
           </div>
           <div>
-            <h2 className="text-lg font-bold">{user?.name || 'Resident'}</h2>
-            <p className={`text-sm ${subtext}`}>Flat: <span className="font-semibold text-indigo-400">{user?.tower ? `${user.tower}-${user.flat_number}` : (user?.flat_number || 'A-101')}</span> &bull; Primary Resident</p>
+            <h2 className="text-xl font-black font-heading leading-tight">{user?.name || 'Resident'}</h2>
+            <p className={`text-xs font-semibold ${subtext} mt-0.5`}>
+              Flat: <span className="font-extrabold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-lg border border-indigo-500/20">{user?.tower ? `${user.tower}-${user.flat_number}` : (user?.flat_number || 'A-101')}</span> &bull; Primary Resident
+            </p>
           </div>
         </div>
-        <div className={`flex gap-4 text-sm ${subtext}`}>
-          <span>👨‍👩‍👦 {members.length + 1} Members</span>
-          <span>✅ Active</span>
+        <div className={`flex gap-4 text-xs font-bold pt-2 border-t ${isDark ? 'border-slate-800/80' : 'border-slate-100'} ${subtext}`}>
+          <span className="flex items-center gap-1">👨‍👩‍👦 {members.length + 1} Registered Members</span>
+          <span className="text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider">● Active Profile</span>
         </div>
       </div>
 
       {/* Family Members */}
-      <div className={`border rounded-2xl p-5 ${card}`}>
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-bold text-base flex items-center gap-2">
-            <Users size={18} className="text-indigo-400" /> Family Members
+      <div className={`p-6 transition-all duration-300 hover:shadow-lg ${card}`}>
+        <div className="flex items-center justify-between mb-5">
+          <h3 className="font-extrabold text-base flex items-center gap-2 font-heading">
+            <Users size={20} className="text-indigo-400" /> Family Members
           </h3>
           <button
             onClick={() => { 
@@ -125,32 +127,47 @@ const MyFlat = ({ user, sharedSocket }) => {
                 setForm({ name: '', phone: '', relation: '', password: '' });
               }
             }}
-            className="flex items-center gap-1 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl font-semibold transition-all"
+            className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/25 active:scale-95 text-white px-3.5 py-2.5 rounded-xl font-black tracking-wide uppercase transition-all"
           >
-            <Plus size={14} /> Add Member
+            {showForm ? <X size={13} /> : <Plus size={13} />}
+            <span>{showForm ? 'Close Form' : 'Add Member'}</span>
           </button>
         </div>
 
         {/* Add/Edit Member Form */}
         {showForm && (
-          <div className={`mb-4 p-4 rounded-xl border ${isDark ? 'bg-slate-700/50 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
-            <p className={`text-xs font-semibold mb-3 ${subtext}`}>{editingMember ? 'Edit family member details' : 'Add a new family member'}</p>
-            <div className="space-y-2">
-              <input name="name" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
-                placeholder="Name" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
-              <input name="phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
-                placeholder="Mobile Number" type="tel" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
-              <input name="relation" value={form.relation} onChange={e => setForm({...form, relation: e.target.value})}
-                placeholder="Relation (Wife, Son, etc.)" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
+          <div className={`mb-5 p-5 rounded-[22px] border ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50/80 border-slate-200'} space-y-4.5 animate-scale-up`}>
+            <p className={`text-[10px] font-bold uppercase tracking-wider ${subtext}`}>
+              {editingMember ? '📝 Edit family member details' : '✨ Add a new family member'}
+            </p>
+            <div className="space-y-3.5">
+              <div className="space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Full Name</label>
+                <input name="name" value={form.name} onChange={e => setForm({...form, name: e.target.value})}
+                  placeholder="e.g. Priyan Mehta" className={`w-full border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 ${input}`} />
+              </div>
+              <div className="space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Mobile Number</label>
+                <input name="phone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})}
+                  placeholder="e.g. +91 99999 88888" type="tel" className={`w-full border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 ${input}`} />
+              </div>
+              <div className="space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Relation</label>
+                <input name="relation" value={form.relation} onChange={e => setForm({...form, relation: e.target.value})}
+                  placeholder="Relation (e.g. Wife, Son, Mother)" className={`w-full border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 ${input}`} />
+              </div>
               {!editingMember && (
-                <input name="password" type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})}
-                  placeholder="Login Password" className={`w-full border rounded-xl px-3 py-2 text-sm outline-none ${input}`} />
+                <div className="space-y-1">
+                  <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Login Password</label>
+                  <input name="password" type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})}
+                    placeholder="Create dashboard password" className={`w-full border rounded-xl px-4 py-3 text-xs outline-none focus:ring-1 ${input}`} />
+                </div>
               )}
-              <div className="flex gap-2 mt-2">
-                <button onClick={handleAddOrEdit} disabled={actionLoading} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-xl text-sm font-semibold flex items-center justify-center gap-2">
-                  {actionLoading ? <Loader2 size={16} className="animate-spin" /> : (editingMember ? 'Update Member' : 'Add Member')}
+              <div className="flex gap-2.5 pt-2">
+                <button onClick={handleAddOrEdit} disabled={actionLoading} className="flex-1 bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/20 text-white py-3 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all duration-300">
+                  {actionLoading ? <Loader2 size={14} className="animate-spin" /> : (editingMember ? 'Update Member' : 'Save Member')}
                 </button>
-                <button onClick={() => setShowForm(false)} className={`flex-1 py-2 rounded-xl text-sm font-semibold border ${isDark ? 'border-slate-600 text-slate-400' : 'border-gray-300 text-gray-500'}`}>
+                <button onClick={() => { setShowForm(false); setEditingMember(null); }} className={`flex-1 py-3 rounded-xl text-xs font-bold border transition-all duration-300 ${isDark ? 'border-slate-800 text-slate-400 hover:bg-slate-900/50' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
                   Cancel
                 </button>
               </div>
@@ -160,42 +177,48 @@ const MyFlat = ({ user, sharedSocket }) => {
 
         {/* Members List */}
         {loading ? (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center py-6">
             <Loader2 className="animate-spin text-indigo-500" />
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {/* Primary Resident (You) */}
-            <div className={`flex items-center justify-between p-3 rounded-xl ${isDark ? 'bg-indigo-900/30 border border-indigo-700/50' : 'bg-indigo-50 border border-indigo-200'}`}>
+            <div className={`flex items-center justify-between p-4 rounded-[22px] border ${
+              isDark 
+                ? 'bg-indigo-950/20 border-indigo-500/25 shadow-[0_4px_24px_rgba(99,102,241,0.04)]' 
+                : 'bg-indigo-50/50 border-indigo-200/70 shadow-sm'
+            }`}>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">
-                  {user?.name?.charAt(0) || 'R'}
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 text-white font-extrabold flex items-center justify-center text-sm shadow-md">
+                  {user?.name?.charAt(0)?.toUpperCase() || 'R'}
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">{user?.name || 'You (Primary)'}</p>
-                  <p className={`text-xs ${subtext}`}>Primary Resident &bull; {user?.phone || '—'}</p>
+                  <p className="font-extrabold text-xs text-slate-850 dark:text-indigo-200 leading-snug">{user?.name || 'You'}</p>
+                  <p className={`text-[10px] font-semibold ${subtext} mt-0.5`}>Primary Resident &bull; {user?.phone || '—'}</p>
                 </div>
               </div>
-              <span className="text-xs bg-indigo-600 text-white px-2 py-1 rounded-full font-bold">Owner</span>
+              <span className="text-[9px] font-black uppercase tracking-wider bg-indigo-500/10 border border-indigo-500/20 text-indigo-650 dark:text-indigo-400 px-2.5 py-1 rounded-full">Owner</span>
             </div>
 
             {members.map(m => (
-              <div key={m.id} className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+              <div key={m.id} className={`flex items-center justify-between p-4 rounded-[22px] border transition-all duration-300 hover:scale-[1.01] ${
+                isDark ? 'bg-slate-900/40 border-slate-800/80 hover:border-slate-700' : 'bg-slate-50/50 border-slate-200 shadow-sm'
+              }`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm">
-                    {m.name.charAt(0)}
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-emerald-600 text-white font-extrabold flex items-center justify-center text-sm shadow-md">
+                    {m.name.charAt(0).toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-semibold text-sm">{m.name}</p>
-                    <p className={`text-xs ${subtext}`}>{m.relation} &bull; {m.phone}</p>
+                    <p className="font-extrabold text-xs text-slate-800 dark:text-slate-200 leading-snug">{m.name}</p>
+                    <p className={`text-[10px] font-semibold ${subtext} mt-0.5`}>{m.relation || 'Family Member'} &bull; {m.phone}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={() => handleEdit(m)} className="text-indigo-400 hover:text-indigo-300 p-1 rounded-lg">
-                    <PenLine size={16} />
+                  <button onClick={() => handleEdit(m)} className="text-indigo-400 hover:text-indigo-300 p-1.5 hover:bg-indigo-500/10 rounded-lg transition-colors">
+                    <PenLine size={14} />
                   </button>
-                  <button onClick={() => handleRemove(m.id)} className="text-red-400 hover:text-red-300 p-1 rounded-lg">
-                    <Trash2 size={16} />
+                  <button onClick={() => handleRemove(m.id)} className="text-red-400 hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-lg transition-colors">
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
@@ -205,23 +228,22 @@ const MyFlat = ({ user, sharedSocket }) => {
       </div>
 
       {/* 📞 Emergency & Security Contacts Card */}
-      <div className={`border rounded-2xl p-5 ${card}`}>
-        <h3 className="font-bold text-base flex items-center gap-2 mb-4">
-          <Phone size={18} className="text-emerald-400" /> Emergency & Security Helplines
+      <div className={`p-6 transition-all duration-300 hover:shadow-lg ${card}`}>
+        <h3 className="font-extrabold text-base flex items-center gap-2 mb-5 font-heading">
+          <Phone size={20} className="text-emerald-400" /> Emergency & Security Helplines
         </h3>
 
         {contactsLoading ? (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center py-6">
             <Loader2 className="animate-spin text-emerald-500" />
           </div>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-5">
             {/* Security Guards Section */}
             {contacts.guards.length > 0 ? (
-              <div className="space-y-2.5">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Active Security Guards 🛡️</p>
+              <div className="space-y-3">
+                <p className={`text-[9px] font-extrabold uppercase tracking-widest ${subtext}`}>Active Security Guards 🛡️</p>
                 {(() => {
-                  // Sort online guards to the top, then alphabetically by name
                   const sortedGuards = [...contacts.guards].sort((a, b) => {
                     const onlineA = !!a.is_online;
                     const onlineB = !!b.is_online;
@@ -233,54 +255,53 @@ const MyFlat = ({ user, sharedSocket }) => {
                   return sortedGuards.map((guard, idx) => {
                     const isOnline = !!guard.is_online;
                     return (
-                      <div key={idx} className={`flex items-center justify-between p-3.5 rounded-[22px] border transition-all duration-300 hover:scale-[1.01] ${
+                      <div key={idx} className={`flex items-center justify-between p-4 rounded-[22px] border transition-all duration-300 hover:scale-[1.01] ${
                         isDark 
                           ? isOnline 
-                            ? 'bg-emerald-950/20 border-emerald-500/20 shadow-[0_4px_20px_rgba(16,185,129,0.04)]'
-                            : 'bg-slate-700/40 border-slate-600'
+                            ? 'bg-emerald-950/20 border-emerald-500/25 shadow-[0_4px_24px_rgba(16,185,129,0.04)] hover:border-emerald-500/40'
+                            : 'bg-slate-900/40 border-slate-800/80 hover:border-slate-800'
                           : isOnline
-                            ? 'bg-emerald-50/50 border-emerald-200'
-                            : 'bg-gray-50 border-gray-200'
+                            ? 'bg-emerald-50/50 border-emerald-200 hover:border-emerald-300 shadow-sm'
+                            : 'bg-slate-50/50 border-slate-200'
                       }`}>
                         <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xs font-black shrink-0 shadow-sm border ${
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base shrink-0 shadow-md border ${
                             isOnline 
-                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' 
-                              : 'bg-slate-900/60 border-slate-800 text-slate-400'
+                              ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 animate-pulse' 
+                              : 'bg-slate-900/60 border-slate-800/80 text-slate-500'
                           }`}>
                             🛡️
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <p className="font-extrabold text-sm text-slate-800 dark:text-slate-100">{guard.name}</p>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="font-extrabold text-xs text-slate-800 dark:text-slate-100 leading-snug">{guard.name}</p>
                               
-                              {/* Pulsing online badge vs offline badge */}
                               {isOnline ? (
-                                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1 shadow-sm">
                                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                                   ON DUTY
                                 </span>
                               ) : (
-                                <span className="bg-slate-500/10 border border-slate-600/30 text-slate-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span className="bg-slate-550/10 border border-slate-600/30 text-slate-400 text-[8px] font-black px-2 py-0.5 rounded-full flex items-center gap-1">
                                   <span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
                                   OFFLINE
                                 </span>
                               )}
                             </div>
-                            <p className={`text-xs ${subtext} mt-0.5 flex items-center gap-1.5`}>
+                            <p className={`text-[10px] ${subtext} mt-1 flex items-center gap-1`}>
                               <span>Mobile:</span>
-                              <a href={`tel:${guard.phone}`} className="font-mono hover:text-indigo-400 transition-colors font-semibold">
+                              <a href={`tel:${guard.phone}`} className="font-mono hover:text-indigo-400 transition-colors font-bold">
                                 {guard.phone}
                               </a>
                             </p>
                           </div>
                         </div>
-                        <a href={`tel:${guard.phone}`} className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md transition-all active:scale-95 ${
+                        <a href={`tel:${guard.phone}`} className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-md transition-all active:scale-90 ${
                           isOnline
                             ? 'bg-gradient-to-tr from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-emerald-500/20'
                             : 'bg-slate-600 hover:bg-slate-700 text-slate-200'
                         }`}>
-                          <Phone size={15} />
+                          <Phone size={14} />
                         </a>
                       </div>
                     );
@@ -289,27 +310,31 @@ const MyFlat = ({ user, sharedSocket }) => {
               </div>
             ) : (
               <div className="space-y-2">
-                <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Active Security Guards 🛡️</p>
-                <div className={`p-3 rounded-xl border text-xs text-center ${subtext} ${isDark ? 'bg-slate-700/20 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+                <p className={`text-[9px] font-extrabold uppercase tracking-widest ${subtext}`}>Active Security Guards 🛡️</p>
+                <div className={`p-4 rounded-2xl border text-xs text-center ${subtext} ${isDark ? 'bg-slate-900/40 border-slate-800/80' : 'bg-slate-50 border-slate-200'}`}>
                   No active guards currently logged in. Contact the main office helpline below.
                 </div>
               </div>
             )}
 
             {/* General Helplines Section */}
-            <div className="space-y-2">
-              <p className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">Society & Public Emergency Contacts 🚨</p>
-              {contacts.helplines.map((hl, idx) => (
-                <div key={idx} className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
-                  <div>
-                    <p className="font-semibold text-sm">{hl.name}</p>
-                    <p className={`text-xs ${subtext}`}>Emergency Support &bull; {hl.phone}</p>
+            <div className="space-y-3">
+              <p className={`text-[9px] font-extrabold uppercase tracking-widest ${subtext}`}>Society & Public Emergency Contacts 🚨</p>
+              <div className="space-y-2.5">
+                {contacts.helplines.map((hl, idx) => (
+                  <div key={idx} className={`flex items-center justify-between p-4 rounded-[22px] border transition-all duration-300 hover:scale-[1.01] ${
+                    isDark ? 'bg-slate-900/40 border-slate-800/80 hover:border-slate-700' : 'bg-slate-50/50 border-slate-200 shadow-sm'
+                  }`}>
+                    <div>
+                      <p className="font-extrabold text-xs leading-snug">{hl.name}</p>
+                      <p className={`text-[10px] ${subtext} mt-0.5`}>Emergency Support &bull; {hl.phone}</p>
+                    </div>
+                    <a href={`tel:${hl.phone}`} className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-550 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white flex items-center justify-center shadow-md active:scale-95 transition-all shadow-emerald-500/10">
+                      <Phone size={14} />
+                    </a>
                   </div>
-                  <a href={`tel:${hl.phone}`} className="w-9 h-9 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white flex items-center justify-center shadow-md transition-all">
-                    <Phone size={16} />
-                  </a>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -319,3 +344,4 @@ const MyFlat = ({ user, sharedSocket }) => {
 };
 
 export default MyFlat;
+

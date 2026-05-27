@@ -38,9 +38,9 @@ const PreApprove = ({ user }) => {
     }
   };
 
-  const card = isDark ? 'bg-slate-800/60 border-slate-700' : 'bg-white border-gray-200';
-  const input = isDark ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400' : 'bg-gray-100 border-gray-300 text-gray-800';
-  const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
+  const card = isDark ? 'glass-panel text-white' : 'glass-card-light text-slate-800';
+  const input = isDark ? 'bg-slate-950/65 border-slate-800 text-white placeholder-slate-500 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder-slate-400 focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-300 shadow-sm';
+  const subtext = isDark ? 'text-slate-400' : 'text-slate-500';
 
   const handleAdd = async () => {
     if (form.category === 'Delivery' && !form.company) return alert('Please select a delivery company');
@@ -107,29 +107,30 @@ const PreApprove = ({ user }) => {
   const deliveryIcons = { Amazon: '📦', Swiggy: '🛵', Zomato: '🍕', Flipkart: '🛍️', Other: '📫' };
 
   return (
-    <div className="space-y-6">
-      <div className={`border rounded-2xl p-5 ${card}`}>
-        <div className="flex items-center justify-between mb-4">
+    <div className="space-y-6 animate-slide-up">
+      <div className={`p-6 transition-all duration-300 hover:shadow-lg ${card}`}>
+        <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-bold text-base flex items-center gap-2">
-              <CheckCircle size={18} className="text-emerald-400" /> Pre-Approvals
+            <h3 className="font-extrabold text-base flex items-center gap-2 font-heading">
+              <CheckCircle size={20} className="text-emerald-400" /> Pre-Approvals
             </h3>
-            <p className={`text-xs mt-1 ${subtext}`}>Gate par bina phone ke entry den</p>
+            <p className={`text-[10px] mt-0.5 ${subtext}`}>Bypass gate security calls instantly</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-1 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl font-semibold"
+            className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/25 active:scale-95 text-white px-3.5 py-2.5 rounded-xl font-black uppercase tracking-wider transition-all"
           >
-            <Plus size={14} /> Add
+            {showForm ? <X size={13} /> : <Plus size={13} />}
+            <span>{showForm ? 'Cancel' : 'Create'}</span>
           </button>
         </div>
 
         {/* Add Form */}
         {showForm && (
-          <div className={`mb-4 p-5 rounded-[24px] border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-gray-50 border-gray-200'} space-y-4`}>
+          <div className={`mb-5 p-5 rounded-[22px] border ${isDark ? 'bg-slate-950/60 border-slate-800' : 'bg-slate-50/80 border-slate-200'} space-y-4 animate-scale-up`}>
             <div>
               <label className={`text-[10px] font-bold uppercase tracking-wider mb-2 block ${subtext}`}>Visitor Type</label>
-              <div className="grid grid-cols-4 gap-1.5">
+              <div className="grid grid-cols-4 gap-2">
                 {['Guest', 'Cab', 'Delivery', 'Helper'].map((cat) => (
                   <button 
                     key={cat}
@@ -138,7 +139,7 @@ const PreApprove = ({ user }) => {
                     className={`py-2.5 rounded-xl text-[10px] font-black border transition-all ${
                       form.category === cat 
                         ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-600/20'
-                        : isDark ? 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-700/50' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                        : isDark ? 'bg-slate-900 border-slate-800 text-slate-450 hover:bg-slate-800' : 'bg-white border-slate-200 text-gray-650 hover:bg-slate-50'
                     }`}
                   >
                     {cat}
@@ -147,18 +148,18 @@ const PreApprove = ({ user }) => {
               </div>
             </div>
 
-            <div>
-              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>
-                {form.category === 'Delivery' ? 'Delivery Company' : 'Visitor Name'}
+            <div className="space-y-1">
+              <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>
+                {form.category === 'Delivery' ? 'Delivery Partner' : 'Visitor Name'}
               </label>
               {form.category === 'Delivery' ? (
                 <div className="space-y-2">
                   <select 
                     value={form.company} 
                     onChange={e => setForm({...form, company: e.target.value})}
-                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                    className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none font-bold ${isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-850'}`}
                   >
-                    <option value="">Company Select Karein</option>
+                    <option value="">Select Company</option>
                     <option value="Amazon">Amazon</option>
                     <option value="Swiggy">Swiggy</option>
                     <option value="Zomato">Zomato</option>
@@ -168,10 +169,10 @@ const PreApprove = ({ user }) => {
                   {form.company === 'Other' && (
                     <input 
                       type="text" 
-                      placeholder="Company ka Naam" 
+                      placeholder="Company Name" 
                       value={form.name}
                       onChange={e => setForm({...form, name: e.target.value})}
-                      className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                      className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none ${input}`}
                     />
                   )}
                 </div>
@@ -179,57 +180,57 @@ const PreApprove = ({ user }) => {
                 <input 
                   type="text" 
                   placeholder={
-                    form.category === 'Cab' ? 'e.g. Ola Driver, Uber Auto' :
-                    form.category === 'Helper' ? 'e.g. Ramu Plumber, Kaamwali Bai' : 'e.g. Rahul Mehta, Friend'
+                    form.category === 'Cab' ? 'e.g. Ola Driver, Uber Driver' :
+                    form.category === 'Helper' ? 'e.g. Electrician, Maid, Ramu Plumber' : 'e.g. Rahul Mehta, Friend'
                   }
                   value={form.name}
                   onChange={e => setForm({...form, name: e.target.value})}
-                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                  className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none ${input}`}
                 />
               )}
             </div>
 
-            <div>
-              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>Mobile Number (Optional)</label>
+            <div className="space-y-1">
+              <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Mobile Number (Optional)</label>
               <input 
                 type="tel" 
                 placeholder="e.g. +91 99999 88888" 
                 value={form.phone}
                 onChange={e => setForm({...form, phone: e.target.value})}
-                className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none ${input}`}
               />
             </div>
 
             {form.category === 'Guest' && (
-              <div>
-                <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>Aane ka Maqsad / Purpose (Optional)</label>
+              <div className="space-y-1">
+                <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Purpose of Visit (Optional)</label>
                 <input 
                   type="text" 
-                  placeholder="e.g. Family Meet, Dinner" 
+                  placeholder="e.g. Family Meet, Dinner Party" 
                   value={form.purpose}
                   onChange={e => setForm({...form, purpose: e.target.value})}
-                  className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                  className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none ${input}`}
                 />
               </div>
             )}
 
-            <div>
-              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>Vehicle Number (Optional)</label>
+            <div className="space-y-1">
+              <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Vehicle Number (Optional)</label>
               <input 
                 type="text" 
                 placeholder="e.g. MH 12 AB 1234" 
                 value={form.vehicle_number || ''}
                 onChange={e => setForm({...form, vehicle_number: e.target.value.toUpperCase()})}
-                className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                className={`w-full rounded-xl border px-3.5 py-2.5 text-xs outline-none ${input}`}
               />
             </div>
 
-            <div>
-              <label className={`text-[10px] font-bold uppercase tracking-wider mb-1.5 block ${subtext}`}>📅 Validity (Arrival Time Slot)</label>
+            <div className="space-y-1">
+              <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>📅 Validity Slot</label>
               <select 
                 value={form.valid_date || 'Immediate'}
                 onChange={e => setForm({...form, valid_date: e.target.value})}
-                className={`w-full rounded-xl border px-3 py-2.5 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-white border-gray-300 text-slate-800'}`}
+                className={`w-full rounded-xl border px-3 py-2.5 text-xs font-bold outline-none ${isDark ? 'bg-slate-950 border-slate-800 text-white' : 'bg-white border-slate-200 text-slate-850'}`}
               >
                 <option value="Immediate">Immediate (Valid for 2 Hours)</option>
                 <option value="2 Hours">Next 2 Hours</option>
@@ -239,18 +240,18 @@ const PreApprove = ({ user }) => {
               </select>
             </div>
 
-            <div className="flex gap-2 pt-2">
+            <div className="flex gap-2.5 pt-2">
               <button 
                 onClick={handleAdd} 
                 disabled={actionLoading} 
-                className="flex-1 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white py-3 rounded-2xl text-xs font-extrabold flex justify-center items-center gap-2 shadow-lg shadow-indigo-600/20 transition-all"
+                className="flex-1 bg-indigo-600 hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-600/25 active:scale-95 text-white py-3.5 rounded-2xl text-xs font-black uppercase tracking-wider flex justify-center items-center gap-2 transition-all duration-300"
               >
                 {actionLoading ? <Loader2 size={14} className="animate-spin" /> : 'Create Pre-approval Pass ✅'}
               </button>
               <button 
                 onClick={() => setShowForm(false)} 
                 disabled={actionLoading} 
-                className={`flex-1 py-3 rounded-2xl text-xs font-bold border transition-all ${isDark ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-gray-300 text-gray-500 hover:bg-gray-100'}`}
+                className={`flex-1 py-3.5 rounded-2xl text-xs font-bold border transition-all duration-300 ${isDark ? 'border-slate-800 text-slate-400 hover:bg-slate-900/50' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}
               >
                 Cancel
               </button>
@@ -260,45 +261,50 @@ const PreApprove = ({ user }) => {
 
         {/* Active Approvals List */}
         {loading ? (
-          <div className="flex justify-center py-8">
+          <div className="flex justify-center py-10">
             <Loader2 className="animate-spin text-emerald-500" size={32} />
           </div>
         ) : approvals.length === 0 ? (
-          <div className={`text-center py-8 ${subtext}`}>
-            <Package size={36} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Koi pre-approval nahi hai abhi</p>
+          <div className="text-center py-10">
+            <Package size={44} className="mx-auto mb-3 opacity-20 text-slate-400" />
+            <p className="font-bold text-sm">No active pre-approvals</p>
+            <p className={`text-[10px] mt-0.5 ${subtext}`}>Generate secure passes to allow automatic entries</p>
           </div>
         ) : (
-          <div className="space-y-3">
+          <div className="space-y-4">
             {approvals.map(a => (
-              <div key={a.id} className={`flex items-center justify-between p-3 rounded-xl border ${isDark ? 'bg-slate-700/40 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
-                <div className="flex items-center gap-3">
-                  <div className="text-2xl">{a.type === 'delivery' ? (deliveryIcons[a.company] || '📦') : '🧑'}</div>
+              <div key={a.id} className={`flex items-center justify-between p-4 rounded-[24px] border transition-all duration-300 hover:scale-[1.01] ${
+                isDark ? 'bg-slate-900/40 border-slate-800/80 hover:border-slate-700' : 'bg-slate-50/50 border-slate-200/80 hover:border-slate-300 shadow-sm'
+              }`}>
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/15 flex items-center justify-center text-xl shadow-sm">
+                    {a.type === 'delivery' ? (deliveryIcons[a.company] || '📦') : '🧑'}
+                  </div>
                   <div>
-                    <p className="font-semibold text-sm flex items-center gap-2 flex-wrap">
+                    <p className="font-extrabold text-xs text-slate-850 dark:text-slate-100 leading-snug flex items-center gap-2 flex-wrap">
                       <span>{a.type === 'delivery' ? a.company : a.name}</span>
                       {a.type === 'guest' && (
-                        <span className="text-[10px] bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg font-black tracking-wider">
+                        <span className="text-[9px] bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-650 dark:text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg font-black tracking-wider">
                           PIN: {a.qr_code || '123456'}
                         </span>
                       )}
                     </p>
-                    <p className={`text-xs ${subtext}`}>
-                      {a.type === 'delivery' ? 'Delivery' : a.purpose || 'Guest'}
+                    <p className={`text-[10px] ${subtext} mt-0.5`}>
+                      {a.type === 'delivery' ? 'Delivery Partner' : a.purpose || 'Guest'}
                       {a.phone && ` • 📞 ${a.phone}`}
                       {a.valid_date && ` • Valid: ${formatDateTime(a.valid_date)}`}
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <button onClick={() => setSelectedPass(a)} className="text-indigo-500 hover:text-indigo-400 p-1 bg-indigo-500/10 rounded-lg">
-                    <Share2 size={16} />
+                <div className="flex items-center gap-2 shrink-0">
+                  <button onClick={() => setSelectedPass(a)} className="text-indigo-400 hover:text-indigo-300 p-2 hover:bg-indigo-500/10 rounded-xl transition-colors border border-indigo-500/10 shadow-sm">
+                    <Share2 size={14} />
                   </button>
-                  <span className="text-xs bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded-full">
-                    ✅ Active
+                  <span className="text-[9px] font-black uppercase tracking-wider bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 px-2.5 py-1 rounded-full shadow-sm">
+                    Active
                   </span>
-                  <button onClick={() => handleRemove(a.id, a.type)} disabled={actionLoading} className="text-red-400 hover:text-red-300 p-1">
-                    <X size={16} />
+                  <button onClick={() => handleRemove(a.id, a.type)} disabled={actionLoading} className="text-red-400 hover:text-red-300 p-1.5 hover:bg-red-500/10 rounded-xl transition-colors">
+                    <X size={15} />
                   </button>
                 </div>
               </div>
@@ -309,49 +315,49 @@ const PreApprove = ({ user }) => {
 
       {/* Digital Gate Pass Modal */}
       {selectedPass && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4" onClick={() => setSelectedPass(null)}>
-          <div className="relative w-full max-w-sm rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(99,102,241,0.2)] animate-in fade-in zoom-in duration-300" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in" onClick={() => setSelectedPass(null)}>
+          <div className="relative w-full max-w-sm rounded-[32px] overflow-hidden shadow-[0_20px_50px_rgba(99,102,241,0.25)] border border-slate-200/20 animate-scale-up" onClick={e => e.stopPropagation()}>
             {/* Ticket Top */}
-            <div className={`p-6 text-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
-              <div className="w-12 h-12 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-lg">
-                <CheckCircle size={24} className="text-white" />
+            <div className={`p-6 text-center ${isDark ? 'bg-slate-900 border-b border-slate-800/50' : 'bg-white'}`}>
+              <div className="w-14 h-14 bg-gradient-to-tr from-indigo-500 via-indigo-600 to-violet-600 rounded-[20px] mx-auto flex items-center justify-center mb-3 shadow-lg shadow-indigo-500/20">
+                <CheckCircle size={26} className="text-white" />
               </div>
-              <h2 className="text-2xl font-black uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-purple-400 mb-1">Gate Pass</h2>
-              <p className={`text-[10px] font-bold tracking-widest uppercase ${subtext}`}>GateKeeper Society</p>
+              <h2 className="text-2xl font-black uppercase tracking-widest bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-violet-400 font-heading mb-0.5">Gate Pass</h2>
+              <p className={`text-[9px] font-black tracking-widest uppercase ${subtext}`}>Gatekeeper digital permit</p>
               
-              <div className="mt-8 text-left space-y-4">
-                <div>
-                  <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Guest / Delivery</p>
-                  <p className="font-bold text-lg">{selectedPass.type === 'delivery' ? selectedPass.company : selectedPass.name}</p>
+              <div className="mt-7 text-left space-y-4">
+                <div className="border-l-2 border-indigo-500 pl-3">
+                  <p className={`text-[9px] uppercase font-bold tracking-widest ${subtext}`}>Visitor Profile</p>
+                  <p className="font-extrabold text-base text-slate-850 dark:text-slate-100">{selectedPass.type === 'delivery' ? selectedPass.company : selectedPass.name}</p>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between border-t border-slate-500/10 pt-3">
                   <div>
-                    <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Host (Flat)</p>
-                    <p className="font-bold">{user?.name || 'Resident'} ({user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'})</p>
+                    <p className={`text-[9px] uppercase font-bold tracking-widest ${subtext}`}>Host Suite (Flat)</p>
+                    <p className="font-bold text-xs text-slate-800 dark:text-slate-200">{user?.name || 'Resident'} ({user?.tower ? user.tower + '-' : ''}{user?.flat_number || 'A-101'})</p>
                   </div>
                   <div className="text-right">
-                    <p className={`text-[10px] uppercase font-bold tracking-wider ${subtext}`}>Valid Date</p>
-                    <p className="font-bold text-xs">{formatDateTime(selectedPass.valid_date)}</p>
+                    <p className={`text-[9px] uppercase font-bold tracking-widest ${subtext}`}>Validity Window</p>
+                    <p className="font-extrabold text-[10px] text-indigo-400">{formatDateTime(selectedPass.valid_date)}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Ticket Divider with dashed line and cutouts */}
-            <div className={`relative h-8 flex items-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
-              <div className="absolute -left-4 w-8 h-8 rounded-full bg-black/80"></div>
-              <div className={`w-full border-t-2 border-dashed ${isDark ? 'border-slate-600' : 'border-gray-300'} mx-4`}></div>
-              <div className="absolute -right-4 w-8 h-8 rounded-full bg-black/80"></div>
+            <div className={`relative h-6 flex items-center ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
+              <div className="absolute -left-3.5 w-7 h-7 rounded-full bg-slate-950 border-r border-slate-200/10"></div>
+              <div className={`w-full border-t-2 border-dashed ${isDark ? 'border-slate-850' : 'border-slate-200'} mx-4`}></div>
+              <div className="absolute -right-3.5 w-7 h-7 rounded-full bg-slate-950 border-l border-slate-200/10"></div>
             </div>
 
             {/* Ticket Bottom (PIN) */}
-            <div className={`p-6 text-center ${isDark ? 'bg-slate-800' : 'bg-white'}`}>
+            <div className={`p-6 text-center ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
               {selectedPass.type === 'guest' ? (
                 <>
-                  <p className={`text-xs font-bold mb-4 ${subtext}`}>Tell this 6-Digit PIN at the Main Gate</p>
+                  <p className={`text-[10px] font-black uppercase tracking-wider mb-3.5 ${subtext}`}>Tell this 6-Digit PIN to Gate Security Guard</p>
                   <div className="flex justify-center gap-2 mb-6">
                     {(selectedPass.qr_code || '123456').toString().split('').map((digit, idx) => (
-                      <div key={idx} className="w-10 h-14 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-2xl font-black rounded-xl flex items-center justify-center shadow-inner">
+                      <div key={idx} className="w-10 h-14 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-xl font-black rounded-xl flex items-center justify-center shadow-inner font-mono">
                         {digit}
                       </div>
                     ))}
@@ -359,9 +365,10 @@ const PreApprove = ({ user }) => {
                 </>
               ) : (
                 <>
-                  <p className={`text-xs font-bold mb-4 ${subtext}`}>Pre-Approved Delivery Pass</p>
-                  <div className="py-4 px-6 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 text-xl font-extrabold rounded-2xl inline-block mb-6">
-                    ✅ Delivery Pre-Approved
+                  <p className={`text-[10px] font-black uppercase tracking-wider mb-3.5 ${subtext}`}>Pre-Approved Delivery Permit</p>
+                  <div className="py-3 px-6 bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 dark:text-emerald-400 text-sm font-black rounded-2xl inline-block mb-6 shadow-sm uppercase tracking-wider flex items-center gap-1.5 mx-auto">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>Delivery Pre-Approved</span>
                   </div>
                 </>
               )}
@@ -372,12 +379,13 @@ const PreApprove = ({ user }) => {
                     ? `*Digital Gate Pass* 🎫\n\nHi ${selectedPass.name},\nYou are invited to Flat *${user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'}*!\n\nPlease tell this 6-Digit PIN Code to the security guard for instant entry:\n\n*Your PIN Code: ${selectedPass.qr_code || '123456'}*`
                     : `*Delivery Pre-Approval* 🛵\n\nYour delivery has been pre-approved for Flat *${user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'}*. Please inform the security guard upon arrival.`
                 )}`}
-                className="w-full py-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-black flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95"
+                className="w-full py-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 hover:shadow-emerald-550/15"
               >
-                Share on WhatsApp 💬
+                <Share2 size={13} />
+                <span>Share on WhatsApp</span>
               </a>
-              <button onClick={() => setSelectedPass(null)} className={`mt-3 w-full py-3 rounded-xl text-sm font-bold ${isDark ? 'text-slate-400 hover:text-white bg-slate-700/50' : 'text-gray-500 hover:text-black bg-gray-100'}`}>
-                Close Ticket
+              <button onClick={() => setSelectedPass(null)} className={`mt-3 w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 ${isDark ? 'text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800' : 'text-gray-500 hover:text-black bg-slate-50 hover:bg-slate-100'}`}>
+                Close Pass
               </button>
             </div>
           </div>

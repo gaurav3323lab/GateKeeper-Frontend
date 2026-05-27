@@ -285,7 +285,7 @@ const PreApprove = ({ user }) => {
                       <span>{a.type === 'delivery' ? a.company : a.name}</span>
                       {a.type === 'guest' && (
                         <span className="text-[9px] bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-650 dark:text-indigo-400 border border-indigo-500/20 px-2 py-0.5 rounded-lg font-black tracking-wider">
-                          PIN: {a.qr_code || '123456'}
+                          PIN: {a.qr_code || '1234'}
                         </span>
                       )}
                     </p>
@@ -354,9 +354,9 @@ const PreApprove = ({ user }) => {
             <div className={`p-6 text-center ${isDark ? 'bg-slate-900' : 'bg-white'}`}>
               {selectedPass.type === 'guest' ? (
                 <>
-                  <p className={`text-[10px] font-black uppercase tracking-wider mb-3.5 ${subtext}`}>Tell this 6-Digit PIN to Gate Security Guard</p>
+                  <p className={`text-[10px] font-black uppercase tracking-wider mb-3.5 ${subtext}`}>Tell this 4-Digit PIN to Gate Security Guard</p>
                   <div className="flex justify-center gap-2 mb-6">
-                    {(selectedPass.qr_code || '123456').toString().split('').map((digit, idx) => (
+                    {(selectedPass.qr_code || '1234').toString().split('').map((digit, idx) => (
                       <div key={idx} className="w-10 h-14 bg-indigo-500/10 border border-indigo-500/20 text-indigo-500 dark:text-indigo-400 text-xl font-black rounded-xl flex items-center justify-center shadow-inner font-mono">
                         {digit}
                       </div>
@@ -376,7 +376,7 @@ const PreApprove = ({ user }) => {
               <a 
                 href={`whatsapp://send?text=${encodeURIComponent(
                   selectedPass.type === 'guest' 
-                    ? `*Digital Gate Pass* 🎫\n\nHi ${selectedPass.name},\nYou are invited to Flat *${user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'}*!\n\nPlease tell this 6-Digit PIN Code to the security guard for instant entry:\n\n*Your PIN Code: ${selectedPass.qr_code || '123456'}*`
+                    ? `*Digital Gate Pass* 🎫\n\nHi ${selectedPass.name},\nYou are invited to Flat *${user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'}*!\n\nPlease tell this 4-Digit PIN Code to the security guard for instant entry:\n\n*Your PIN Code: ${selectedPass.qr_code || '1234'}*`
                     : `*Delivery Pre-Approval* 🛵\n\nYour delivery has been pre-approved for Flat *${user?.tower ? user.tower + '-' : ''}${user?.flat_number || 'A-101'}*. Please inform the security guard upon arrival.`
                 )}`}
                 className="w-full py-3.5 bg-[#25D366] hover:bg-[#128C7E] text-white rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 hover:shadow-emerald-550/15"

@@ -127,9 +127,9 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   }, []);
 
   const handlePinChange = async (val) => {
-    if (val.length > 6) return;
+    if (val.length > 4) return;
     setEnteredPin(val);
-    if (val.length === 6) {
+    if (val.length === 4) {
       const match = preApproved.find(p => String(p.qr_code).trim() === String(val).trim());
       if (match) {
         setMatchedGuest(match);
@@ -152,7 +152,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   };
 
   const handleKeypadPress = (num) => {
-    if (enteredPin.length < 6) {
+    if (enteredPin.length < 4) {
       handlePinChange(enteredPin + num);
     }
   };
@@ -1124,11 +1124,11 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                 <h2 className="font-extrabold text-sm flex items-center gap-2">
                   <QrCode size={16} className="text-indigo-400" /> Guest PIN Verification
                 </h2>
-                <p className={`text-[10px] ${subtext} leading-normal`}>Resident dwara generated 6-digit gate passcode check karein:</p>
+                <p className={`text-[10px] ${subtext} leading-normal`}>Resident dwara generated 4-digit gate passcode check karein:</p>
 
-                {/* 6-Digit display glowing boxes */}
+                {/* 4-Digit display glowing boxes */}
                 <div className="flex justify-center gap-1.5 py-2">
-                  {[0, 1, 2, 3, 4, 5].map((index) => {
+                  {[0, 1, 2, 3].map((index) => {
                     const digit = enteredPin[index] || '';
                     const isCurrent = enteredPin.length === index;
                     return (
@@ -1179,7 +1179,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                       Allow Entry & Auto Log ✅
                     </button>
                   </div>
-                ) : enteredPin.length === 6 ? (
+                ) : enteredPin.length === 4 ? (
                   <div className="p-4 rounded-2xl border border-red-500/20 bg-red-500/[0.02] text-center animate-scale-up">
                     <AlertTriangle className="mx-auto text-red-400 mb-2" size={22} />
                     <p className="text-xs font-black text-red-400">Verification Failure</p>

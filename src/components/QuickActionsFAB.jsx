@@ -90,7 +90,7 @@ export default function QuickActionsFAB({ onSOS, onPreApprove, onService, user, 
     } catch (err) {
       console.error('Failed to generate quick pass:', err);
       // Fallback local passcode generator for seamless demo
-      const randomCode = Math.floor(100000 + Math.random() * 900000);
+      const randomCode = Math.floor(1000 + Math.random() * 9000);
       setGeneratedPass({
         code: String(randomCode),
         category,

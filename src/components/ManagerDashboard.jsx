@@ -6,7 +6,7 @@ import {
   LogOut, CheckCircle, XCircle, Plus, ChevronRight, ChevronLeft, Calendar,
   AlertCircle, Clock, Bell, UserPlus, Loader2, User, PenLine, Trash2, Megaphone, Activity, BarChart2,
   Phone, PhoneCall, AlertTriangle, Edit3, ArrowRight, Search, Shield, Building, Filter, RefreshCw,
-  Settings, ToggleLeft, ToggleRight, SlidersHorizontal
+  Settings, ToggleLeft, ToggleRight, SlidersHorizontal, Menu
 } from 'lucide-react';
 import { managerAPI, serviceAPI, entryAPI, announcementAPI, adsAPI, emergencyAPI, authAPI, societyAPI, adminAPI } from '../services/api';
 import UserProfile from './UserProfile';
@@ -17,6 +17,7 @@ import { AreaChart, Area, LineChart, Line, BarChart, Bar, XAxis, YAxis, Cartesia
 const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
   const { isDark } = useTheme();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [managerSociety, setManagerSociety] = useState(user?.society_name || '');
   const [pendingResidents, setPendingResidents] = useState([]);
   const [staff, setStaff] = useState({ systemStaff: [], externalStaff: [] });
@@ -409,8 +410,18 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
       <div className="absolute top-0 left-[20%] w-[40%] h-[30%] rounded-full bg-indigo-500/10 dark:bg-indigo-500/5 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[10%] right-[10%] w-[35%] h-[35%] rounded-full bg-emerald-500/80 dark:bg-emerald-500/5 blur-[140px] opacity-10 pointer-events-none" />
 
+      {/* Sidebar mobile overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden animate-fade-in"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Beautiful Sidebar Navigation */}
-      <aside className={`w-64 md:w-72 border-r backdrop-blur-xl flex flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.05)] ${headerStyle}`}>
+      <aside className={`fixed inset-y-0 left-0 lg:static w-64 md:w-72 border-r backdrop-blur-xl flex flex-col z-50 shadow-[4px_0_24px_rgba(0,0,0,0.05)] ${headerStyle} transition-transform duration-300 lg:translate-x-0 ${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
         <div className="p-6 border-b border-slate-200/50 dark:border-slate-800/80 flex items-center gap-3 shrink-0">
           <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[1.5px] shadow-[0_8px_20px_rgba(99,102,241,0.2)]">
             <div className="w-full h-full rounded-[14px] bg-slate-950 flex items-center justify-center">
@@ -435,7 +446,10 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
                   return (
                     <button 
                       key={key} 
-                      onClick={() => setActiveTab(key)}
+                      onClick={() => {
+                        setActiveTab(key);
+                        setSidebarOpen(false);
+                      }}
                       className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 group
                         ${isActive 
                           ? 'bg-gradient-to-r from-indigo-500 to-indigo-600 text-white shadow-[0_4px_15px_rgba(99,102,241,0.25)]' 
@@ -462,7 +476,7 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
         <div className="p-4 border-t border-slate-200/50 dark:border-slate-800/80 shrink-0">
           <div className={`rounded-2xl p-3 border ${cardStyle} flex flex-col gap-2`}>
             <button 
-              onClick={() => setShowProfile(true)} 
+              onClick={() => { setShowProfile(true); setSidebarOpen(false); }} 
               className={`w-full py-2 px-3 rounded-xl flex items-center justify-center gap-2 text-xs font-bold transition-all hover:scale-[1.02] ${
                 isDark ? 'bg-slate-950/40 text-slate-300 hover:text-indigo-400 hover:bg-slate-900' : 'bg-slate-100 text-slate-700 hover:text-indigo-600 hover:bg-slate-200'
               }`}
@@ -483,9 +497,18 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col h-screen overflow-y-auto relative z-10 scrollbar-thin scrollbar-thumb-indigo-500/20">
-        <header className={`sticky top-0 z-40 px-8 py-4 backdrop-blur-xl flex items-center justify-between border-b ${headerStyle}`}>
-           <div>
-             <h2 className="text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 capitalize">
+        <header className={`sticky top-0 z-40 px-4 md:px-8 py-4 backdrop-blur-xl flex items-center justify-between border-b ${headerStyle}`}>
+           <div className="flex items-center gap-3">
+             {/* Mobile Sidebar Hamburger Toggle */}
+             <button 
+               onClick={() => setSidebarOpen(true)}
+               className={`p-2 rounded-xl border lg:hidden hover:scale-105 active:scale-95 transition-all
+                 ${isDark ? 'border-slate-800 text-slate-400 hover:text-indigo-400 hover:bg-slate-900' : 'border-slate-200 text-slate-500 hover:text-indigo-650'}`}
+             >
+               <Menu size={18} />
+             </button>
+             
+             <h2 className="text-sm md:text-xl font-black bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 capitalize truncate">
                {activeTab.replace('_', ' ')}
              </h2>
            </div>
@@ -503,7 +526,7 @@ const ManagerDashboard = ({ user, onLogout, sharedSocket }) => {
            </div>
         </header>
 
-        <div className="p-6 md:p-8 max-w-6xl mx-auto w-full space-y-6 pb-24">
+        <div className="p-4 md:p-8 max-w-6xl mx-auto w-full space-y-6 pb-24">
 
         {activeTab === 'notifications' && (
           <div className="animate-slide-up">

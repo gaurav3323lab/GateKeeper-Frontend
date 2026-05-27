@@ -1010,7 +1010,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   </button>
 
                   {/* Visitor cards */}
-                  {recentFlatVisitors.slice(0, 5).map((v, i) => {
+                  {recentFlatVisitors.slice(0, 4).map((v, i) => {
                     const isInside = v.type === 'Delivery' ? v.purpose === 'arrived' : (v.entry_time && !v.exit_time);
                     const avatar = v.type === 'Guest' ? '🧑' : (v.type === 'Delivery' ? '📦' : '🚗');
                     const dispName = v.name ? v.name.split(' ')[0] : v.type;
@@ -1050,14 +1050,14 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                     }`}
                   >
                     <ChevronRight size={18} className="text-indigo-400" />
-                    <span className="text-[9px] font-black text-indigo-400">View All</span>
+                    <span className="text-[9px] font-black text-indigo-400">View Logs</span>
                   </button>
                 </div>
               )}
             </div>
 
             {/* ── Premium Quick Actions Grid ── */}
-            <div className="grid grid-cols-4 gap-2.5">
+            <div className="grid grid-cols-4 gap-y-4 gap-x-2 p-1">
               {[
                 { label: 'Planner', icon: Calendar, grad: 'from-rose-500 to-pink-600', shadow: 'shadow-rose-500/25', action: () => setShowPlannerModal(true) },
                 { label: openServiceCount > 0 ? `Helpdesk·${openServiceCount}` : 'Helpdesk', icon: Wrench, grad: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', action: () => setActiveTab('service') },
@@ -1069,18 +1069,18 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                     localStorage.setItem('notices_last_seen', String(Date.now()));
                     setUnreadNoticeCount(0);
                   } },
-                { label: 'SOS', icon: AlertTriangle, grad: 'from-red-500 to-rose-600', shadow: 'shadow-red-500/30', action: handleSOS },
-                { label: 'My Flat', icon: Home, grad: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/25', action: () => setActiveTab('flat') },
+                { label: 'Community', icon: HeartHandshake, grad: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/25', action: () => setActiveTab('community') },
+                { label: 'My Flat', icon: Home, grad: 'from-indigo-500 to-violet-600', shadow: 'shadow-indigo-500/25', action: () => setActiveTab('flat') },
               ].map((item, idx) => (
                 <button
                   key={idx}
                   onClick={item.action}
-                  className="flex flex-col items-center gap-2 group active:scale-90 transition-all duration-200"
+                  className="flex flex-col items-center gap-1.5 group active:scale-90 transition-all duration-250"
                 >
-                  <div className={`w-full aspect-square rounded-[20px] bg-gradient-to-br ${item.grad} shadow-lg ${item.shadow} flex items-center justify-center group-hover:scale-105 group-hover:shadow-xl transition-all duration-300`}>
-                    <item.icon size={21} strokeWidth={2} className="text-white drop-shadow" />
+                  <div className={`w-12 h-12 rounded-[16px] bg-gradient-to-br ${item.grad} shadow-md ${item.shadow} flex items-center justify-center group-hover:scale-105 group-hover:shadow-lg transition-all duration-300`}>
+                    <item.icon size={16} strokeWidth={2.5} className="text-white drop-shadow-sm" />
                   </div>
-                  <span className={`text-[9px] font-bold text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
+                  <span className={`text-[9px] font-black tracking-wide text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-650'}`}>
                     {item.label}
                   </span>
                 </button>

@@ -681,13 +681,17 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     internalSocketRef.current = socket;
     if (setSocket) setSocket(socket);
 
-    // Join role-based rooms
-    if (user.role === 'manager' || user.role === 'super_admin') socket.emit('join_room', { room: 'manager_room' });
-    if (user.role === 'guard') socket.emit('join_room', { room: 'guard_room' });
+    // Join role-based rooms — pass userId so server can also join personal user_{id} room
+    if (user.role === 'manager' || user.role === 'super_admin' || user.role === 'admin') {
+      socket.emit('join_room', { room: 'manager_room', userId: user.id });
+    }
+    if (user.role === 'guard') socket.emit('join_room', { room: 'guard_room', userId: user.id });
     if (user.flat_number) {
       const roomName = `flat_${user.tower ? user.tower + '-' : ''}${user.flat_number}`;
-      socket.emit('join_room', { room: roomName });
+      socket.emit('join_room', { room: roomName, userId: user.id });
     }
+    // Always join personal user room (for vehicle notifs, account notifs)
+    socket.emit('join_room', { room: `user_${user.id}`, userId: user.id });
 
     // ─────────────────────────────────────────────────────────────
     // 1. New Resident Approval Request → Manager / Admin
@@ -747,10 +751,11 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     // ─────────────────────────────────────────────────────────────
     socket.on('account_status_update', (data) => {
       playSound('message');
+      const isApproved = data.status === 'active';
       addToast(
-        data.status === 'active' ? 'approval' : 'sos',
-        data.status === 'active' ? '✅ Account Approved!' : '❌ Registration Rejected',
-        data.message
+        isApproved ? 'approval' : 'sos',
+        isApproved ? '✅ Account Approved!' : '❌ Registration Rejected',
+        data.message || (isApproved ? `${data.name || 'Aapka'} account approve ho gaya. App use kar sakte hain!` : `${data.name || 'Aapka'} account reject ho gaya.`)
       );
     });
 

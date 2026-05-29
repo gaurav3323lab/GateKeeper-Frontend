@@ -530,6 +530,41 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
       setTimeout(() => checkPendingVisitor(), 2000);
     }
 
+    // 🔥 ANDROID NATIVE INCOMING CALL BRIDGE:
+    const handleAndroidIncomingCall = (guestId, action) => {
+      console.log('[AndroidBridge] Incoming call:', guestId, action);
+      if (!guestId) return;
+
+      if (action === 'approve' || action === 'deny') {
+        stopSound(); // Stop ringtone sound if playing
+        const token = localStorage.getItem('token');
+        const decision = action === 'approve' ? 'approved' : 'denied';
+        if (token) {
+          fetch(`${API_URL}/api/entry/resolve-visitor/${guestId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ decision })
+          }).catch(() => {});
+        }
+        addToast(
+          action === 'approve' ? 'entry' : 'exit',
+          action === 'approve' ? '✅ Entry Approved!' : '❌ Entry Denied',
+          'Visitor ka decision recorded.'
+        );
+      } else {
+        // Just show the call modal for the visitor
+        setTimeout(() => checkPendingVisitor(guestId), 200);
+      }
+    };
+
+    window.handleAndroidIncomingCall = handleAndroidIncomingCall;
+
+    if (window.AndroidPendingCall) {
+      const { guestId, action } = window.AndroidPendingCall;
+      handleAndroidIncomingCall(guestId, action);
+      delete window.AndroidPendingCall;
+    }
+
     // Service Worker postMessage listener (when app open/minimized, SW sends messages)
     const handleSWMessage = (event) => {
       const msg = event.data;
@@ -586,6 +621,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      delete window.handleAndroidIncomingCall;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);

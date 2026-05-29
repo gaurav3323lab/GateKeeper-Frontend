@@ -2,10 +2,12 @@ package com.gatekeeper.app;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Intent;
 import android.media.AudioAttributes;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.view.WindowManager;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
@@ -14,6 +16,54 @@ public class MainActivity extends BridgeActivity {
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     createNotificationChannels();
+    handleIncomingIntent(getIntent());
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    handleIncomingIntent(intent);
+  }
+
+  private void handleIncomingIntent(Intent intent) {
+    if (intent != null && intent.hasExtra("pending_visitor")) {
+      // 1. Show over lock screen if phone is locked
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
+        setShowWhenLocked(true);
+        setTurnScreenOn(true);
+      } else {
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED |
+                             WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON |
+                             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON |
+                             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD);
+      }
+
+      // 2. Dismiss the full-screen incoming call notification since we are opening the app
+      NotificationManager nm = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+      if (nm != null) {
+        nm.cancel(9999); // VISITOR_NOTIFICATION_ID
+      }
+
+      // 3. Extract visitor details
+      final String guestId = intent.getStringExtra("pending_visitor");
+      final String action = intent.getStringExtra("notification_action");
+
+      // 4. Send to WebView
+      if (getBridge() != null && getBridge().getWebView() != null) {
+        getBridge().getWebView().post(new Runnable() {
+          @Override
+          public void run() {
+            String js = "if (window.handleAndroidIncomingCall) { " +
+                        "  window.handleAndroidIncomingCall('" + guestId + "', '" + (action != null ? action : "") + "'); " +
+                        "} else { " +
+                        "  window.AndroidPendingCall = { guestId: '" + guestId + "', action: '" + (action != null ? action : "") + "' }; " +
+                        "}";
+            getBridge().getWebView().evaluateJavascript(js, null);
+          }
+        });
+      }
+    }
   }
 
   /**

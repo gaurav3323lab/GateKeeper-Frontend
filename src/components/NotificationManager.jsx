@@ -458,11 +458,106 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
   const sirenRef          = useRef(null);  // SOS siren handle
   const ringRef           = useRef(null);  // Smooth call ringtone handle
 
-  const [toasts, setToasts]           = useState([]);      // notification bar toasts
-  const [visitorCall, setVisitorCall] = useState(null);    // full-screen visitor call
-  const [sosModal, setSosModal]       = useState(null);    // full-screen SOS
-  const [approvalCall, setApprovalCall] = useState(null);  // full-screen approval request
+  const [toasts, setToasts]             = useState([]);      // notification bar toasts
+  const [visitorCall, setVisitorCall]   = useState(null);    // full-screen visitor call
+  const [sosModal, setSosModal]         = useState(null);    // full-screen SOS
+  const [approvalCall, setApprovalCall] = useState(null);    // full-screen approval request
   const [showPushModal, setShowPushModal] = useState(false);
+
+  // ── Pending Visitor Check (app closed → push tap → app opens) ───
+  // Jab app band ho aur visitor push aaye, resident notification tap kare
+  // toh app khulay aur ye function pending visitor fetch karke modal dikhaye
+  const checkPendingVisitor = useCallback(async (guestId = null) => {
+    if (!user || user.role !== 'resident_primary' && user.role !== 'resident_family') return;
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    try {
+      const res = await fetch(`${API_URL}/api/entry/pending-visitor`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.visitor) {
+        // Visitor gate pe wait kar raha hai — call modal dikhao!
+        setVisitorCall({
+          guest_id: data.visitor.guest_id,
+          name: data.visitor.name,
+          phone: data.visitor.phone,
+          purpose: data.visitor.purpose,
+          fromPending: true  // flag: resolve-visitor API call karni hai
+        });
+        playSound('calling');
+      }
+    } catch (e) {
+      console.warn('[PendingVisitor] Check failed:', e.message);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // On mount: Check URL params (from push notification tap) OR check backend for pending visitor
+  useEffect(() => {
+    if (!user) return;
+    const urlParams = new URLSearchParams(window.location.search);
+    const pendingId = urlParams.get('pending_visitor');
+    const autoAction = urlParams.get('action'); // 'approve' or 'deny' from inline button
+
+    if (pendingId) {
+      // Remove param from URL (clean up)
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+
+      if (autoAction === 'approve' || autoAction === 'deny') {
+        // Inline action button se aaya — silently resolve
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetch(`${API_URL}/api/entry/resolve-visitor/${pendingId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ decision: autoAction === 'approve' ? 'approved' : 'denied' })
+          }).catch(() => {});
+          addToast(
+            autoAction === 'approve' ? 'entry' : 'exit',
+            autoAction === 'approve' ? '✅ Entry Approved!' : '❌ Entry Denied',
+            'Visitor ka decision recorded ho gaya.'
+          );
+        }
+      } else {
+        // Normal tap — pending visitor check karke modal dikhao
+        setTimeout(() => checkPendingVisitor(pendingId), 800);
+      }
+    } else {
+      // No URL param — check backend for any recent pending visitor (e.g. missed notification)
+      setTimeout(() => checkPendingVisitor(), 2000);
+    }
+
+    // Service Worker postMessage listener (when app already open, SW sends message)
+    const handleSWMessage = (event) => {
+      const msg = event.data;
+      if (!msg) return;
+      if (msg.type === 'check_pending_visitor') {
+        checkPendingVisitor(msg.guest_id);
+      }
+      if (msg.type === 'visitor_action') {
+        const token = localStorage.getItem('token');
+        const decision = msg.action === 'approve' ? 'approved' : 'denied';
+        if (token && msg.guest_id) {
+          fetch(`${API_URL}/api/entry/resolve-visitor/${msg.guest_id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+            body: JSON.stringify({ decision })
+          }).catch(() => {});
+        }
+        addToast(
+          msg.action === 'approve' ? 'entry' : 'exit',
+          msg.action === 'approve' ? '✅ Entry Approved!' : '❌ Entry Denied',
+          'Visitor decision recorded.'
+        );
+      }
+    };
+    navigator.serviceWorker?.addEventListener('message', handleSWMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   // Stop siren when SOS is resolved globally
   useEffect(() => {
@@ -817,27 +912,60 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
   }, [user]);
 
   // ── Visitor call action handlers ──────────────────────────────
-  const handleVisitorApprove = useCallback(() => {
+  // These handle BOTH live socket calls AND pending visitor (app was closed) calls
+  const handleVisitorApprove = useCallback(async () => {
     stopSound();
-    internalSocketRef.current?.emit('visitor_decision', {
-      approved: true,
-      tower: user.tower,
-      flat_number: user.flat_number,
-      visitor_name: visitorCall?.name
-    });
+    const call = visitorCall;
     setVisitorCall(null);
-  }, [stopSound, visitorCall, user]);
 
-  const handleVisitorDeny = useCallback(() => {
+    if (call?.fromPending && call?.guest_id) {
+      // Pending visitor (opened via push notification tap) — call REST API
+      const token = localStorage.getItem('token');
+      try {
+        await fetch(`${API_URL}/api/entry/resolve-visitor/${call.guest_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ decision: 'approved' })
+        });
+      } catch (e) { console.warn('resolve-visitor failed:', e.message); }
+      addToast('entry', '✅ Entry Approved!', `${call.name} ko allow kar diya gaya.`);
+    } else {
+      // Live socket call — use existing socket decision flow
+      internalSocketRef.current?.emit('visitor_decision', {
+        approved: true,
+        tower: user.tower,
+        flat_number: user.flat_number,
+        visitor_name: call?.name
+      });
+    }
+  }, [stopSound, visitorCall, user, addToast]);
+
+  const handleVisitorDeny = useCallback(async () => {
     stopSound();
-    internalSocketRef.current?.emit('visitor_decision', {
-      approved: false,
-      tower: user.tower,
-      flat_number: user.flat_number,
-      visitor_name: visitorCall?.name
-    });
+    const call = visitorCall;
     setVisitorCall(null);
-  }, [stopSound, visitorCall, user]);
+
+    if (call?.fromPending && call?.guest_id) {
+      // Pending visitor — call REST API
+      const token = localStorage.getItem('token');
+      try {
+        await fetch(`${API_URL}/api/entry/resolve-visitor/${call.guest_id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ decision: 'denied' })
+        });
+      } catch (e) { console.warn('resolve-visitor failed:', e.message); }
+      addToast('exit', '❌ Entry Denied', `${call.name} ko deny kar diya gaya.`);
+    } else {
+      // Live socket call
+      internalSocketRef.current?.emit('visitor_decision', {
+        approved: false,
+        tower: user.tower,
+        flat_number: user.flat_number,
+        visitor_name: call?.name
+      });
+    }
+  }, [stopSound, visitorCall, user, addToast]);
 
   const handleVisitorLeaveAtGate = useCallback(() => {
     stopSound();

@@ -57,25 +57,58 @@ self.addEventListener('push', (event) => {
 
 // ── Notification Click: Notification par tap karo ─────────────
 self.addEventListener('notificationclick', (event) => {
+  const notifData = event.notification.data || {};
+  const notifType = notifData.type;
+  const action = event.action; // 'approve' or 'deny' (inline action buttons)
+
   event.notification.close();
 
-  const url = event.notification.data?.url || '/';
+  // Inline action buttons (approve/deny) — handled by postMessage to app
+  // These only work if app is already open; otherwise falls through to open app
+  if (action === 'approve' || action === 'deny') {
+    event.waitUntil(
+      clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+        for (const client of clientList) {
+          if (client.url.includes(self.location.origin) && 'postMessage' in client) {
+            client.postMessage({ type: 'visitor_action', action, guest_id: notifData.guest_id });
+            return client.focus();
+          }
+        }
+        // App not open — open it with pending_visitor param so modal auto-shows
+        const guestId = notifData.guest_id;
+        const openUrl = guestId
+          ? `/?pending_visitor=${guestId}&action=${action}`
+          : '/?check_visitor=1';
+        if (clients.openWindow) return clients.openWindow(openUrl);
+      })
+    );
+    return;
+  }
+
+  // Regular notification tap (no action button)
+  // For visitor type: open app with ?pending_visitor param so call modal auto-shows
+  let openUrl = notifData.url || '/';
+  if (notifType === 'visitor' && notifData.guest_id) {
+    openUrl = `/?pending_visitor=${notifData.guest_id}`;
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // Agar app already open hai to focus karo
+      // Agar app already open hai to focus karo aur URL update karo
       for (const client of clientList) {
         if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.postMessage({ type: 'check_pending_visitor', guest_id: notifData.guest_id });
           return client.focus();
         }
       }
       // Nahi to new tab mein kholo
       if (clients.openWindow) {
-        return clients.openWindow(url);
+        return clients.openWindow(openUrl);
       }
     })
   );
 });
+
 
 // ── Install & Activate (basic lifecycle) ─────────────────────
 self.addEventListener('install', () => self.skipWaiting());

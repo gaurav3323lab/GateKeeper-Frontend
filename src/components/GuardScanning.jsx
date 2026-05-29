@@ -186,6 +186,9 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         setWaitingForApproval(false);
         if (data.approved) {
           setApprovalStatus('approved');
+          if (data.guest_id) {
+            setVisitorForm(prev => ({ ...prev, guest_id: data.guest_id }));
+          }
         } else {
           setApprovalStatus('denied');
         }
@@ -215,7 +218,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         phone: visitorForm.phone || '',
         flat_number: visitorForm.flat,
         tower: visitorForm.tower || '',
-        purpose: visitorForm.purpose || 'Guest'
+        purpose: visitorForm.purpose || 'Guest',
+        society_id: user?.society_id
       });
     }
   };
@@ -513,13 +517,14 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         tower: form.tower,
         purpose: form.purpose,
         guard_id: user?.id,
-        vehicle_number: vehicleNumber
+        vehicle_number: vehicleNumber,
+        guest_id: form.guest_id
       });
       setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ ${form.tower ? 'Tower ' + form.tower + ' - ' : ''}Flat ${form.flat} ${vehicleNumber ? `[Gaadi: ${vehicleNumber}]` : ''}`, time: nowIST() });
-      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '' });
+      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '', guest_id: undefined });
     } catch (err) {
       setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ ${form.tower ? 'Tower ' + form.tower + ' - ' : ''}Flat ${form.flat}`, time: nowIST() });
-      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '' });
+      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '', guest_id: undefined });
     }
   };
 

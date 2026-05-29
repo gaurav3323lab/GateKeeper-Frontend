@@ -942,7 +942,10 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     // ─────────────────────────────────────────────────────────────
     socket.on('visitor_notification', (data) => {
       playSound('calling', true);  // looping call tone
-      setVisitorCall(data);        // full-screen visitor call modal
+      setVisitorCall({
+        ...data,
+        fromPending: !!data.guest_id
+      });
     });
 
     // ─────────────────────────────────────────────────────────────
@@ -1061,7 +1064,8 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         approved: true,
         tower: user.tower,
         flat_number: user.flat_number,
-        visitor_name: call?.name
+        visitor_name: call?.name,
+        guest_id: call?.guest_id
       });
     }
   }, [stopSound, visitorCall, user, addToast]);
@@ -1088,7 +1092,8 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         approved: false,
         tower: user.tower,
         flat_number: user.flat_number,
-        visitor_name: call?.name
+        visitor_name: call?.name,
+        guest_id: call?.guest_id
       });
     }
   }, [stopSound, visitorCall, user, addToast]);
@@ -1100,7 +1105,8 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
       leave_at_gate: true,
       tower: user.tower,
       flat_number: user.flat_number,
-      visitor_name: visitorCall?.name
+      visitor_name: visitorCall?.name,
+      guest_id: visitorCall?.guest_id
     });
     setVisitorCall(null);
   }, [stopSound, visitorCall, user]);

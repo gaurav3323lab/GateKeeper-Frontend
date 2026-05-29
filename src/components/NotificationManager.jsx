@@ -723,22 +723,46 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         console.error('[Push] Registration error:', err.error);
       });
 
-      // Foreground notification received on native — play message tone + toast
+      // 🔥 Foreground push received on native
+      // Visitor type: FULL SCREEN call modal + ringtone (foreground)
+      // Other types: toast + sound
       await PushNotifications.addListener('pushNotificationReceived', (notification) => {
         console.log('[Push] Foreground notification:', notification);
         const type = notification.data?.type;
-        if (type === 'visitor' || type === 'approval') {
-          playSound('calling', true);
+        const guestId = notification.data?.guest_id;
+
+        if (type === 'visitor') {
+          // Show full-screen call modal directly!
+          playSound('calling');
+          setVisitorCall({
+            guest_id: guestId || null,
+            name: notification.data?.visitor_name || notification.title?.replace('🚪 Visitor Aaya!', '').trim() || 'Visitor',
+            phone: notification.data?.phone || null,
+            purpose: notification.data?.purpose || 'Walk-in',
+            fromPending: !!guestId
+          });
         } else if (type === 'sos') {
           playSound('sos');
+          addToast('sos', notification.title || 'SOS!', notification.body || '');
+        } else if (type === 'approval') {
+          playSound('calling');
+          addToast('approval', notification.title || 'Notification', notification.body || '');
         } else {
           playSound('message');
+          addToast(type || 'general', notification.title || 'Notification', notification.body || '');
         }
-        addToast(type || 'general', notification.title || 'Notification', notification.body || '');
       });
 
+      // 🔥 Notification tapped (app was closed/background)
+      // App khulega — pending visitor check karke call modal dikhao
       await PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
         console.log('[Push] Push action:', action);
+        const type = action.notification?.data?.type;
+        const guestId = action.notification?.data?.guest_id;
+        if (type === 'visitor') {
+          // Small delay for app to fully load
+          setTimeout(() => checkPendingVisitor(guestId), 800);
+        }
       });
     } catch (e) { console.error('[Push] Capacitor error:', e.message); }
   };

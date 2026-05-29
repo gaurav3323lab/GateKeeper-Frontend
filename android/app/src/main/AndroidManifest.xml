@@ -44,4 +44,17 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
+
+    <!-- 🔥 JUGAAD: NoBrokerHood jaisi full-screen call notification ke liye -->
+    <!-- USE_FULL_SCREEN_INTENT: Lock screen pe bhi full-screen call UI dikhata hai -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <!-- WAKE_LOCK: Visitor aane par screen automatically on hoti hai -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- VIBRATE: Phone vibrate karta hai jab visitor aaye -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- POST_NOTIFICATIONS: Android 13+ ke liye zaroori -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- RECEIVE_BOOT_COMPLETED: Phone restart ke baad bhi notifications kaam karein -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 </manifest>
+

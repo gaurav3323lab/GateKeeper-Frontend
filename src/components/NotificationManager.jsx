@@ -803,10 +803,45 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     } catch (e) { console.error('[Push] Capacitor error:', e.message); }
   };
 
-  // ── PWA Web Push Setup ────────────────────────────────────────
+  // ── Native System Overlay Alert Window permission check ─────────
+  const [showOverlayPrompt, setShowOverlayPrompt] = useState(false);
+
+  const checkOverlayPermission = async () => {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+      const { SystemAlertWindowPermission } = Capacitor.Plugins;
+      if (SystemAlertWindowPermission) {
+        const res = await SystemAlertWindowPermission.checkOverlayPermission();
+        if (res && res.granted === false) {
+          setShowOverlayPrompt(true);
+        }
+      }
+    } catch (e) {
+      console.warn('[OverlayPermission] Check failed:', e.message);
+    }
+  };
+
+  const requestOverlayPermission = async () => {
+    setShowOverlayPrompt(false);
+    try {
+      const { SystemAlertWindowPermission } = Capacitor.Plugins;
+      if (SystemAlertWindowPermission) {
+        await SystemAlertWindowPermission.requestOverlayPermission();
+      }
+    } catch (e) {
+      console.warn('[OverlayPermission] Request failed:', e.message);
+    }
+  };
+
+  // ── PWA Web Push Setup + Native Overlay check ─────────────────
   useEffect(() => {
     if (!user) return;
-    if (Capacitor.isNativePlatform()) { registerNativePush(); return; }
+    if (Capacitor.isNativePlatform()) { 
+      registerNativePush(); 
+      // Auto-check for Draw Over Other Apps overlay permission on app launch
+      setTimeout(() => checkOverlayPermission(), 1500);
+      return; 
+    }
 
     registerServiceWorker();
     const permission = getNotificationPermission();
@@ -1112,6 +1147,45 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
             <span className="text-slate-300">Notifications off</span>
             <span className="text-indigo-400 font-black">· Enable karein →</span>
           </button>
+        </div>
+      )}
+
+      {/* Premium Draw Over Other Apps Overlay permission warning card */}
+      {showOverlayPrompt && (
+        <div className="fixed inset-0 z-[10000] flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="flex justify-center mb-4">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-rose-500/20 animate-ping" />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/30">
+                  <ShieldAlert size={28} className="text-white" />
+                </div>
+              </div>
+            </div>
+
+            <h2 className="text-center text-base font-extrabold text-white mb-2 leading-snug">
+              Lock Screen Par Call Dikhao! 🚪📞
+            </h2>
+            <p className="text-center text-xs text-slate-400 leading-relaxed mb-6">
+              Lock screen aur background call popup features tabhi kaam karenge jab aap app ko{' '}
+              <span className="text-white font-black">"Draw over other apps"</span> keyguard overlay permission grant karenge.
+            </p>
+
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={() => setShowOverlayPrompt(false)}
+                className="py-3 rounded-2xl border border-slate-650 text-slate-400 font-semibold text-xs hover:bg-slate-800 transition-all"
+              >
+                Skip
+              </button>
+              <button
+                onClick={requestOverlayPermission}
+                className="py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 text-white font-bold text-xs shadow-lg shadow-rose-500/30 hover:opacity-90 active:scale-95 transition-all"
+              >
+                Allow Now ✓
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

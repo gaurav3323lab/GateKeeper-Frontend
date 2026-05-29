@@ -14,6 +14,7 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
+    registerActivityPlugin(SystemAlertWindowPermissionPlugin.class);
     super.onCreate(savedInstanceState);
     createNotificationChannels();
     handleIncomingIntent(getIntent());
@@ -64,6 +65,46 @@ public class MainActivity extends BridgeActivity {
         });
       }
     }
+  }
+
+  // ── INLINE CAPACITOR PLUGIN: Draw Over Other Apps / System Overlay Permission ──
+  // This enables Chinese ROMs (MIUI, Vivo, Oppo) to directly jump to settings toggle
+  // inside the App rather than asking users to dig through Settings manually!
+  @com.getcapacitor.annotation.CapacitorPlugin(name = "SystemAlertWindowPermission")
+  public static class SystemAlertWindowPermissionPlugin extends com.getcapacitor.Plugin {
+      
+      @com.getcapacitor.PluginMethod
+      public void checkOverlayPermission(com.getcapacitor.PluginCall call) {
+          com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+              boolean granted = android.provider.Settings.canDrawOverlays(getContext());
+              ret.put("granted", granted);
+          } else {
+              ret.put("granted", true);
+          }
+          call.resolve(ret);
+      }
+
+      @com.getcapacitor.PluginMethod
+      public void requestOverlayPermission(com.getcapacitor.PluginCall call) {
+          com.getcapacitor.JSObject ret = new com.getcapacitor.JSObject();
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+              if (!android.provider.Settings.canDrawOverlays(getContext())) {
+                  android.content.Intent intent = new android.content.Intent(
+                      android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                      android.net.Uri.parse("package:" + getContext().getPackageName())
+                  );
+                  intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+                  getContext().startActivity(intent);
+                  ret.put("opened", true);
+              } else {
+                  ret.put("opened", false);
+              }
+          } else {
+              ret.put("opened", false);
+          }
+          call.resolve(ret);
+      }
   }
 
   /**

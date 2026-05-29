@@ -873,7 +873,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     }
     if (user.role === 'guard') socket.emit('join_room', { room: 'guard_room', userId: user.id });
     if (user.flat_number) {
-      const roomName = `flat_${user.tower ? user.tower + '-' : ''}${user.flat_number}`;
+      const roomName = `society_${user.society_id}_flat_${user.tower ? user.tower + '-' : ''}${user.flat_number}`;
       socket.emit('join_room', { room: roomName, userId: user.id });
     }
     // Always join personal user room (for vehicle notifs, account notifs)

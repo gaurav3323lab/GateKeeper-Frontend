@@ -34,33 +34,49 @@ function startSmoothRing() {
     let stopped = false;
     let timeoutId = null;
 
-    // One ring cycle: smooth fade-in, dual tone, smooth fade-out
+    // One ring cycle: smooth fade-in, digital bell chime chord, smooth fade-out
     function ringOnce(startTime) {
       if (stopped || ctx.state === 'closed') return;
 
       const gain = ctx.createGain();
       gain.connect(ctx.destination);
 
-      // Dual-tone: 400Hz + 450Hz (classic BSNL/telecom feel)
-      [400, 450].forEach((freq) => {
+      const now = startTime;
+      
+      // Sweet high-end premium chime chord (660Hz, 880Hz, 1100Hz) with realistic tremolo flutter
+      const freqs = [660, 880, 1100];
+      freqs.forEach((freq, idx) => {
         const osc = ctx.createOscillator();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(freq, startTime);
+        const lfo = ctx.createOscillator();
+        const lfoGain = ctx.createGain();
+        
+        osc.type = idx % 2 === 0 ? 'sine' : 'triangle';
+        
+        lfo.frequency.setValueAtTime(14, now); // 14Hz ringtone flutter/tremolo
+        lfoGain.gain.setValueAtTime(10, now);
+        
+        lfo.connect(lfoGain);
+        lfoGain.connect(osc.frequency);
+        osc.frequency.setValueAtTime(freq, now);
+        
         osc.connect(gain);
-        osc.start(startTime);
-        osc.stop(startTime + 0.8);
+        lfo.start(now);
+        osc.start(now);
+        
+        lfo.stop(now + 1.2);
+        osc.stop(now + 1.2);
       });
 
-      // Smooth envelope: quick fade-in over 0.04s, hold, gentle fade-out over 0.18s
-      gain.gain.setValueAtTime(0, startTime);
-      gain.gain.linearRampToValueAtTime(0.28, startTime + 0.04);
-      gain.gain.setValueAtTime(0.28, startTime + 0.60);
-      gain.gain.linearRampToValueAtTime(0, startTime + 0.80);
+      // Premium audio envelope: smooth digital chime swell and decay
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.24, now + 0.08); // soft rise
+      gain.gain.setValueAtTime(0.24, now + 1.00);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 1.20); // clean release
     }
 
-    // Schedule repeating ring: ring 0.8s, silence 4s, repeat
-    const RING_DURATION = 0.8;
-    const SILENCE_DURATION = 4.0;
+    // Schedule repeating ring: ring 1.2s, silence 1.6s, repeat
+    const RING_DURATION = 1.2;
+    const SILENCE_DURATION = 1.6;
     const CYCLE = RING_DURATION + SILENCE_DURATION;
 
     let cycleStart = ctx.currentTime;
@@ -464,6 +480,20 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
   const [approvalCall, setApprovalCall] = useState(null);    // full-screen approval request
   const [showPushModal, setShowPushModal] = useState(false);
 
+  // Deduplication to prevent double-prompts from socket and push happening simultaneously
+  const callTrackerRef = useRef({});
+  const shouldProcessCall = useCallback((guestId, name) => {
+    const key = guestId ? `id_${guestId}` : `name_${name}`;
+    const now = Date.now();
+    const lastTime = callTrackerRef.current[key];
+    if (lastTime && now - lastTime < 8000) {
+      console.log('[NotificationManager] Duplicate call ignored for:', key);
+      return false; // ignore duplicate within 8 seconds
+    }
+    callTrackerRef.current[key] = now;
+    return true;
+  }, []);
+
   // ── Pending Visitor Check (app closed → push tap → app opens) ───
   // Jab app band ho aur visitor push aaye, resident notification tap kare
   // toh app khulay aur ye function pending visitor fetch karke modal dikhaye
@@ -766,13 +796,15 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         console.log('[Push] Foreground notification:', notification);
         const type = notification.data?.type;
         const guestId = notification.data?.guest_id;
+        const visitorName = notification.data?.visitor_name || notification.title?.replace('🚪 Visitor Aaya!', '').trim() || 'Visitor';
 
         if (type === 'visitor') {
+          if (!shouldProcessCall(guestId, visitorName)) return;
           // Show full-screen call modal directly!
           playSound('calling');
           setVisitorCall({
             guest_id: guestId || null,
-            name: notification.data?.visitor_name || notification.title?.replace('🚪 Visitor Aaya!', '').trim() || 'Visitor',
+            name: visitorName,
             phone: notification.data?.phone || null,
             purpose: notification.data?.purpose || 'Walk-in',
             fromPending: !!guestId
@@ -941,6 +973,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     //    DISPLAY: Full-screen incoming call modal
     // ─────────────────────────────────────────────────────────────
     socket.on('visitor_notification', (data) => {
+      if (!shouldProcessCall(data.guest_id, data.name)) return;
       playSound('calling', true);  // looping call tone
       setVisitorCall({
         ...data,

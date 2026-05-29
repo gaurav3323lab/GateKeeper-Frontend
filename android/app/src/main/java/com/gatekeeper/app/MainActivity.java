@@ -14,7 +14,7 @@ public class MainActivity extends BridgeActivity {
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
-    registerActivityPlugin(SystemAlertWindowPermissionPlugin.class);
+    registerPlugin(SystemAlertWindowPermissionPlugin.class);
     super.onCreate(savedInstanceState);
     createNotificationChannels();
     handleIncomingIntent(getIntent());

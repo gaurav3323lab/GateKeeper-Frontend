@@ -73,7 +73,7 @@ public class MyMessagingService extends com.capacitorjs.plugins.pushnotification
         Uri ringtoneUri = android.provider.Settings.System.DEFAULT_RINGTONE_URI;
         
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, "visitor_calls")
-            .setSmallIcon(android.R.drawable.ic_menu_call)
+            .setSmallIcon(context.getApplicationInfo().icon)
             .setContentTitle(title)
             .setContentText(body)
             .setPriority(NotificationCompat.PRIORITY_MAX)
@@ -97,7 +97,7 @@ public class MyMessagingService extends com.capacitorjs.plugins.pushnotification
             allowIntent,
             flags
         );
-        builder.addAction(android.R.drawable.ic_menu_add, "Allow", allowPendingIntent);
+        builder.addAction(0, "Allow", allowPendingIntent);
         
         // Deny Action Button
         Intent denyIntent = new Intent(context, MainActivity.class);
@@ -110,7 +110,7 @@ public class MyMessagingService extends com.capacitorjs.plugins.pushnotification
             denyIntent,
             flags
         );
-        builder.addAction(android.R.drawable.ic_menu_close, "Deny", denyPendingIntent);
+        builder.addAction(0, "Deny", denyPendingIntent);
         
         NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (notificationManager != null) {

@@ -583,22 +583,9 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // Capacitor native Android: App resume pe bhi check karo
-    let capacitorResumeCleanup = null;
-    if (Capacitor.isNativePlatform()) {
-      import('@capacitor/app').then(({ App }) => {
-        App.addListener('resume', () => {
-          setTimeout(() => checkPendingVisitor(), 500);
-        }).then((handle) => {
-          capacitorResumeCleanup = handle;
-        }).catch(() => {});
-      }).catch(() => {});
-    }
-
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
-      if (capacitorResumeCleanup) capacitorResumeCleanup.remove().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);

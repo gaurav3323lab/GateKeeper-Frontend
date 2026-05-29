@@ -530,10 +530,27 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
       setTimeout(() => checkPendingVisitor(), 2000);
     }
 
-    // Service Worker postMessage listener (when app already open, SW sends message)
+    // Service Worker postMessage listener (when app open/minimized, SW sends messages)
     const handleSWMessage = (event) => {
       const msg = event.data;
       if (!msg) return;
+
+      // 🔥 MINIMIZED APP MAGIC:
+      // SW receives push → postMessages all clients (including minimized app)
+      // App sets visitorCall state → modal ready in background
+      // Jab user app open kare → modal TURANT dikhega!
+      if (msg.type === 'push_received') {
+        if (msg.notifType === 'visitor') {
+          // Visitor push aaya — guest_id se direct modal dikhao OR pending check karo
+          if (msg.guest_id) {
+            checkPendingVisitor(msg.guest_id);
+          } else {
+            checkPendingVisitor();
+          }
+        }
+        return;
+      }
+
       if (msg.type === 'check_pending_visitor') {
         checkPendingVisitor(msg.guest_id);
       }
@@ -555,7 +572,34 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
       }
     };
     navigator.serviceWorker?.addEventListener('message', handleSWMessage);
-    return () => navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
+
+    // 🔥 MINIMIZED APP: Jab user app foreground mein laye (tab/app focus)
+    // Pending visitor check karo — agar visitor wait kar raha hai toh modal dikhao
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Small delay to let app fully render first
+        setTimeout(() => checkPendingVisitor(), 500);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Capacitor native Android: App resume pe bhi check karo
+    let capacitorResumeCleanup = null;
+    if (Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(({ App }) => {
+        App.addListener('resume', () => {
+          setTimeout(() => checkPendingVisitor(), 500);
+        }).then((handle) => {
+          capacitorResumeCleanup = handle;
+        }).catch(() => {});
+      }).catch(() => {});
+    }
+
+    return () => {
+      navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (capacitorResumeCleanup) capacitorResumeCleanup.remove().catch(() => {});
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 

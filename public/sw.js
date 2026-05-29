@@ -51,7 +51,25 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(title, options)
+    self.registration.showNotification(title, options).then(() => {
+      // Minimized app ko bhi notify karo — postMessage bhejo
+      // App background mein modal ready kar lega, foreground aate hi dikhega
+      if (data.type === 'visitor' || data.type === 'sos' || data.type === 'approval') {
+        return self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+          clientList.forEach((client) => {
+            client.postMessage({
+              type: 'push_received',
+              notifType: data.type,
+              title,
+              body,
+              guest_id: data.guest_id || null,
+              flat_number: data.flat_number || null,
+              name: data.visitor_name || null,
+            });
+          });
+        });
+      }
+    })
   );
 });
 

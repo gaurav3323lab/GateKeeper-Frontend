@@ -252,6 +252,11 @@ const VisitorCallModal = ({ call, onApprove, onDeny, onLeaveAtGate }) => (
             📞 {call.phone}
           </a>
         )}
+        {call.vehicle_number && (
+          <div className="mt-2 flex items-center justify-center gap-1 bg-orange-500/10 border border-orange-500/30 px-3 py-1 rounded-xl w-fit mx-auto text-xs text-orange-400 font-extrabold tracking-wide">
+            🚗 {call.vehicle_number}
+          </div>
+        )}
         <div className="mt-2 flex items-center justify-center gap-2">
           <span className="text-[10px] bg-indigo-500/20 text-indigo-300 font-bold px-2 py-0.5 rounded-full border border-indigo-500/30">
             {call.purpose || 'Guest'}
@@ -514,6 +519,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
           name: data.visitor.name,
           phone: data.visitor.phone,
           purpose: data.visitor.purpose,
+          vehicle_number: data.visitor.vehicle_number || null,
           fromPending: true  // flag: resolve-visitor API call karni hai
         });
         playSound('calling');

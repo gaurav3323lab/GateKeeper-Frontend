@@ -204,7 +204,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     };
   }, [sharedSocket, waitingForApproval, visitorForm.flat, visitorForm.tower, fetchPreApproved]);
 
-  const askResidentApproval = () => {
+  const askResidentApproval = (vehicleNumberOverride = null) => {
     if (waitingForApproval) return; // Prevent double clicks
     if (!visitorForm.name || !visitorForm.flat) {
       alert("Name aur Flat Number likhna zaroori hai!");
@@ -213,6 +213,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     setWaitingForApproval(true);
     setApprovalStatus(null);
     
+    const activeVehicleNumber = vehicleNumberOverride || scannedPlate || '';
+    
     if (sharedSocket) {
       sharedSocket.emit('visitor_arrival', {
         name: visitorForm.name,
@@ -220,7 +222,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         flat_number: visitorForm.flat,
         tower: visitorForm.tower || '',
         purpose: visitorForm.purpose || 'Guest',
-        society_id: user?.society_id
+        society_id: user?.society_id,
+        vehicle_number: activeVehicleNumber
       });
     }
   };
@@ -502,8 +505,9 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     }
   };
 
-  const handleManualSubmit = () => {
-    setVehicleNumberInput('');
+  const handleManualSubmit = (vehicleNumberPrefill = null) => {
+    const prefill = vehicleNumberPrefill || scannedPlate || '';
+    setVehicleNumberInput(prefill);
     setOverlayCameraActive(false);
     setPendingVehicleEntry({ type: 'manual', data: { ...visitorForm } });
   };
@@ -698,6 +702,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     
     setPendingVehicleEntry(null);
     setVehicleNumberInput('');
+    setScannedPlate('');
+    setVerifiedVehicle(null);
   };
 
   const handleTabChange = (key) => {
@@ -1579,7 +1585,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                 </div>
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => {
-                    setScanResult({ type: 'pending', title: 'Resident to Approve 🔔', detail: `${visitorForm.tower ? 'Tower ' + visitorForm.tower + ' - ' : ''}Flat ${visitorForm.flat || '?'} is reviewing this entry request`, time: nowIST() });
+                    askResidentApproval(scannedPlate);
                     setShowVisitorForm(false);
                   }} className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-wider transition-all active:scale-95 shadow-md shadow-orange-950/20">
                     Send Request
@@ -1772,7 +1778,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
             <button
               onClick={() => {
                 setApprovalStatus(null);
-                handleManualSubmit();
+                handleManualSubmit(scannedPlate);
               }}
               className="w-full mt-4 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-wider active:scale-95 transition-all shadow-lg"
             >

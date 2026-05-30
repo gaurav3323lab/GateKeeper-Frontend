@@ -523,8 +523,9 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ ${form.tower ? 'Tower ' + form.tower + ' - ' : ''}Flat ${form.flat} ${vehicleNumber ? `[Gaadi: ${vehicleNumber}]` : ''}`, time: nowIST() });
       setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '', guest_id: undefined });
     } catch (err) {
-      setScanResult({ type: 'success', title: 'Entry Log Ho Gayi ✅', detail: `${form.name} — ${form.purpose} @ ${form.tower ? 'Tower ' + form.tower + ' - ' : ''}Flat ${form.flat}`, time: nowIST() });
-      setVisitorForm({ name: '', phone: '', purpose: 'Guest', flat: '', tower: '', guest_id: undefined });
+      console.error('Manual log API failed:', err);
+      setScanResult({ type: 'error', title: 'Entry Log Fail ❌', detail: err?.response?.data?.message || err?.message || 'Server se connect nahi ho saka. Dobara try karein.', time: nowIST() });
+      // Do NOT reset form on error so guard can retry
     }
   };
 
@@ -545,9 +546,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       setEnteredIds(prev => [...prev, `${item.type}-${item.id}`]);
       setScanResult({ type: 'success', title: 'Pre-Approved Entry ✅', detail: `${item.name} — Flat ${item.flat} (${item.resident_name || 'Resident'}) ${vehicleNumber ? `[Gaadi: ${vehicleNumber}]` : ''}`, time: nowIST() });
     } catch (err) {
-      console.warn("Failed to log preapproved entry in DB, logging locally:", err);
-      setEnteredIds(prev => [...prev, `${item.type}-${item.id}`]);
-      setScanResult({ type: 'success', title: 'Pre-Approved Entry ✅', detail: `${item.name} — Flat ${item.flat} (${item.resident_name || 'Resident'})`, time: nowIST() });
+      console.error('Pre-approved log API failed:', err);
+      setScanResult({ type: 'error', title: 'Entry Log Fail ❌', detail: err?.response?.data?.message || err?.message || 'Server se connect nahi ho saka. Dobara try karein.', time: nowIST() });
     }
   };
 

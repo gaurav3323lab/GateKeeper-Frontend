@@ -4,6 +4,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-81
 
 const api = axios.create({
   baseURL: API_URL,
+  timeout: 15000, // 15s timeout — prevents UI freeze on unresponsive server
 });
 
 // JWT token auto-inject
@@ -14,6 +15,24 @@ api.interceptors.request.use(
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// 401 auto-logout interceptor — clears session on expired/invalid token
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token expired or invalid — clear session and redirect to login
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      localStorage.removeItem('push_subscribed');
+      // Use location.replace so back-button doesn't return to broken state
+      if (window.location.pathname !== '/') {
+        window.location.replace('/');
+      }
+    }
+    return Promise.reject(error);
+  }
 );
 
 // ── Auth ─────────────────────────────────────────────────────

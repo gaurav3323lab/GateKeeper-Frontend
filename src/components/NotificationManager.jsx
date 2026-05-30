@@ -906,6 +906,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
   const handleAllowPush = async () => {
     setShowPushModal(false);
     const token = localStorage.getItem('token');
+    if (!token) return; // Guard: don't subscribe with null token
     await subscribeToPush(token);
   };
   const handleLaterPush = () => {

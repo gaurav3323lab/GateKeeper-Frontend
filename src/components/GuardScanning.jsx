@@ -205,6 +205,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   }, [sharedSocket, waitingForApproval, visitorForm.flat, visitorForm.tower, fetchPreApproved]);
 
   const askResidentApproval = () => {
+    if (waitingForApproval) return; // Prevent double clicks
     if (!visitorForm.name || !visitorForm.flat) {
       alert("Name aur Flat Number likhna zaroori hai!");
       return;

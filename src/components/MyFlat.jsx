@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Users, Plus, Trash2, User, Phone, Shield, Loader2, PenLine } from 'lucide-react';
+import { Users, Plus, Trash2, User, Phone, Shield, Loader2, PenLine, X } from 'lucide-react';
 import { familyAPI, entryAPI } from '../services/api';
 
 const MyFlat = ({ user, sharedSocket }) => {

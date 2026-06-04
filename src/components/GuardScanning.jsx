@@ -229,28 +229,17 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     
     try {
       // 1. Call REST API to request approval (creates guest & triggers socket + push)
-      const res = await fetch(`${API_URL}/api/entry/visitor-arrival`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          name: visitorForm.name,
-          phone: visitorForm.phone || '',
-          flat_number: visitorForm.flat,
-          tower: visitorForm.tower || '',
-          purpose: visitorForm.purpose || 'Guest',
-          society_id: user?.society_id,
-          vehicle_number: activeVehicleNumber
-        })
+      const res = await entryAPI.visitorArrival({
+        name: visitorForm.name,
+        phone: visitorForm.phone || '',
+        flat_number: visitorForm.flat,
+        tower: visitorForm.tower || '',
+        purpose: visitorForm.purpose || 'Guest',
+        society_id: user?.society_id,
+        vehicle_number: activeVehicleNumber
       });
 
-      if (!res.ok) {
-        throw new Error('Approval request failed');
-      }
-
-      const resData = await res.json();
+      const resData = res.data;
       const guestId = resData.guest_id;
 
       if (guestId) {
@@ -260,11 +249,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
         if (guardPollIntervalRef.current) clearInterval(guardPollIntervalRef.current);
         guardPollIntervalRef.current = setInterval(async () => {
           try {
-            const statusRes = await fetch(`${API_URL}/api/entry/visitor-status/${guestId}`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (statusRes.ok) {
-              const statusData = await statusRes.json();
+            const statusRes = await entryAPI.getVisitorStatus(guestId);
+            const statusData = statusRes.data;
               if (statusData.status === 'approved') {
                 clearInterval(guardPollIntervalRef.current);
                 guardPollIntervalRef.current = null;
@@ -276,7 +262,6 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                 setWaitingForApproval(false);
                 setApprovalStatus('denied');
               }
-            }
           } catch (pollErr) {
             console.error('Failed to poll visitor status:', pollErr);
           }
@@ -519,12 +504,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     setOcrLog('Running OCR...');
 
     try {
-      const res = await fetch(`${API_URL}/api/entry/scan-plate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64 })
-      });
-      const data = await res.json();
+      const res = await entryAPI.scanPlate({ imageBase64 });
+      const data = res.data;
       const plate = data.text?.trim()?.toUpperCase()?.replace(/[^A-Z0-9 ]/g, '');
 
       if (plate && plate.length >= 4) {
@@ -716,12 +697,8 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     setOcrLog('Running OCR...');
 
     try {
-      const res = await fetch(`${API_URL}/api/entry/scan-plate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64 })
-      });
-      const data = await res.json();
+      const res = await entryAPI.scanPlate({ imageBase64 });
+      const data = res.data;
       const plate = data.text?.trim()?.toUpperCase()?.replace(/[^A-Z0-9 ]/g, '');
 
       if (plate && plate.length >= 4) {

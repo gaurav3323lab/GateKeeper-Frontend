@@ -12,6 +12,7 @@ import {
 } from '../services/pushService';
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
+import { entryAPI } from '../services/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://yellowgreen-goldfish-813322.hostingersite.com';
 
@@ -96,6 +97,7 @@ function startSmoothRing() {
 
     return {
       stop: () => {
+        if (stopped) return;
         stopped = true;
         if (timeoutId) clearTimeout(timeoutId);
         try {
@@ -507,11 +509,8 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     const token = localStorage.getItem('token');
     if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/api/entry/pending-visitor`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (!res.ok) return;
-      const data = await res.json();
+      const res = await entryAPI.getPendingVisitor();
+      const data = res.data;
       if (data.visitor) {
         // Visitor gate pe wait kar raha hai — call modal dikhao!
         setVisitorCall({
@@ -546,11 +545,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         // Inline action button se aaya — silently resolve
         const token = localStorage.getItem('token');
         if (token) {
-          fetch(`${API_URL}/api/entry/resolve-visitor/${pendingId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ decision: autoAction === 'approve' ? 'approved' : 'denied' })
-          }).catch(() => {});
+          entryAPI.resolveVisitor(pendingId, { decision: autoAction === 'approve' ? 'approved' : 'denied' }).catch(() => {});
           addToast(
             autoAction === 'approve' ? 'entry' : 'exit',
             autoAction === 'approve' ? '✅ Entry Approved!' : '❌ Entry Denied',
@@ -576,11 +571,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         const token = localStorage.getItem('token');
         const decision = action === 'approve' ? 'approved' : 'denied';
         if (token) {
-          fetch(`${API_URL}/api/entry/resolve-visitor/${guestId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ decision })
-          }).catch(() => {});
+          entryAPI.resolveVisitor(guestId, { decision }).catch(() => {});
         }
         addToast(
           action === 'approve' ? 'entry' : 'exit',
@@ -629,11 +620,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         const token = localStorage.getItem('token');
         const decision = msg.action === 'approve' ? 'approved' : 'denied';
         if (token && msg.guest_id) {
-          fetch(`${API_URL}/api/entry/resolve-visitor/${msg.guest_id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-            body: JSON.stringify({ decision })
-          }).catch(() => {});
+          entryAPI.resolveVisitor(msg.guest_id, { decision }).catch(() => {});
         }
         addToast(
           msg.action === 'approve' ? 'entry' : 'exit',
@@ -708,7 +695,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
       osc2.frequency.setValueAtTime(570, audioCtx.currentTime);
       osc1.start();
       osc2.start();
-      let toggle = false;
+      let closed = false;
       const interval = setInterval(() => {
         if (audioCtx.state === 'closed') { clearInterval(interval); return; }
         const now = audioCtx.currentTime;
@@ -722,12 +709,17 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
         toggle = !toggle;
       }, 500);
       // Auto-stop after 20s
-      setTimeout(() => {
+      const stopTimeout = setTimeout(() => {
+        if (closed) return;
+        closed = true;
         clearInterval(interval);
         try { osc1.stop(); osc2.stop(); if (audioCtx.state !== 'closed') audioCtx.close().catch(() => {}); } catch (e) {}
       }, 20000);
       return {
         stop: () => {
+          if (closed) return;
+          closed = true;
+          clearTimeout(stopTimeout);
           clearInterval(interval);
           try { osc1.stop(); osc2.stop(); if (audioCtx.state !== 'closed') audioCtx.close().catch(() => {}); } catch (e) {}
         }
@@ -1101,13 +1093,8 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
 
     if (call?.fromPending && call?.guest_id) {
       // Pending visitor (opened via push notification tap) — call REST API
-      const token = localStorage.getItem('token');
       try {
-        await fetch(`${API_URL}/api/entry/resolve-visitor/${call.guest_id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ decision: 'approved' })
-        });
+        await entryAPI.resolveVisitor(call.guest_id, { decision: 'approved' });
       } catch (e) { console.warn('resolve-visitor failed:', e.message); }
       addToast('entry', '✅ Entry Approved!', `${call.name} ko allow kar diya gaya.`);
     } else {
@@ -1129,13 +1116,8 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
 
     if (call?.fromPending && call?.guest_id) {
       // Pending visitor — call REST API
-      const token = localStorage.getItem('token');
       try {
-        await fetch(`${API_URL}/api/entry/resolve-visitor/${call.guest_id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ decision: 'denied' })
-        });
+        await entryAPI.resolveVisitor(call.guest_id, { decision: 'denied' });
       } catch (e) { console.warn('resolve-visitor failed:', e.message); }
       addToast('exit', '❌ Entry Denied', `${call.name} ko deny kar diya gaya.`);
     } else {

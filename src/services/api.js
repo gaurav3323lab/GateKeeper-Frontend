@@ -97,6 +97,10 @@ export const entryAPI = {
   addPreApproval: (data) => api.post('/api/entry/pre-approve', data),
   removePreApproval: (type, id) => api.delete(`/api/entry/pre-approve/${type}/${id}`),
   getSocietyContacts: () => api.get('/api/entry/society-contacts'),
+  visitorArrival: (data) => api.post('/api/entry/visitor-arrival', data),
+  getVisitorStatus: (id) => api.get(`/api/entry/visitor-status/${id}`),
+  getPendingVisitor: () => api.get('/api/entry/pending-visitor'),
+  resolveVisitor: (id, data) => api.put(`/api/entry/resolve-visitor/${id}`, data),
 };
 
 // ── Guard Panel ──────────────────────────────────────────────

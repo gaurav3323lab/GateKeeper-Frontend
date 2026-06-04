@@ -946,7 +946,9 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     }
     if (user.role === 'guard') socket.emit('join_room', { room: 'guard_room', userId: user.id });
     if (user.flat_number) {
-      const roomName = `society_${user.society_id}_flat_${user.tower ? user.tower + '-' : ''}${user.flat_number}`;
+      const normalizedTower = (user.tower || '').trim().toUpperCase();
+      const normalizedFlat = (user.flat_number || '').trim().toUpperCase();
+      const roomName = `society_${user.society_id}_flat_${normalizedTower ? normalizedTower + '-' : ''}${normalizedFlat}`;
       socket.emit('join_room', { room: roomName, userId: user.id });
     }
     // Always join personal user room (for vehicle notifs, account notifs)

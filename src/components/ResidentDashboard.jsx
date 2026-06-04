@@ -968,10 +968,8 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       case 'community':
         return (
           <div className="space-y-5 animate-slide-up">
-            
-            {/* ── Premium Society Hero Banner ── */}
+            {/* ── NoBrokerHood-Inspired Premium Hero Card ── */}
             <div className="relative rounded-[28px] overflow-hidden shadow-2xl group" style={{background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.95) 50%, rgba(99, 102, 241, 0.5) 100%)'}}>
-              {/* Decorative animated orbs */}
               <div className="absolute top-0 right-0 w-40 h-40 bg-violet-500/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl animate-pulse" />
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-400/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl animate-pulse" />
               <img
@@ -981,14 +979,13 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
               <div className="relative p-5 pb-4">
-                {/* Top row */}
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                       <span className="text-emerald-300 text-[9px] font-black uppercase tracking-widest">Secure Society</span>
                     </div>
-                    <h2 className="text-white font-black text-base leading-tight font-heading tracking-wide">
+                    <h2 className="text-white font-black text-base leading-tight tracking-wide">
                       {societyDetails.name || user?.society_name || 'My Society'}
                     </h2>
                     <p className="text-indigo-200/70 text-[10px] font-bold mt-1 flex items-center gap-1">
@@ -996,40 +993,66 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="inline-flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-3.5 py-1.5 shadow-lg shadow-indigo-950/20 hover:bg-white/15 transition-all">
+                    <div className="inline-flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-3.5 py-1.5 shadow-lg">
                       <span className="text-white font-black text-xs tracking-wider">{user?.tower ? `${user.tower}-` : ''}{user?.flat_number || '101'}</span>
                     </div>
                     <p className="text-indigo-200/60 text-[9px] font-bold mt-1 mr-1">Your Flat</p>
                   </div>
                 </div>
-                {/* Stats row */}
                 <div className="flex gap-2.5">
-                  <div className="flex-1 bg-white/5 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.03] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                    <p className="text-white font-black text-base leading-none">{recentFlatVisitors.filter(v => v.entry_time && !v.exit_time).length}</p>
-                    <p className="text-indigo-200/70 text-[9px] font-bold mt-1">Inside Now</p>
-                  </div>
-                  <div className="flex-1 bg-white/5 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.03] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                    <p className="text-white font-black text-base leading-none">{recentFlatVisitors.length}</p>
-                    <p className="text-indigo-200/70 text-[9px] font-bold mt-1">Total Visits</p>
-                  </div>
-                  <div className="flex-1 bg-white/5 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.03] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
-                    <p className={`font-black text-base leading-none ${openServiceCount > 0 ? 'text-amber-300' : 'text-white'}`}>{openServiceCount}</p>
-                    <p className="text-indigo-200/70 text-[9px] font-bold mt-1">Open Tickets</p>
-                  </div>
+                  {[
+                    { val: recentFlatVisitors.filter(v => v.entry_time && !v.exit_time).length, label: 'Inside Now' },
+                    { val: recentFlatVisitors.length, label: 'Total Visits' },
+                    { val: openServiceCount, label: 'Open Tickets', warn: openServiceCount > 0 },
+                  ].map((stat, i) => (
+                    <div key={i} className="flex-1 bg-white/5 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.03]">
+                      <p className={`font-black text-base leading-none ${stat.warn ? 'text-amber-300' : 'text-white'}`}>{stat.val}</p>
+                      <p className="text-indigo-200/70 text-[9px] font-bold mt-1">{stat.label}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
 
-            {/* ── Recent Flat Visitors ── */}
-            <div className="space-y-2.5">
+            {/* ── QUICK ACTIONS — NoBrokerHood Style 4-col icon grid ── */}
+            <div className={`rounded-[24px] border p-4 pt-3.5 ${cardBg}`}>
+              <p className={`text-[10px] font-black uppercase tracking-widest mb-4 px-0.5 ${subtext}`}>Quick Actions</p>
+              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+                {[
+                  { label: 'Gate\nUpdate', emoji: '🚪', bg: isDark ? 'bg-indigo-500/12 border-indigo-500/25' : 'bg-indigo-50 border-indigo-100', badge: null, action: () => setShowPreapproveModal(true) },
+                  { label: 'My Bills',  emoji: '🧾', bg: isDark ? 'bg-amber-500/12 border-amber-500/25'  : 'bg-amber-50 border-amber-100',  badge: openServiceCount > 0 ? openServiceCount : null, action: () => setActiveTab('service') },
+                  { label: 'Society',   emoji: '🏘️', bg: isDark ? 'bg-emerald-500/12 border-emerald-500/25': 'bg-emerald-50 border-emerald-100', badge: null, action: () => setShowDirectoryModal(true) },
+                  { label: 'Explore',   emoji: '🔍', bg: isDark ? 'bg-sky-500/12 border-sky-500/25'      : 'bg-sky-50 border-sky-100',      badge: null, action: () => setActiveTab('all-notices') },
+                  { label: 'Pre-\nApprove', emoji: '✅', bg: isDark ? 'bg-violet-500/12 border-violet-500/25' : 'bg-violet-50 border-violet-100', badge: null, action: () => setShowPreapproveModal(true) },
+                  { label: 'Notices',   emoji: '📢', bg: isDark ? 'bg-fuchsia-500/12 border-fuchsia-500/25': 'bg-fuchsia-50 border-fuchsia-100', badge: unreadNoticeCount > 0 ? unreadNoticeCount : null, action: () => { setActiveTab('all-notices'); localStorage.setItem('notices_last_seen', String(Date.now())); setUnreadNoticeCount(0); } },
+                  { label: 'Community', emoji: '👥', bg: isDark ? 'bg-teal-500/12 border-teal-500/25'    : 'bg-teal-50 border-teal-100',    badge: null, action: () => setActiveTab('community') },
+                  { label: 'My Flat',   emoji: '🏠', bg: isDark ? 'bg-rose-500/12 border-rose-500/25'    : 'bg-rose-50 border-rose-100',    badge: null, action: () => setActiveTab('flat') },
+                ].map((item, idx) => (
+                  <button key={idx} onClick={item.action} className="flex flex-col items-center gap-1.5 group active:scale-90 transition-all duration-200">
+                    <div className={`relative w-[52px] h-[52px] rounded-[18px] border flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:shadow-lg ${item.bg}`}>
+                      <span className="text-[22px] group-hover:scale-110 transition-transform duration-200">{item.emoji}</span>
+                      {item.badge !== null && (
+                        <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-rose-500 text-white text-[7.5px] font-black flex items-center justify-center px-1 border-2 border-white dark:border-slate-950 shadow-sm animate-bounce">
+                          {item.badge}
+                        </span>
+                      )}
+                    </div>
+                    <span className={`text-[9.5px] font-black text-center leading-tight whitespace-pre-line ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ── FREQUENT VISITORS — NoBrokerHood Circular Avatars ── */}
+            <div className="space-y-3">
               <div className="flex items-center justify-between px-0.5">
-                <p className={`text-[10px] font-black tracking-widest uppercase ${subtext}`}>Recent Visitors & Pre-Approvals</p>
-                <button onClick={() => setActiveTab('logs')} className="text-[9px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors">See All →</button>
+                <p className={`text-[11px] font-black tracking-wide ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>Frequent Visitors</p>
+                <button onClick={() => setActiveTab('logs')} className="text-[10px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors">See All →</button>
               </div>
 
               {recentFlatVisitors.length === 0 && !dataLoading ? (
-                <div className={`rounded-2xl border p-4 flex items-center gap-3 ${cardBg}`}>
-                  <div className="w-9 h-9 rounded-xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-lg">🏠</div>
+                <div className={`rounded-[20px] border p-4 flex items-center gap-3 ${cardBg}`}>
+                  <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xl">👥</div>
                   <div>
                     <p className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>No recent visitors</p>
                     <p className={`text-[10px] ${subtext}`}>Pre-approve a guest to get started</p>
@@ -1039,73 +1062,58 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-none">
-                  {/* Add Guest button */}
-                  <button
-                    onClick={() => setShowPreapproveModal(true)}
-                    className={`shrink-0 w-[90px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 py-3.5 transition-all hover:scale-105 active:scale-95 ${
-                      isDark ? 'border-indigo-500/30 hover:border-indigo-400/50 hover:bg-indigo-500/10 bg-indigo-500/5' : 'border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50/60 bg-indigo-50/20'
-                    }`}
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-inner">
-                      <UserPlus size={15} className="text-indigo-400" />
+                <div className="flex gap-4 overflow-x-auto pb-1 scrollbar-none px-0.5">
+                  {/* Add new visitor chip */}
+                  <button onClick={() => setShowPreapproveModal(true)} className="flex flex-col items-center gap-1.5 shrink-0 active:scale-90 transition-all">
+                    <div className={`w-14 h-14 rounded-full border-2 border-dashed flex items-center justify-center transition-all hover:scale-110 ${
+                      isDark ? 'border-indigo-500/40 bg-indigo-500/5 hover:bg-indigo-500/10' : 'border-indigo-300 bg-indigo-50 hover:bg-indigo-100'
+                    }`}>
+                      <UserPlus size={18} className="text-indigo-400" />
                     </div>
-                    <span className="text-[9px] font-black text-indigo-400 text-center leading-tight">Pre-<br/>Approve</span>
+                    <span className={`text-[9px] font-black text-center leading-tight ${isDark ? 'text-indigo-400' : 'text-indigo-600'}`}>Pre-{'\n'}Approve</span>
                   </button>
 
-                  {/* Visitor cards */}
-                  {recentFlatVisitors.slice(0, 4).map((v, i) => {
+                  {/* Circular avatar chips — NoBrokerHood style */}
+                  {recentFlatVisitors.slice(0, 5).map((v, i) => {
                     const isInside = v.type === 'Delivery' ? v.purpose === 'arrived' : (v.entry_time && !v.exit_time);
-                    const avatar = v.type === 'Guest' ? '🧑' : (v.type === 'Delivery' ? '📦' : '🚗');
-                    const dispName = v.name ? v.name.split(' ')[0] : v.type;
+                    const initials = v.name ? v.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase() : v.type.slice(0,2).toUpperCase();
+                    const gradients = ['from-indigo-500 to-violet-600', 'from-rose-500 to-pink-600', 'from-amber-500 to-orange-500', 'from-emerald-500 to-teal-500', 'from-sky-500 to-blue-500'];
                     const timeAgo = v.entry_time ? (() => {
                       const diff = Date.now() - new Date(v.entry_time).getTime();
-                      if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
-                      if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
-                      return `${Math.floor(diff/86400000)}d ago`;
-                    })() : 'Pending';
+                      if (diff < 3600000) return `${Math.floor(diff/60000)}m`;
+                      if (diff < 86400000) return `${Math.floor(diff/3600000)}h`;
+                      return `${Math.floor(diff/86400000)}d`;
+                    })() : 'Soon';
+                    const dispName = v.name ? v.name.split(' ')[0] : v.type;
 
                     return (
-                      <div
-                        key={`${v.type}-${v.id}-${i}`}
-                        className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center gap-1.5 py-3 px-1.5 transition-all hover:scale-105 ${
-                          isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm shadow-slate-100/50'
-                        }`}
-                      >
+                      <div key={`${v.type}-${v.id}-${i}`} className="flex flex-col items-center gap-1.5 shrink-0">
                         <div className="relative">
-                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${
-                            v.type === 'Guest' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
-                            v.type === 'Delivery' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
-                            'bg-violet-500/10 border-violet-500/20 text-violet-400'
-                          }`}>
-                            {avatar}
+                          <div className={`w-14 h-14 rounded-full bg-gradient-to-br ${gradients[i % gradients.length]} flex items-center justify-center text-white font-black text-sm shadow-md border-2 border-white dark:border-slate-900`}>
+                            {initials}
                           </div>
-                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${isDark ? 'border-slate-900' : 'border-white'} ${
-                            isInside ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 border-white dark:border-slate-950 flex items-center justify-center ${
+                            isInside ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.7)]' : 'bg-slate-400'
                           }`} />
                         </div>
-                        <p className={`text-[10px] font-black text-center truncate w-full px-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{dispName}</p>
-                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider border transition-all ${
-                          isInside 
-                            ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] animate-pulse' 
-                            : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800'
-                        }`}>{isInside ? '● Active' : timeAgo}</span>
+                        <p className={`text-[9px] font-black text-center max-w-[56px] truncate ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>{dispName}</p>
+                        <span className={`text-[7.5px] font-black uppercase tracking-wide px-1.5 py-0.5 rounded-full ${
+                          isInside
+                            ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                            : isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'
+                        }`}>{isInside ? 'Inside' : timeAgo + ' ago'}</span>
                       </div>
                     );
                   })}
 
-                  {/* View all button */}
-                  <button
-                    onClick={() => setActiveTab('logs')}
-                    className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center justify-center gap-2 py-3.5 transition-all hover:scale-105 ${
-                      isDark ? 'bg-indigo-500/5 border-indigo-500/10 hover:bg-indigo-500/10' : 'bg-indigo-50/30 border-indigo-100/50 hover:bg-indigo-50 shadow-sm shadow-slate-100/50'
-                    }`}
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                      <ChevronRight size={16} className="text-indigo-400" />
-                    </div>
-                    <span className="text-[9px] font-black text-indigo-400">View Logs</span>
-                  </button>
+                  {recentFlatVisitors.length > 5 && (
+                    <button onClick={() => setActiveTab('logs')} className="flex flex-col items-center gap-1.5 shrink-0 active:scale-90 transition-all">
+                      <div className={`w-14 h-14 rounded-full border flex items-center justify-center ${isDark ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`}>
+                        <ChevronRight size={18} className="text-indigo-400" />
+                      </div>
+                      <span className="text-[9px] font-black text-indigo-400">View All</span>
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -1363,20 +1371,26 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
             </div>
 
             {/* ── Premium Sticky Header ── */}
-            <header className={`sticky top-0 z-40 px-4 py-2.5 border-b flex items-center justify-between backdrop-blur-xl
-              ${isDark ? 'bg-slate-950/85 border-slate-800/60' : 'bg-white/90 border-slate-100/80 shadow-sm'}`}>
+            <header className={`sticky top-0 z-40 px-4 py-3 border-b flex items-center justify-between backdrop-blur-xl
+              ${isDark ? 'bg-slate-950/90 border-slate-800/60' : 'bg-white/95 border-slate-100/80 shadow-sm'}`}>
 
-              {/* Left: Avatar + Greeting */}
+              {/* Left: Avatar + Flat number like NoBrokerHood */}
               <button onClick={() => setShowProfile(true)} className="flex items-center gap-2.5 group">
                 <div className="relative">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/30 group-hover:scale-105 transition-transform">
+                  <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-black text-sm shadow-md shadow-indigo-500/30 group-hover:scale-105 transition-transform">
                     {user?.name?.charAt(0)?.toUpperCase() || 'R'}
                   </div>
-                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-950" />
+                  <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white dark:border-slate-950 shadow-sm" />
                 </div>
                 <div className="leading-tight">
-                  <p className={`text-[10px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Good {new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 17 ? 'Afternoon' : 'Evening'} 👋</p>
-                  <p className="text-xs font-black bg-clip-text text-transparent bg-gradient-to-r from-indigo-500 to-violet-500">
+                  {/* Flat number prominently shown like NoBrokerHood A-102 */}
+                  <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border font-black text-xs tracking-wider ${
+                    isDark ? 'bg-indigo-500/10 border-indigo-500/25 text-indigo-300' : 'bg-indigo-50 border-indigo-200/80 text-indigo-700'
+                  }`}>
+                    <span className="text-[10px]">🏠</span>
+                    <span>{user?.tower ? `${user.tower}-` : ''}{user?.flat_number || '101'}</span>
+                  </div>
+                  <p className={`text-[9px] font-semibold mt-0.5 ml-0.5 ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>
                     {user?.name?.split(' ')[0] || 'Resident'}
                   </p>
                 </div>
@@ -1385,43 +1399,35 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               {/* Right: Action icons */}
               <div className="flex items-center gap-1.5">
                 <button
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-                    isDark ? 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-                  }`}
-                >
-                  <Search size={14} />
-                </button>
-
-                <button
                   onClick={() => {
                     setActiveTab('all-notices');
                     localStorage.setItem('notices_last_seen', String(Date.now()));
                     setUnreadNoticeCount(0);
                   }}
-                  className={`w-8 h-8 rounded-full relative flex items-center justify-center transition-all ${
+                  className={`w-9 h-9 rounded-full relative flex items-center justify-center transition-all ${
                     isDark ? 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
                   }`}
                 >
-                  <Bell size={14} />
+                  <Bell size={16} />
                   {unreadNoticeCount > 0 && (
-                    <span className="absolute -top-0.5 -right-0.5 min-w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[8px] font-black flex items-center justify-center px-0.5 shadow-sm">{unreadNoticeCount}</span>
+                    <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[8px] font-black flex items-center justify-center px-1 shadow-sm border border-white dark:border-slate-950 animate-bounce">{unreadNoticeCount}</span>
                   )}
                 </button>
 
                 <button
                   onClick={() => setActiveTab('notifications')}
-                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all relative ${
+                  className={`w-9 h-9 rounded-full flex items-center justify-center transition-all relative ${
                     isDark ? 'bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-700' : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
                   }`}
                 >
-                  <MessageSquare size={14} />
+                  <MessageSquare size={16} />
                 </button>
 
                 <button
                   onClick={onLogout}
-                  className="w-8 h-8 rounded-full flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-500 transition-all"
+                  className="w-9 h-9 rounded-full flex items-center justify-center bg-red-500/10 text-red-400 hover:bg-red-500/20 hover:text-red-500 transition-all border border-red-500/15"
                 >
-                  <LogOut size={13} strokeWidth={2.5} />
+                  <LogOut size={14} strokeWidth={2.5} />
                 </button>
               </div>
             </header>

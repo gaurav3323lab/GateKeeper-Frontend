@@ -1,0 +1,8 @@
+feat: NoBrokerHood-inspired Resident Dashboard redesign
+
+Header: Flat number shown prominently (A-102 style) with room chip
+Quick Actions: 8-item 4-col emoji icon grid in card container
+Frequent Visitors: Circular gradient avatar chips with status dots (NoBrokerHood style)
+Services You Need: 4-col emoji service grid with gradient backgrounds
+Hero banner: Society card with Inside Now + Total Visits + Open Tickets stats
+All sections fully functional with real backend data

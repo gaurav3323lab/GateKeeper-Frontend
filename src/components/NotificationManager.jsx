@@ -654,10 +654,21 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
+    // Fallback: Poll pending visitors every 4 seconds for 100% reliability on web hostings with dead sockets
+    let pollInterval = null;
+    if (user && (user.role === 'resident_primary' || user.role === 'resident_family')) {
+      pollInterval = setInterval(() => {
+        if (document.visibilityState === 'visible') {
+          checkPendingVisitor();
+        }
+      }, 4000);
+    }
+
     return () => {
       navigator.serviceWorker?.removeEventListener('message', handleSWMessage);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       delete window.handleAndroidIncomingCall;
+      if (pollInterval) clearInterval(pollInterval);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);

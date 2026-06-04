@@ -86,6 +86,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const canvasRef = useRef(null);
   const streamRef = useRef(null);
   const scanLoopRef = useRef(null);
+  const guardPollIntervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (guardPollIntervalRef.current) clearInterval(guardPollIntervalRef.current);
+    };
+  }, []);
 
   // State
   const [cameraActive, setCameraActive] = useState(false);
@@ -183,6 +190,10 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       const visitorFlatMatches = String(data.flat_number).trim() === String(visitorForm.flat).trim();
       const visitorTowerMatches = String(data.tower || '').trim() === String(visitorForm.tower || '').trim();
       if (waitingForApproval && visitorFlatMatches && visitorTowerMatches) {
+        if (guardPollIntervalRef.current) {
+          clearInterval(guardPollIntervalRef.current);
+          guardPollIntervalRef.current = null;
+        }
         setWaitingForApproval(false);
         if (data.approved) {
           setApprovalStatus('approved');
@@ -204,7 +215,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     };
   }, [sharedSocket, waitingForApproval, visitorForm.flat, visitorForm.tower, fetchPreApproved]);
 
-  const askResidentApproval = (vehicleNumberOverride = null) => {
+  const askResidentApproval = async (vehicleNumberOverride = null) => {
     if (waitingForApproval) return; // Prevent double clicks
     if (!visitorForm.name || !visitorForm.flat) {
       alert("Name aur Flat Number likhna zaroori hai!");
@@ -214,17 +225,67 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     setApprovalStatus(null);
     
     const activeVehicleNumber = vehicleNumberOverride || scannedPlate || '';
+    const token = localStorage.getItem('token');
     
-    if (sharedSocket) {
-      sharedSocket.emit('visitor_arrival', {
-        name: visitorForm.name,
-        phone: visitorForm.phone || '',
-        flat_number: visitorForm.flat,
-        tower: visitorForm.tower || '',
-        purpose: visitorForm.purpose || 'Guest',
-        society_id: user?.society_id,
-        vehicle_number: activeVehicleNumber
+    try {
+      // 1. Call REST API to request approval (creates guest & triggers socket + push)
+      const res = await fetch(`${API_URL}/api/entry/visitor-arrival`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: visitorForm.name,
+          phone: visitorForm.phone || '',
+          flat_number: visitorForm.flat,
+          tower: visitorForm.tower || '',
+          purpose: visitorForm.purpose || 'Guest',
+          society_id: user?.society_id,
+          vehicle_number: activeVehicleNumber
+        })
       });
+
+      if (!res.ok) {
+        throw new Error('Approval request failed');
+      }
+
+      const resData = await res.json();
+      const guestId = resData.guest_id;
+
+      if (guestId) {
+        setVisitorForm(prev => ({ ...prev, guest_id: guestId }));
+
+        // 2. Start polling for resident's decision (100% reliable fallback)
+        if (guardPollIntervalRef.current) clearInterval(guardPollIntervalRef.current);
+        guardPollIntervalRef.current = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`${API_URL}/api/entry/visitor-status/${guestId}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (statusRes.ok) {
+              const statusData = await statusRes.json();
+              if (statusData.status === 'approved') {
+                clearInterval(guardPollIntervalRef.current);
+                guardPollIntervalRef.current = null;
+                setWaitingForApproval(false);
+                setApprovalStatus('approved');
+              } else if (statusData.status === 'denied') {
+                clearInterval(guardPollIntervalRef.current);
+                guardPollIntervalRef.current = null;
+                setWaitingForApproval(false);
+                setApprovalStatus('denied');
+              }
+            }
+          } catch (pollErr) {
+            console.error('Failed to poll visitor status:', pollErr);
+          }
+        }, 3000);
+      }
+    } catch (err) {
+      console.error('Failed to ask approval:', err);
+      alert('Approval request failed. Please check connection and try again.');
+      setWaitingForApproval(false);
     }
   };
 

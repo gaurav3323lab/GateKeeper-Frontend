@@ -934,9 +934,8 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
   useEffect(() => {
     if (!user) return;
 
-    const isHostinger = API_URL.includes('hostingersite.com');
     const socket = io(API_URL, {
-      transports: isHostinger ? ['polling'] : ['polling', 'websocket']
+      transports: ['websocket', 'polling']
     });
     internalSocketRef.current = socket;
     if (setSocket) setSocket(socket);

@@ -16,16 +16,16 @@ import {
   Megaphone, List, HeartHandshake, Phone, Calendar,
   Check, X, Share2, Search, MessageSquare, Bell, UserPlus,
   ChevronRight, Send, MoreVertical, ThumbsUp, ShieldCheck,
-  ArrowLeft, Pin
+  ArrowLeft, Pin, Users, History
 } from 'lucide-react';
 
 const NAV_ITEMS = [
-  { key: 'community', label: 'Community', icon: HeartHandshake },
+  { key: 'community', label: 'Community', icon: Users },
   { key: 'flat', label: 'My Flat', icon: Home },
   { key: 'garage', label: 'Garage', icon: Car },
   { key: 'service', label: 'Service', icon: Wrench },
-  { key: 'preapprove', label: 'Pre-Approve', icon: CheckCircle },
-  { key: 'logs', label: 'Logs', icon: List },
+  { key: 'preapprove', label: 'Pre-Approve', icon: ShieldCheck },
+  { key: 'logs', label: 'Logs', icon: History },
 ];
 
 const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
@@ -970,10 +970,10 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
           <div className="space-y-5 animate-slide-up">
             
             {/* ── Premium Society Hero Banner ── */}
-            <div className="relative rounded-[28px] overflow-hidden shadow-2xl group" style={{background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4338ca 75%, #6d28d9 100%)'}}>
+            <div className="relative rounded-[28px] overflow-hidden shadow-2xl group" style={{background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(49, 46, 129, 0.95) 50%, rgba(99, 102, 241, 0.5) 100%)'}}>
               {/* Decorative animated orbs */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-violet-500/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl" />
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-400/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl" />
+              <div className="absolute top-0 right-0 w-40 h-40 bg-violet-500/20 rounded-full -translate-y-1/2 translate-x-1/2 blur-2xl animate-pulse" />
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-indigo-400/20 rounded-full translate-y-1/2 -translate-x-1/2 blur-xl animate-pulse" />
               <img
                 src="/society_banner.png"
                 alt="Society"
@@ -984,37 +984,37 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                 {/* Top row */}
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
                       <span className="text-emerald-300 text-[9px] font-black uppercase tracking-widest">Secure Society</span>
                     </div>
-                    <h2 className="text-white font-black text-base leading-tight font-heading">
+                    <h2 className="text-white font-black text-base leading-tight font-heading tracking-wide">
                       {societyDetails.name || user?.society_name || 'My Society'}
                     </h2>
-                    <p className="text-indigo-200/70 text-[10px] font-medium mt-0.5">
-                      📍 {user?.tower ? `Tower ${user.tower} · ` : ''}{societyDetails.city || user?.society_city || 'India'}
+                    <p className="text-indigo-200/70 text-[10px] font-bold mt-1 flex items-center gap-1">
+                      <span>📍</span> {user?.tower ? `Tower ${user.tower} · ` : ''}{societyDetails.city || user?.society_city || 'India'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="inline-flex items-center bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl px-3 py-1.5">
-                      <span className="text-white font-black text-sm">{user?.tower ? `${user.tower}-` : ''}{user?.flat_number || '101'}</span>
+                    <div className="inline-flex items-center bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl px-3.5 py-1.5 shadow-lg shadow-indigo-950/20 hover:bg-white/15 transition-all">
+                      <span className="text-white font-black text-xs tracking-wider">{user?.tower ? `${user.tower}-` : ''}{user?.flat_number || '101'}</span>
                     </div>
-                    <p className="text-indigo-200/60 text-[9px] font-semibold mt-1">Your Flat</p>
+                    <p className="text-indigo-200/60 text-[9px] font-bold mt-1 mr-1">Your Flat</p>
                   </div>
                 </div>
                 {/* Stats row */}
-                <div className="flex gap-2">
-                  <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-2 border border-white/10">
+                <div className="flex gap-2.5">
+                  <div className="flex-1 bg-white/5 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.03] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                     <p className="text-white font-black text-base leading-none">{recentFlatVisitors.filter(v => v.entry_time && !v.exit_time).length}</p>
-                    <p className="text-indigo-200/70 text-[9px] font-semibold mt-0.5">Inside Now</p>
+                    <p className="text-indigo-200/70 text-[9px] font-bold mt-1">Inside Now</p>
                   </div>
-                  <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-2 border border-white/10">
+                  <div className="flex-1 bg-white/5 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.03] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                     <p className="text-white font-black text-base leading-none">{recentFlatVisitors.length}</p>
-                    <p className="text-indigo-200/70 text-[9px] font-semibold mt-0.5">Total Visits</p>
+                    <p className="text-indigo-200/70 text-[9px] font-bold mt-1">Total Visits</p>
                   </div>
-                  <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-2xl px-3 py-2 border border-white/10">
+                  <div className="flex-1 bg-white/5 backdrop-blur-md rounded-2xl px-3 py-2.5 border border-white/10 flex flex-col justify-between hover:bg-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.03] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]">
                     <p className={`font-black text-base leading-none ${openServiceCount > 0 ? 'text-amber-300' : 'text-white'}`}>{openServiceCount}</p>
-                    <p className="text-indigo-200/70 text-[9px] font-semibold mt-0.5">Open Tickets</p>
+                    <p className="text-indigo-200/70 text-[9px] font-bold mt-1">Open Tickets</p>
                   </div>
                 </div>
               </div>
@@ -1024,7 +1024,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-0.5">
                 <p className={`text-[10px] font-black tracking-widest uppercase ${subtext}`}>Recent Visitors & Pre-Approvals</p>
-                <button onClick={() => setActiveTab('logs')} className="text-[9px] font-bold text-indigo-400 hover:text-indigo-300 transition-colors">See All →</button>
+                <button onClick={() => setActiveTab('logs')} className="text-[9px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors">See All →</button>
               </div>
 
               {recentFlatVisitors.length === 0 && !dataLoading ? (
@@ -1039,15 +1039,15 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   </button>
                 </div>
               ) : (
-                <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <div className="flex gap-2.5 overflow-x-auto pb-1.5 scrollbar-none">
                   {/* Add Guest button */}
                   <button
                     onClick={() => setShowPreapproveModal(true)}
                     className={`shrink-0 w-[90px] rounded-2xl border-2 border-dashed flex flex-col items-center justify-center gap-1.5 py-3.5 transition-all hover:scale-105 active:scale-95 ${
-                      isDark ? 'border-indigo-500/30 hover:border-indigo-400/50 bg-indigo-500/5' : 'border-indigo-300/60 hover:border-indigo-400 bg-indigo-50/50'
+                      isDark ? 'border-indigo-500/30 hover:border-indigo-400/50 hover:bg-indigo-500/10 bg-indigo-500/5' : 'border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50/60 bg-indigo-50/20'
                     }`}
                   >
-                    <div className="w-8 h-8 rounded-full bg-indigo-500/15 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center shadow-inner">
                       <UserPlus size={15} className="text-indigo-400" />
                     </div>
                     <span className="text-[9px] font-black text-indigo-400 text-center leading-tight">Pre-<br/>Approve</span>
@@ -1069,19 +1069,27 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                       <div
                         key={`${v.type}-${v.id}-${i}`}
                         className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center gap-1.5 py-3 px-1.5 transition-all hover:scale-105 ${
-                          isDark ? 'bg-slate-800/70 border-slate-700/50' : 'bg-white border-slate-200 shadow-sm'
+                          isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200 shadow-sm shadow-slate-100/50'
                         }`}
                       >
                         <div className="relative">
-                          <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-xl">{avatar}</div>
-                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${isDark ? 'border-slate-800' : 'border-white'} ${
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg border ${
+                            v.type === 'Guest' ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' :
+                            v.type === 'Delivery' ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' :
+                            'bg-violet-500/10 border-violet-500/20 text-violet-400'
+                          }`}>
+                            {avatar}
+                          </div>
+                          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 ${isDark ? 'border-slate-900' : 'border-white'} ${
                             isInside ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'
                           }`} />
                         </div>
-                        <p className={`text-[10px] font-bold text-center truncate w-full px-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{dispName}</p>
-                        <span className={`text-[8px] font-semibold px-2 py-0.5 rounded-full ${
-                          isInside ? 'bg-emerald-500/15 text-emerald-500' : 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
-                        }`}>{isInside ? '● Inside' : timeAgo}</span>
+                        <p className={`text-[10px] font-black text-center truncate w-full px-1 ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>{dispName}</p>
+                        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider border transition-all ${
+                          isInside 
+                            ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)] animate-pulse' 
+                            : 'bg-slate-200 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800'
+                        }`}>{isInside ? '● Active' : timeAgo}</span>
                       </div>
                     );
                   })}
@@ -1089,42 +1097,138 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                   {/* View all button */}
                   <button
                     onClick={() => setActiveTab('logs')}
-                    className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center justify-center gap-1.5 py-3.5 transition-all hover:scale-105 ${
-                      isDark ? 'bg-indigo-500/10 border-indigo-500/20 hover:bg-indigo-500/15' : 'bg-indigo-50 border-indigo-100 hover:bg-indigo-100/70 shadow-sm'
+                    className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center justify-center gap-2 py-3.5 transition-all hover:scale-105 ${
+                      isDark ? 'bg-indigo-500/5 border-indigo-500/10 hover:bg-indigo-500/10' : 'bg-indigo-50/30 border-indigo-100/50 hover:bg-indigo-50 shadow-sm shadow-slate-100/50'
                     }`}
                   >
-                    <ChevronRight size={18} className="text-indigo-400" />
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
+                      <ChevronRight size={16} className="text-indigo-400" />
+                    </div>
                     <span className="text-[9px] font-black text-indigo-400">View Logs</span>
                   </button>
                 </div>
               )}
             </div>
 
-            {/* ── Premium Quick Actions Grid ── */}
-            <div className="grid grid-cols-4 gap-y-4 gap-x-2 p-1">
+            {/* ── Premium Quick Actions Grid Redesign ── */}
+            <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-1.5">
               {[
-                { label: 'Planner', icon: Calendar, grad: 'from-rose-500 to-pink-600', shadow: 'shadow-rose-500/25', action: () => setShowPlannerModal(true) },
-                { label: openServiceCount > 0 ? `Helpdesk·${openServiceCount}` : 'Helpdesk', icon: Wrench, grad: 'from-amber-500 to-orange-500', shadow: 'shadow-amber-500/25', action: () => setActiveTab('service') },
-                { label: 'Garage', icon: Car, grad: 'from-sky-500 to-blue-600', shadow: 'shadow-sky-500/25', action: () => setActiveTab('garage') },
-                { label: 'Pre-Approve', icon: ShieldCheck, grad: 'from-violet-500 to-purple-600', shadow: 'shadow-violet-500/25', action: () => setShowPreapproveModal(true) },
-                { label: 'Directory', icon: Search, grad: 'from-indigo-500 to-indigo-700', shadow: 'shadow-indigo-500/25', action: () => setShowDirectoryModal(true) },
-                { label: 'Notices', icon: Megaphone, grad: 'from-fuchsia-500 to-pink-600', shadow: 'shadow-fuchsia-500/25', action: () => {
+                { 
+                  label: 'Planner', 
+                  icon: Calendar, 
+                  bgClass: 'from-rose-500/20 to-pink-500/10 dark:from-rose-500/25 dark:to-pink-500/10',
+                  borderClass: 'border-rose-500/20 dark:border-rose-500/30',
+                  textClass: 'text-rose-600 dark:text-rose-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(244,63,94,0.4)]',
+                  badge: null,
+                  action: () => setShowPlannerModal(true) 
+                },
+                { 
+                  label: 'Helpdesk', 
+                  icon: Wrench, 
+                  bgClass: 'from-amber-500/20 to-orange-500/10 dark:from-amber-500/25 dark:to-orange-500/10',
+                  borderClass: 'border-amber-500/20 dark:border-amber-500/30',
+                  textClass: 'text-amber-600 dark:text-amber-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(245,158,11,0.4)]',
+                  badge: openServiceCount > 0 ? openServiceCount : null,
+                  action: () => setActiveTab('service') 
+                },
+                { 
+                  label: 'Garage', 
+                  icon: Car, 
+                  bgClass: 'from-sky-500/20 to-blue-500/10 dark:from-sky-500/25 dark:to-blue-500/10',
+                  borderClass: 'border-sky-500/20 dark:border-sky-500/30',
+                  textClass: 'text-sky-600 dark:text-sky-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(14,165,233,0.4)]',
+                  badge: null,
+                  action: () => setActiveTab('garage') 
+                },
+                { 
+                  label: 'Pre-Approve', 
+                  icon: ShieldCheck, 
+                  bgClass: 'from-violet-500/20 to-indigo-500/10 dark:from-violet-500/25 dark:to-indigo-500/10',
+                  borderClass: 'border-violet-500/20 dark:border-violet-500/30',
+                  textClass: 'text-violet-600 dark:text-violet-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(139,92,246,0.4)]',
+                  badge: null,
+                  action: () => setShowPreapproveModal(true) 
+                },
+                { 
+                  label: 'Directory', 
+                  icon: Search, 
+                  bgClass: 'from-indigo-500/20 to-blue-500/10 dark:from-indigo-500/25 dark:to-indigo-500/10',
+                  borderClass: 'border-indigo-500/20 dark:border-indigo-500/30',
+                  textClass: 'text-indigo-600 dark:text-indigo-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]',
+                  badge: null,
+                  action: () => setShowDirectoryModal(true) 
+                },
+                { 
+                  label: 'Notices', 
+                  icon: Megaphone, 
+                  bgClass: 'from-fuchsia-500/20 to-pink-500/10 dark:from-fuchsia-500/25 dark:to-pink-500/10',
+                  borderClass: 'border-fuchsia-500/20 dark:border-fuchsia-500/30',
+                  textClass: 'text-fuchsia-600 dark:text-fuchsia-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(217,70,239,0.4)]',
+                  badge: unreadNoticeCount > 0 ? unreadNoticeCount : null,
+                  action: () => {
                     setActiveTab('all-notices');
                     localStorage.setItem('notices_last_seen', String(Date.now()));
                     setUnreadNoticeCount(0);
-                  } },
-                { label: 'Community', icon: HeartHandshake, grad: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/25', action: () => setActiveTab('community') },
-                { label: 'My Flat', icon: Home, grad: 'from-indigo-500 to-violet-600', shadow: 'shadow-indigo-500/25', action: () => setActiveTab('flat') },
+                  } 
+                },
+                { 
+                  label: 'Community', 
+                  icon: Users, 
+                  bgClass: 'from-emerald-500/20 to-teal-500/10 dark:from-emerald-500/25 dark:to-emerald-500/10',
+                  borderClass: 'border-emerald-500/20 dark:border-emerald-500/30',
+                  textClass: 'text-emerald-600 dark:text-emerald-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]',
+                  badge: null,
+                  action: () => setActiveTab('community') 
+                },
+                { 
+                  label: 'My Flat', 
+                  icon: Home, 
+                  bgClass: 'from-purple-500/20 to-indigo-500/10 dark:from-purple-500/25 dark:to-indigo-500/10',
+                  borderClass: 'border-purple-500/20 dark:border-purple-500/30',
+                  textClass: 'text-purple-600 dark:text-purple-400',
+                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(168,85,247,0.4)]',
+                  badge: null,
+                  action: () => setActiveTab('flat') 
+                },
               ].map((item, idx) => (
                 <button
                   key={idx}
                   onClick={item.action}
-                  className="flex flex-col items-center gap-1.5 group active:scale-90 transition-all duration-250"
+                  className="flex flex-col items-center gap-2 group relative active:scale-95 transition-all duration-300"
                 >
-                  <div className={`w-12 h-12 rounded-[16px] bg-gradient-to-br ${item.grad} shadow-md ${item.shadow} flex items-center justify-center group-hover:scale-105 group-hover:shadow-lg transition-all duration-300`}>
-                    <item.icon size={16} strokeWidth={2.5} className="text-white drop-shadow-sm" />
+                  <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition-all duration-300 relative overflow-hidden backdrop-blur-md
+                    ${isDark 
+                      ? 'bg-slate-900/65 hover:bg-slate-900/90 border-slate-800 hover:border-indigo-500/30' 
+                      : 'bg-white hover:bg-slate-50 border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.02)] hover:border-indigo-500/20'
+                    } ${item.shadowClass}`}
+                  >
+                    {/* Inner glowing hover effect background */}
+                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${item.bgClass}`} />
+                    
+                    {/* Icon container */}
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center transition-all duration-500 z-10 
+                      ${item.bgClass} ${item.borderClass} border group-hover:scale-110 group-hover:rotate-3`}
+                    >
+                      <item.icon size={18} strokeWidth={2.2} className={`drop-shadow-sm ${item.textClass}`} />
+                    </div>
+
+                    {/* Numeric status badge */}
+                    {item.badge !== null && (
+                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[8px] font-black flex items-center justify-center px-1 border border-white dark:border-slate-950 shadow-sm z-20 animate-bounce-slow">
+                        {item.badge}
+                      </span>
+                    )}
                   </div>
-                  <span className={`text-[9px] font-black tracking-wide text-center leading-tight ${isDark ? 'text-slate-400' : 'text-slate-650'}`}>
+                  <span className={`text-[10px] font-extrabold tracking-tight text-center leading-tight transition-colors duration-300
+                    ${isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-650 group-hover:text-slate-800'}`}
+                  >
                     {item.label}
                   </span>
                 </button>
@@ -1240,6 +1344,24 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
           {/* INNER VIEWPORT */}
           <div className={`flex-1 overflow-y-auto pb-24 relative ${bg} scrollbar-none`}>
             
+            {/* ── Top Premium Backdrop Image ── */}
+            <div className="absolute top-0 left-0 right-0 h-[240px] overflow-hidden pointer-events-none z-0">
+              <img 
+                src="/society_banner.png" 
+                alt="Top Background" 
+                className="w-full h-full object-cover opacity-[0.06] dark:opacity-[0.12] blur-[3px] scale-105" 
+                onError={(e) => { e.target.style.display = 'none'; }}
+              />
+              <div 
+                className="absolute inset-0" 
+                style={{
+                  background: isDark 
+                    ? 'linear-gradient(to bottom, rgba(15, 23, 42, 0.1) 0%, rgba(15, 23, 42, 0.6) 65%, #0f172a 100%)' 
+                    : 'linear-gradient(to bottom, rgba(241, 245, 249, 0.1) 0%, rgba(241, 245, 249, 0.6) 65%, #f1f5f9 100%)'
+                }} 
+              />
+            </div>
+
             {/* ── Premium Sticky Header ── */}
             <header className={`sticky top-0 z-40 px-4 py-2.5 border-b flex items-center justify-between backdrop-blur-xl
               ${isDark ? 'bg-slate-950/85 border-slate-800/60' : 'bg-white/90 border-slate-100/80 shadow-sm'}`}>
@@ -1335,12 +1457,12 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                           : isDark ? 'text-slate-500 hover:text-slate-300' : 'text-gray-400 hover:text-gray-600'
                       }`}
                     >
-                      <div className={`relative flex items-center justify-center w-8 h-8 rounded-2xl transition-all duration-300 ${
+                      <div className={`relative flex items-center justify-center w-9 h-9 rounded-[14px] transition-all duration-300 ${
                         active
-                          ? 'bg-indigo-500/15 dark:bg-indigo-500/20 scale-105'
-                          : 'scale-100'
+                          ? 'bg-gradient-to-br from-indigo-500/20 to-purple-500/10 dark:from-indigo-500/25 dark:to-purple-500/15 scale-110 border border-indigo-500/20 shadow-[0_0_12px_rgba(99,102,241,0.25)]'
+                          : 'scale-100 border border-transparent'
                       }`}>
-                        <Icon size={17} strokeWidth={active ? 2.5 : 1.8} />
+                        <Icon size={17} strokeWidth={active ? 2.5 : 1.8} className={active ? "drop-shadow-[0_0_6px_rgba(99,102,241,0.85)]" : ""} />
                         {active && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-3.5 h-0.5 bg-indigo-500 rounded-full" />}
                       </div>
                       <span className={`text-[8px] font-black tracking-wide leading-none ${

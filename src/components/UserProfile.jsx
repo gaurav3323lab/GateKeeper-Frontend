@@ -17,6 +17,7 @@ const AVATAR_GRADIENTS = [
 
 const TABS = [
   { id: 'details', label: 'Personal Details', mobileLabel: 'Details', icon: User, desc: 'Name, phone & email' },
+  { id: 'gatepass', label: 'NFC Gatepass QR', mobileLabel: 'Gatepass', icon: KeyRound, desc: 'Scan access code' },
   { id: 'notifications', label: 'Notifications', mobileLabel: 'Alerts', icon: Bell, desc: 'Alert preferences' },
   { id: 'emergency', label: 'Emergency SOS', mobileLabel: 'SOS', icon: AlertTriangle, desc: 'Contacts & relations' },
   { id: 'password', label: 'Security & Access', mobileLabel: 'Security', icon: Lock, desc: 'Change account password' },
@@ -335,6 +336,46 @@ const UserProfile = ({ isOpen, onClose }) => {
                 {/* ── TAB: PERSONAL DETAILS ── */}
                 {activeTab === 'details' && (
                   <div className="space-y-5 animate-fade-in">
+                    
+                    {/* Digital Resident Pass Card */}
+                    <div className="relative rounded-3xl overflow-hidden p-5 shadow-xl text-white group transition-all duration-300 hover:scale-[1.02] hover:shadow-indigo-500/10 border border-white/10" style={{background: 'linear-gradient(135deg, #312e81 0%, #1e1b4b 60%, #4f46e5 100%)'}}>
+                      <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/10 rounded-full blur-xl translate-x-8 -translate-y-8 animate-pulse" />
+                      <div className="absolute -bottom-6 -left-6 w-24 h-24 bg-indigo-500/20 rounded-full blur-lg" />
+                      
+                      <div className="flex justify-between items-start mb-6">
+                        <div>
+                          <p className="text-[8px] font-black uppercase tracking-widest text-indigo-300">GateKeeper ID Pass</p>
+                          <h4 className="text-sm font-black tracking-wide mt-0.5">{profile.society_name || 'Gated Community'}</h4>
+                        </div>
+                        <div className="w-8 h-8 rounded-lg bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
+                          <span className="text-[10px]">📟</span>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center text-lg font-black shadow-inner">
+                            {profile.name ? profile.name.charAt(0).toUpperCase() : 'R'}
+                          </div>
+                          <div>
+                            <h3 className="font-black text-sm tracking-wide leading-none">{profile.name}</h3>
+                            <p className="text-[9px] font-bold text-indigo-300 uppercase tracking-widest mt-1">Primary Resident</p>
+                          </div>
+                        </div>
+                        
+                        <div className="flex justify-between items-end pt-2 border-t border-white/10 text-xs">
+                          <div>
+                            <p className="text-[8px] font-bold uppercase tracking-wider text-indigo-300/80">Flat Unit</p>
+                            <p className="font-extrabold mt-0.5">{profile.tower ? `${profile.tower} - ` : ''}Flat {profile.flat_number || '101'}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[8px] font-bold uppercase tracking-wider text-indigo-300/80">Registered Phone</p>
+                            <p className="font-extrabold mt-0.5">{profile.phone}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Avatar Palette Selector */}
                     <div className="space-y-2">
                       <label className={`text-[10px] font-bold uppercase tracking-wider ${subtext}`}>Choose Color Palette</label>
@@ -442,6 +483,56 @@ const UserProfile = ({ isOpen, onClose }) => {
                     >
                       {saving ? <Loader2 size={16} className="animate-spin" /> : <><Save size={16} /> Save Details</>}
                     </button>
+                  </div>
+                )}
+
+                {/* ── TAB: RESIDENT GATEPASS ── */}
+                {activeTab === 'gatepass' && (
+                  <div className="space-y-5 animate-fade-in flex flex-col items-center text-center">
+                    <p className={`text-[10px] font-bold uppercase tracking-wider ${subtext}`}>Gatekeeper Scan Access QR</p>
+                    
+                    <div className={`p-6 rounded-[2.5rem] border ${cardBg} flex flex-col items-center shadow-lg relative max-w-[280px] w-full border-indigo-500/10`}>
+                      <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[8px] font-black uppercase tracking-widest flex items-center gap-1 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        Active & Synced
+                      </div>
+                      
+                      <div className="w-40 h-40 bg-slate-950 dark:bg-slate-950 rounded-3xl p-4 border border-indigo-500/30 flex items-center justify-center relative shadow-[0_0_20px_rgba(99,102,241,0.15)] mt-3">
+                        <div className="w-full h-full relative opacity-90 text-indigo-400">
+                          <svg viewBox="0 0 100 100" className="w-full h-full fill-current">
+                            <path d="M 5,5 h 25 v 25 h -25 z M 10,10 h 15 v 15 h -15 z M 12,12 h 11 v 11 h -11 z" />
+                            <path d="M 70,5 h 25 v 25 h -25 z M 75,10 h 15 v 15 h -15 z M 77,12 h 11 v 11 h -11 z" />
+                            <path d="M 5,70 h 25 v 25 h -25 z M 10,75 h 15 v 15 h -15 z M 12,77 h 11 v 11 h -11 z" />
+                            <rect x="40" y="5" width="10" height="10" />
+                            <rect x="55" y="15" width="10" height="5" />
+                            <rect x="45" y="25" width="5" height="15" />
+                            <rect x="5" y="40" width="10" height="10" />
+                            <rect x="20" y="45" width="15" height="5" />
+                            <rect x="15" y="55" width="5" height="10" />
+                            <rect x="40" y="50" width="20" height="5" />
+                            <rect x="50" y="60" width="5" height="15" />
+                            <rect x="60" y="45" width="10" height="10" />
+                            <rect x="75" y="45" width="15" height="5" />
+                            <rect x="85" y="55" width="5" height="15" />
+                            <rect x="40" y="80" width="15" height="10" />
+                            <rect x="65" y="80" width="10" height="5" />
+                            <rect x="80" y="80" width="15" height="10" />
+                            <rect x="80" y="70" width="5" height="5" />
+                          </svg>
+                        </div>
+                      </div>
+                      
+                      <div className="mt-5 space-y-1">
+                        <h4 className="font-extrabold text-sm tracking-wide">{profile.name}</h4>
+                        <p className={`text-[10px] font-bold uppercase tracking-wider ${subtext}`}>Passcode ID: RES-{profile.id || user?.id || '0981'}</p>
+                      </div>
+                      
+                      <div className="mt-4 border-t border-slate-800/80 pt-3.5 w-full text-center">
+                        <p className="text-[10px] font-medium leading-relaxed text-slate-400">
+                          Entrance checkpoint pe scanner par is barcode ko point karein. Gate scan aapse verification logs check-in auto finalise karega.
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 )}
 

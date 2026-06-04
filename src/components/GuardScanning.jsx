@@ -812,13 +812,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     {/* PIN VERIFY */}
                     <button 
                       onClick={() => handleTabChange('pin')}
-                      className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                      className={`group p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
                         ${isDark 
                           ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-indigo-500/30' 
                           : 'bg-white border-slate-200/60 hover:border-indigo-500/30'}`}
                     >
-                      <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-                        <QrCode size={18} />
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500/10 to-indigo-500/5 border border-indigo-500/20 flex items-center justify-center relative transition-all duration-300 group-hover:border-indigo-500/40 group-hover:shadow-[0_0_15px_rgba(99,102,241,0.25)]">
+                        <QrCode size={22} className="text-indigo-400 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6" />
                       </div>
                       <div>
                         <h3 className="font-bold text-xs leading-none text-indigo-400 flex items-center gap-1">
@@ -832,13 +832,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     {guardSettings.anpr && (
                       <button 
                         onClick={() => handleTabChange('anpr')}
-                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                        className={`group p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
                           ${isDark 
                             ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-blue-500/30' 
                             : 'bg-white border-slate-200/60 hover:border-blue-500/30'}`}
                       >
-                        <div className="w-10 h-10 rounded-2xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
-                          <Camera size={18} />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-blue-500/5 border border-blue-500/20 flex items-center justify-center relative transition-all duration-300 group-hover:border-blue-500/40 group-hover:shadow-[0_0_15px_rgba(59,130,246,0.25)]">
+                          <Camera size={22} className="text-blue-400 transition-all duration-300 group-hover:scale-110 group-hover:-rotate-6" />
                         </div>
                         <div>
                           <h3 className="font-bold text-xs leading-none text-blue-400">📸 ANPR Scan</h3>
@@ -851,13 +851,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     {guardSettings.preapproved && (
                       <button 
                         onClick={() => handleTabChange('preapproved')}
-                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                        className={`group p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
                           ${isDark 
                             ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-emerald-500/30' 
                             : 'bg-white border-slate-200/60 hover:border-emerald-500/30'}`}
                       >
-                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center border border-emerald-500/20">
-                          <ListChecks size={18} />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border border-emerald-500/20 flex items-center justify-center relative transition-all duration-300 group-hover:border-emerald-500/40 group-hover:shadow-[0_0_15px_rgba(16,185,129,0.25)]">
+                          <ListChecks size={22} className="text-emerald-400 transition-all duration-300 group-hover:scale-110 group-hover:-translate-y-0.5" />
                         </div>
                         <div>
                           <h3 className="font-bold text-xs leading-none text-emerald-400">📋 Pre-Approved</h3>
@@ -870,13 +870,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     {guardSettings.manual && (
                       <button 
                         onClick={() => handleTabChange('manual')}
-                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                        className={`group p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
                           ${isDark 
                             ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-amber-500/30' 
                             : 'bg-white border-slate-200/60 hover:border-amber-500/30'}`}
                       >
-                        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
-                          <PenLine size={18} />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/10 to-amber-500/5 border border-amber-500/20 flex items-center justify-center relative transition-all duration-300 group-hover:border-amber-500/40 group-hover:shadow-[0_0_15px_rgba(245,158,11,0.25)]">
+                          <PenLine size={22} className="text-amber-400 transition-all duration-300 group-hover:scale-110 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                         </div>
                         <div>
                           <h3 className="font-bold text-xs leading-none text-amber-400">✍️ Manual Entry</h3>
@@ -889,13 +889,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     {guardSettings.vehicles && (
                       <button 
                         onClick={() => handleTabChange('vehicles')}
-                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                        className={`group p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
                           ${isDark 
                             ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-violet-500/30' 
                             : 'bg-white border-slate-200/60 hover:border-violet-500/30'}`}
                       >
-                        <div className="w-10 h-10 rounded-2xl bg-violet-500/10 text-violet-400 flex items-center justify-center border border-violet-500/20">
-                          <Car size={18} />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-violet-500/10 to-violet-500/5 border border-violet-500/20 flex items-center justify-center relative transition-all duration-300 group-hover:border-violet-500/40 group-hover:shadow-[0_0_15px_rgba(139,92,246,0.25)]">
+                          <Car size={22} className="text-violet-400 transition-all duration-300 group-hover:scale-110 group-hover:translate-x-0.5" />
                         </div>
                         <div>
                           <h3 className="font-bold text-xs leading-none text-violet-400">🚘 Registered</h3>
@@ -908,13 +908,13 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                     {guardSettings.checkout && (
                       <button 
                         onClick={() => handleTabChange('checkout')}
-                        className={`p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
+                        className={`group p-4 rounded-[28px] border text-left flex flex-col justify-between h-36 transition-all duration-300 active:scale-95 hover:-translate-y-1 hover:shadow-lg
                           ${isDark 
                             ? 'bg-gradient-to-b from-slate-900/60 to-slate-950 border-white/5 hover:border-sky-500/30' 
                             : 'bg-white border-slate-200/60 hover:border-sky-500/30'}`}
                       >
-                        <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-400 flex items-center justify-center border border-sky-500/20">
-                          <DoorOpen size={18} />
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500/10 to-sky-500/5 border border-sky-500/20 flex items-center justify-center relative transition-all duration-300 group-hover:border-sky-500/40 group-hover:shadow-[0_0_15px_rgba(14,165,233,0.25)]">
+                          <DoorOpen size={22} className="text-sky-400 transition-all duration-300 group-hover:scale-110 group-hover:translate-x-0.5" />
                         </div>
                         <div>
                           <h3 className="font-bold text-xs leading-none text-sky-400">🚪 Checkout Exit</h3>

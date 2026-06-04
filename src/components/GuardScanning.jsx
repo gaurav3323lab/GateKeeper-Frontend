@@ -224,7 +224,9 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     setWaitingForApproval(true);
     setApprovalStatus(null);
     
-    const activeVehicleNumber = vehicleNumberOverride || scannedPlate || '';
+    // React onClick passes Event object. Ensure we only use string overrides.
+    const realVehicleOverride = (typeof vehicleNumberOverride === 'string') ? vehicleNumberOverride : null;
+    const activeVehicleNumber = realVehicleOverride || scannedPlate || '';
     const token = localStorage.getItem('token');
     
     try {

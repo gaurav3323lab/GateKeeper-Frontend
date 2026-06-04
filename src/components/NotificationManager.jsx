@@ -103,9 +103,9 @@ function startSmoothRing() {
           const g = ctx.createGain();
           g.connect(ctx.destination);
           g.gain.setValueAtTime(0, ctx.currentTime);
-          setTimeout(() => { try { ctx.close(); } catch (e) {} }, 80);
+          setTimeout(() => { try { if (ctx.state !== 'closed') ctx.close().catch(() => {}); } catch (e) {} }, 80);
         } catch (e) {
-          try { ctx.close(); } catch (e2) {}
+          try { if (ctx.state !== 'closed') ctx.close().catch(() => {}); } catch (e2) {}
         }
       }
     };
@@ -143,7 +143,7 @@ function playMessagePing() {
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + 0.6);
 
-    setTimeout(() => { try { ctx.close(); } catch (e) {} }, 700);
+    setTimeout(() => { try { if (ctx.state !== 'closed') ctx.close().catch(() => {}); } catch (e) {} }, 700);
   } catch (e) {
     console.warn('[Ping] Message ping failed:', e);
   }
@@ -713,12 +713,12 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
       // Auto-stop after 20s
       setTimeout(() => {
         clearInterval(interval);
-        try { osc1.stop(); osc2.stop(); audioCtx.close(); } catch (e) {}
+        try { osc1.stop(); osc2.stop(); if (audioCtx.state !== 'closed') audioCtx.close().catch(() => {}); } catch (e) {}
       }, 20000);
       return {
         stop: () => {
           clearInterval(interval);
-          try { osc1.stop(); osc2.stop(); audioCtx.close(); } catch (e) {}
+          try { osc1.stop(); osc2.stop(); if (audioCtx.state !== 'closed') audioCtx.close().catch(() => {}); } catch (e) {}
         }
       };
     } catch (e) {

@@ -935,7 +935,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     if (!user) return;
 
     const socket = io(API_URL, {
-      transports: ['websocket', 'polling']
+      transports: ['websocket']
     });
     internalSocketRef.current = socket;
     if (setSocket) setSocket(socket);

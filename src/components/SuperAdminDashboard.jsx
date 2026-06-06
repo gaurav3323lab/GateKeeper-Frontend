@@ -9,7 +9,7 @@ import {
   Car, Bike, UserCheck, UserX, Star, Filter, RefreshCw, Wifi, WifiOff
 } from 'lucide-react';
 import UserProfile from './UserProfile';
-import { societyAPI, managerAPI, announcementAPI, adminAPI } from '../services/api';
+import { societyAPI, managerAPI, announcementAPI, adminAPI, brandAPI } from '../services/api';
 import AnnouncementBoard from './AnnouncementBoard';
 
 const SuperAdminDashboard = ({ user, onLogout }) => {
@@ -35,6 +35,11 @@ const SuperAdminDashboard = ({ user, onLogout }) => {
   const [systemStatus, setSystemStatus] = useState(null);
   const [statusLoading, setStatusLoading] = useState(true);
   const [logQuery, setLogQuery] = useState('');
+
+  // Branding settings
+  const [logo, setLogo] = useState('');
+  const [logoLoading, setLogoLoading] = useState(false);
+  const [logoSaving, setLogoSaving] = useState(false);
 
   // Residents + Vehicles
   const [globalResidents, setGlobalResidents] = useState([]);
@@ -68,7 +73,20 @@ const SuperAdminDashboard = ({ user, onLogout }) => {
     if (activeTab === 'residents') fetchGlobalResidents();
     if (activeTab === 'staff') fetchGlobalStaff();
     if (activeTab === 'admins') fetchAdmins();
+    if (activeTab === 'branding') fetchBrandLogo();
   }, [activeTab]);
+
+  const fetchBrandLogo = async () => {
+    setLogoLoading(true);
+    try {
+      const res = await brandAPI.getLogo();
+      setLogo(res.data?.logo || '');
+    } catch (err) {
+      console.error('Error fetching brand logo:', err);
+    } finally {
+      setLogoLoading(false);
+    }
+  };
 
   const fetchAdmins = async () => {
     setAdminsLoading(true);
@@ -181,6 +199,7 @@ const SuperAdminDashboard = ({ user, onLogout }) => {
     { key: 'admins', label: 'Admins', icon: ShieldCheck },
     { key: 'notices', label: 'Notices', icon: Bell },
     { key: 'logs', label: 'Global Logs', icon: Activity },
+    { key: 'branding', label: 'Branding', icon: Settings },
   ];
 
   const societyNames = useMemo(() => [...new Set(globalResidents.map(r => r.society_name).filter(Boolean))], [globalResidents]);
@@ -1103,6 +1122,118 @@ const SuperAdminDashboard = ({ user, onLogout }) => {
             {activeTab === 'notices' && (
               <div className="max-w-2xl mx-auto">
                 <AnnouncementBoard user={user} />
+              </div>
+            )}
+
+            {/* ════════════════ BRANDING TAB ════════════════ */}
+            {activeTab === 'branding' && (
+              <div className="max-w-xl mx-auto animate-slide-up">
+                <div className={`p-6 rounded-[32px] border ${card} shadow-lg space-y-6`}>
+                  <div>
+                    <h3 className="text-sm font-extrabold tracking-tight text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      <Settings size={18} className="text-purple-500" />
+                      Dynamic App Branding
+                    </h3>
+                    <p className={`text-xs ${subtext} mt-1`}>
+                      Upload custom logo image to dynamically replace the default icon on the Login Page.
+                    </p>
+                  </div>
+
+                  {logoLoading ? (
+                    <div className="flex justify-center py-8">
+                      <div className="w-8 h-8 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {/* Logo Preview */}
+                      <div className="flex flex-col items-center justify-center p-6 border border-dashed border-slate-700/40 dark:border-slate-800/40 rounded-2xl bg-slate-900/5 dark:bg-slate-950/20">
+                        <span className={`text-[10px] font-black uppercase tracking-wider mb-4 ${subtext}`}>Logo Preview</span>
+                        <div className="w-24 h-24 rounded-[28px] bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[2px] shadow-lg flex items-center justify-center overflow-hidden">
+                          <div className="w-full h-full rounded-[26px] bg-slate-950 flex items-center justify-center overflow-hidden">
+                            {logo ? (
+                              <img src={logo} alt="Brand Logo" className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="text-center">
+                                <Building2 size={28} className="text-indigo-400 mx-auto" />
+                                <span className="text-[8px] text-slate-500 font-bold block mt-1">DEFAULT</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* File Selector */}
+                      <div className="space-y-2">
+                        <label className={`text-[10px] font-bold uppercase tracking-wider block ${subtext}`}>Upload Logo Image</label>
+                        <div className="flex items-center gap-3">
+                          <input 
+                            type="file" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (!file) return;
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert("File size stands too large! Please choose an image under 2MB.");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setLogo(reader.result);
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                            className={`flex-1 text-xs file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-black file:uppercase file:bg-purple-500/10 file:text-purple-400 cursor-pointer ${input}`}
+                          />
+                        </div>
+                        <p className="text-[9px] text-slate-500 leading-normal">Supported formats: PNG, JPG, JPEG, SVG. Maximum file size: 2MB.</p>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-3 pt-2">
+                        <button
+                          onClick={async () => {
+                            setLogoSaving(true);
+                            try {
+                              await brandAPI.updateLogo(logo);
+                              alert("Brand Logo updated successfully!");
+                            } catch (err) {
+                              alert("Failed to update logo: " + (err.response?.data?.message || err.message));
+                            } finally {
+                              setLogoSaving(false);
+                            }
+                          }}
+                          disabled={logoSaving}
+                          className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-60 text-white rounded-xl text-xs font-black uppercase tracking-wider shadow-md hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          {logoSaving ? "Saving Settings..." : "Save Brand Settings"}
+                        </button>
+                        
+                        {logo && (
+                          <button
+                            onClick={async () => {
+                              if (window.confirm("Are you sure you want to revert to the default logo?")) {
+                                setLogoSaving(true);
+                                try {
+                                  await brandAPI.updateLogo('');
+                                  setLogo('');
+                                  alert("Logo reverted to default.");
+                                } catch (err) {
+                                  alert("Failed to reset logo.");
+                                } finally {
+                                  setLogoSaving(false);
+                                }
+                              }
+                            }}
+                            disabled={logoSaving}
+                            className={`px-4 py-3 rounded-xl text-xs font-black uppercase tracking-wider border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-all active:scale-95`}
+                          >
+                            Reset
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
 

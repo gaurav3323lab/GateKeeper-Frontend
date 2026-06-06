@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
 import { Phone, User, Home, LogIn, UserPlus, CheckCircle, Clock, Loader2, Key, Eye, EyeOff, ShieldAlert } from 'lucide-react';
-import { authAPI, societyAPI } from '../services/api';
+import { authAPI, societyAPI, brandAPI } from '../services/api';
 import TowerSelect from './TowerSelect';
 
 const LoginPage = ({ onLoginSuccess }) => {
@@ -12,6 +12,17 @@ const LoginPage = ({ onLoginSuccess }) => {
   const [form, setForm] = useState({ name: '', phone: '', password: '', tower: '', flat_number: '', society_pin: '', society_id: null, society_name: '' });
   const [verifyingPin, setVerifyingPin] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [brandLogo, setBrandLogo] = useState('');
+
+  useEffect(() => {
+    brandAPI.getLogo()
+      .then(res => {
+        if (res.data?.logo) {
+          setBrandLogo(res.data.logo);
+        }
+      })
+      .catch(err => console.warn('Failed to load brand logo:', err.message));
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -114,8 +125,12 @@ const LoginPage = ({ onLoginSuccess }) => {
       {/* Brand Header */}
       <div className="mb-8 text-center z-10 animate-scale-up">
         <div className="inline-flex items-center justify-center w-20 h-20 rounded-[28px] bg-gradient-to-tr from-indigo-500 via-indigo-600 to-emerald-500 p-[2px] mb-4 shadow-[0_12px_30px_rgba(99,102,241,0.25)] hover:scale-105 transition-transform duration-300">
-          <div className="w-full h-full rounded-[26px] bg-slate-950 flex items-center justify-center">
-            <Home size={34} className="text-indigo-400" />
+          <div className="w-full h-full rounded-[26px] bg-slate-950 flex items-center justify-center overflow-hidden">
+            {brandLogo ? (
+              <img src={brandLogo} alt="Logo" className="w-full h-full object-cover" />
+            ) : (
+              <Home size={34} className="text-indigo-400" />
+            )}
           </div>
         </div>
         <h1 className="text-4xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 via-teal-400 to-emerald-400 drop-shadow-sm">

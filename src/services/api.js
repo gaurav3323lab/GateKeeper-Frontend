@@ -194,4 +194,10 @@ export const communityAPI = {
   getDirectory: () => api.get('/api/community/directory'),
 };
 
+// ── Brand Settings ───────────────────────────────────────────
+export const brandAPI = {
+  getLogo: () => api.get('/api/brand'),
+  updateLogo: (logo) => api.post('/api/brand', { logo }),
+};
+
 export default api;

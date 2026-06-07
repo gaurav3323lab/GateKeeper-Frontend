@@ -16,7 +16,7 @@ import {
   Megaphone, List, HeartHandshake, Phone, Calendar,
   Check, X, Share2, Search, MessageSquare, Bell, UserPlus,
   ChevronRight, Send, MoreVertical, ThumbsUp, ShieldCheck,
-  ArrowLeft, Pin, Users, History
+  ArrowLeft, Pin, Users, History, KeyRound, BookOpen, BarChart2, PenLine
 } from 'lucide-react';
 
 const NAV_ITEMS = [
@@ -24,8 +24,7 @@ const NAV_ITEMS = [
   { key: 'flat', label: 'My Flat', icon: Home },
   { key: 'garage', label: 'Garage', icon: Car },
   { key: 'service', label: 'Service', icon: Wrench },
-  { key: 'preapprove', label: 'Pre-Approve', icon: ShieldCheck },
-  { key: 'logs', label: 'Logs', icon: History },
+  { key: 'access', label: 'Access', icon: KeyRound },
 ];
 
 const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
@@ -46,6 +45,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const [showPlannerModal, setShowPlannerModal] = useState(false);
   const [showPreapproveModal, setShowPreapproveModal] = useState(false);
   const [showPostModal, setShowPostModal] = useState(false);
+  const [accessSubTab, setAccessSubTab] = useState('preapprove'); // 'preapprove' | 'logs'
 
   // 3. Unified Post & Poll Creator State
   const [creatorTab, setCreatorTab] = useState('feed_post'); // 'feed_post', 'poll', 'notice'
@@ -122,6 +122,7 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
   const [directorySearch, setDirectorySearch] = useState('');
   const [noticeSearch, setNoticeSearch] = useState('');
   const [noticeFilter, setNoticeFilter] = useState('All');
+  const [expandedNotices, setExpandedNotices] = useState({});
   const [postSearch, setPostSearch] = useState('');
   const [postFilter, setPostFilter] = useState('All');
 
@@ -451,112 +452,167 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
     }
   };
 
-
   const bg = isDark ? 'bg-[#0f172a] text-white' : 'bg-slate-50 text-gray-800';
   const bottomNav = isDark ? 'bg-slate-900/95 border-slate-800' : 'bg-white/95 border-gray-200';
   const subtext = isDark ? 'text-slate-400' : 'text-gray-500';
   const cardBg = isDark ? 'bg-slate-800/80 border-slate-700/50' : 'bg-white border-slate-200';
 
   const renderNoticeCard = (notice) => {
-    const categoryStyles = {
+    const isPinned = notice.is_pinned === 1 || !!notice.is_pinned;
+    const isExpanded = expandedNotices[notice.id];
+
+    const categoryConfigs = {
       Emergency: {
-        bg: isDark ? 'bg-red-950/20 border-red-500/30 hover:border-red-500/50' : 'bg-red-50/50 border-red-200 hover:border-red-300',
-        accent: 'bg-red-500',
-        text: 'text-red-600 dark:text-red-400',
-        badge: 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/20',
-        emoji: '🚨',
-        glow: 'shadow-[0_0_15px_rgba(239,68,68,0.1)]'
+        icon: AlertTriangle,
+        gradient: 'from-rose-500 to-red-650',
+        badge: isDark 
+          ? 'bg-rose-950/25 border-rose-900/30 text-rose-300' 
+          : 'bg-rose-50/60 border-rose-100 text-rose-700',
+        iconClass: 'text-rose-500',
+        glow: 'shadow-[0_8px_30px_rgba(239,68,68,0.03)] hover:shadow-[0_12px_40px_rgba(239,68,68,0.08)]'
       },
       Maintenance: {
-        bg: isDark ? 'bg-amber-950/20 border-amber-500/30 hover:border-amber-500/50' : 'bg-amber-50/50 border-amber-200 hover:border-amber-300',
-        accent: 'bg-amber-500',
-        text: 'text-amber-600 dark:text-amber-400',
-        badge: 'bg-amber-500/10 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/20',
-        emoji: '🔧',
-        glow: ''
+        icon: Wrench,
+        gradient: 'from-amber-400 to-amber-600',
+        badge: isDark 
+          ? 'bg-amber-950/25 border-amber-900/30 text-amber-300' 
+          : 'bg-amber-50/60 border-amber-100 text-amber-700',
+        iconClass: 'text-amber-500',
+        glow: 'shadow-[0_8px_30px_rgba(245,158,11,0.03)] hover:shadow-[0_12px_40px_rgba(245,158,11,0.08)]'
       },
       Event: {
-        bg: isDark ? 'bg-purple-950/20 border-purple-500/30 hover:border-purple-500/50' : 'bg-purple-50/50 border-purple-200 hover:border-purple-300',
-        accent: 'bg-purple-500',
-        text: 'text-purple-600 dark:text-purple-400',
-        badge: 'bg-purple-500/10 dark:bg-purple-500/20 text-purple-700 dark:text-purple-300 border-purple-500/20',
-        emoji: '🎉',
-        glow: ''
+        icon: Calendar,
+        gradient: 'from-fuchsia-500 to-purple-650',
+        badge: isDark 
+          ? 'bg-fuchsia-950/25 border-fuchsia-900/30 text-fuchsia-300' 
+          : 'bg-fuchsia-50/60 border-fuchsia-100 text-fuchsia-700',
+        iconClass: 'text-fuchsia-500',
+        glow: 'shadow-[0_8px_30px_rgba(217,70,239,0.03)] hover:shadow-[0_12px_40px_rgba(217,70,239,0.08)]'
       },
       General: {
-        bg: isDark ? 'bg-blue-950/20 border-blue-500/30 hover:border-blue-500/50' : 'bg-blue-50/50 border-blue-200 hover:border-blue-300',
-        accent: 'bg-blue-500',
-        text: 'text-blue-600 dark:text-blue-400',
-        badge: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/20',
-        emoji: '📢',
-        glow: ''
+        icon: Megaphone,
+        gradient: 'from-blue-500 to-indigo-650',
+        badge: isDark 
+          ? 'bg-blue-950/25 border-blue-900/30 text-blue-300' 
+          : 'bg-blue-50/60 border-blue-100 text-blue-700',
+        iconClass: 'text-blue-500',
+        glow: 'shadow-[0_8px_30px_rgba(59,130,246,0.03)] hover:shadow-[0_12px_40px_rgba(59,130,246,0.08)]'
       },
       Notice: {
-        bg: isDark ? 'bg-cyan-950/20 border-cyan-500/30 hover:border-cyan-500/50' : 'bg-cyan-50/50 border-cyan-200 hover:border-cyan-300',
-        accent: 'bg-cyan-500',
-        text: 'text-cyan-600 dark:text-cyan-400',
-        badge: 'bg-cyan-500/10 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border-cyan-500/20',
-        emoji: '📌',
-        glow: ''
+        icon: BookOpen,
+        gradient: 'from-cyan-500 to-teal-650',
+        badge: isDark 
+          ? 'bg-cyan-950/25 border-cyan-900/30 text-cyan-300' 
+          : 'bg-cyan-50/60 border-cyan-100 text-cyan-700',
+        iconClass: 'text-cyan-500',
+        glow: 'shadow-[0_8px_30px_rgba(6,182,212,0.03)] hover:shadow-[0_12px_40px_rgba(6,182,212,0.08)]'
       }
     };
 
-    const style = categoryStyles[notice.category] || categoryStyles.General;
-    const isPinned = notice.is_pinned === 1 || !!notice.is_pinned;
+    const config = categoryConfigs[notice.category] || categoryConfigs.General;
+    const IconComponent = config.icon;
+    const isEvent = notice.category === 'Event';
+
+    // Body content truncating logic
+    const shouldTruncate = notice.body && notice.body.length > 160;
+    const bodyToShow = shouldTruncate && !isExpanded 
+      ? `${notice.body.slice(0, 160)}...` 
+      : notice.body;
+
+    const toggleExpand = (e) => {
+      e.stopPropagation();
+      setExpandedNotices(prev => ({
+        ...prev,
+        [notice.id]: !prev[notice.id]
+      }));
+    };
 
     return (
       <div 
         key={notice.id} 
-        className={`relative rounded-3xl border overflow-hidden transition-all duration-300 hover:-translate-y-0.5 shadow-sm group ${style.bg} ${style.glow} ${
-          isPinned ? 'ring-1 ring-yellow-500/30 border-yellow-500/40 shadow-[0_0_15px_rgba(234,179,8,0.06)]' : ''
+        className={`relative rounded-[28px] border overflow-hidden transition-all duration-300 hover:-translate-y-1 group ${
+          isDark 
+            ? 'bg-slate-900/70 border-slate-800/80 shadow-[0_4px_24px_rgba(0,0,0,0.25)]' 
+            : 'bg-white border-slate-100 shadow-[0_6px_20px_rgba(0,0,0,0.025)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.055)] hover:border-slate-200/80'
+        } ${config.glow} ${
+          isPinned 
+            ? isDark 
+              ? 'ring-1 ring-amber-500/35 border-amber-500/40' 
+              : 'ring-1 ring-amber-400/30 border-amber-400/45 shadow-[0_8px_30px_rgba(245,158,11,0.04)]'
+            : ''
         }`}
       >
-        {/* Category Accent left border bar */}
-        <div className={`absolute left-0 top-0 bottom-0 w-1.5 ${isPinned ? 'bg-yellow-500' : style.accent}`} />
-        
-        {notice.category === 'Event' && (
+        {/* Glow effect on hover */}
+        <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none ${
+          isDark ? 'bg-indigo-500/5' : 'bg-indigo-500/3'
+        }`} />
+
+        {isEvent && (
           <div className="h-28 overflow-hidden relative">
-            <img src="/event_banner.png" alt="Event" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/40 to-transparent" />
+            <img src="/event_banner.png" alt="Event" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+            <div className="absolute inset-0 bg-gradient-to-t from-slate-950/50 via-slate-950/10 to-transparent" />
           </div>
         )}
 
         <div className="p-5 pl-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
-              <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border ${style.badge}`}>
-                {style.emoji} {notice.category}
+              <span className={`flex items-center gap-1.5 text-[9px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full border ${config.badge}`}>
+                <IconComponent size={10} strokeWidth={2.5} className="animate-pulse" />
+                <span>{notice.category}</span>
               </span>
               {isPinned && (
-                <span className="text-[8px] bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-0.5 animate-pulse">
-                  <Pin size={8} className="fill-current" /> PINNED
+                <span className="flex items-center gap-1 text-[8px] bg-amber-50/10 border border-amber-500/25 text-amber-600 dark:text-amber-400 font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider animate-pulse">
+                  <Pin size={8} className="fill-current rotate-45" /> PINNED
                 </span>
               )}
             </div>
-            <span className={`text-[10px] font-medium ${subtext} flex items-center gap-1`}>
+            <span className={`text-[10px] font-semibold flex items-center gap-1 ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
               <Calendar size={10} />
               {new Date(notice.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
 
-          <h4 className="text-sm font-extrabold text-slate-800 dark:text-slate-100 leading-snug mb-2 group-hover:text-indigo-500 dark:group-hover:text-indigo-400 transition-colors">
+          <h4 className={`text-sm font-extrabold leading-snug mb-2 transition-colors duration-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 ${
+            isDark ? 'text-slate-100' : 'text-slate-800'
+          }`}>
             {notice.title}
           </h4>
-          <p className={`text-xs leading-relaxed font-normal whitespace-pre-line ${subtext}`}>
-            {notice.body}
+          <p className={`text-xs leading-relaxed font-normal whitespace-pre-line ${
+            isDark ? 'text-slate-350' : 'text-slate-650'
+          }`}>
+            {bodyToShow}
           </p>
 
-          <div className={`flex items-center gap-3 mt-4 pt-3.5 border-t ${isDark ? 'border-slate-800/80' : 'border-slate-100'}`}>
-            <div className="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white text-[10px] font-bold shadow-sm">
-              {(notice.author_name || 'M')[0].toUpperCase()}
+          {shouldTruncate && (
+            <button 
+              onClick={toggleExpand}
+              className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-500 dark:hover:text-indigo-300 mt-2 flex items-center gap-0.5 focus:outline-none transition-colors"
+            >
+              {isExpanded ? 'Show Less ↑' : 'Read More ↓'}
+            </button>
+          )}
+
+          <div className={`flex items-center justify-between mt-4 pt-3.5 border-t border-dashed ${isDark ? 'border-slate-800/80' : 'border-slate-100'}`}>
+            <div className="flex items-center gap-2.5">
+              <div className={`w-7 h-7 rounded-full bg-gradient-to-tr ${config.gradient} flex items-center justify-center text-white text-[10px] font-black shadow-sm`}>
+                {(notice.author_name || 'M')[0].toUpperCase()}
+              </div>
+              <div>
+                <p className={`text-[10px] font-black leading-none ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>
+                  {notice.author_name || 'Management'}
+                </p>
+                <p className={`text-[8px] font-medium ${isDark ? 'text-slate-500' : 'text-slate-400'} mt-0.5`}>
+                  Society Board
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] font-black text-slate-700 dark:text-slate-300 leading-none">
-                {notice.author_name || 'Management'}
-              </p>
-              <p className={`text-[8px] font-medium ${subtext} mt-0.5`}>
-                Society Board
-              </p>
+            
+            <div className={`flex items-center gap-1 text-[8px] font-extrabold px-2 py-0.5 rounded-lg uppercase tracking-wider ${
+              isDark ? 'bg-slate-800/50 text-slate-400' : 'bg-slate-50 text-slate-500'
+            }`}>
+              <ShieldCheck size={9} className="text-emerald-500" />
+              <span>Official</span>
             </div>
           </div>
         </div>
@@ -575,76 +631,86 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
     });
 
     const categories = ['All', 'Emergency', 'Maintenance', 'Event', 'General', 'Notice'];
-    const categoryEmojis = { All: '🗂️', Emergency: '🚨', Maintenance: '🔧', Event: '🎉', General: '📢', Notice: '📌' };
+    const categoryIcons = {
+      All: List,
+      Emergency: AlertTriangle,
+      Maintenance: Wrench,
+      Event: Calendar,
+      General: Megaphone,
+      Notice: BookOpen
+    };
 
     return (
       <div className="space-y-5 animate-slide-up pb-10">
         {/* Header with Glassmorphism Back Navigation */}
-        <div className="flex items-center gap-3 mb-2">
+        <div className="flex items-center gap-3.5 mb-2">
           <button 
             onClick={() => setActiveTab('community')}
-            className={`w-9 h-9 rounded-full flex items-center justify-center border transition-all active:scale-90 ${
+            className={`w-9.5 h-9.5 rounded-full flex items-center justify-center border transition-all hover:scale-105 active:scale-95 ${
               isDark 
-                ? 'border-slate-800 bg-slate-900/50 text-indigo-400 hover:text-indigo-300 hover:border-slate-700' 
-                : 'border-slate-200 bg-white text-indigo-600 hover:text-indigo-700 hover:border-slate-300'
+                ? 'border-slate-800 bg-slate-900/60 text-indigo-400 hover:text-indigo-300 hover:border-slate-700 shadow-lg' 
+                : 'border-slate-100 bg-white text-slate-800 hover:border-slate-200 hover:text-slate-900 shadow-[0_3px_12px_rgba(0,0,0,0.025)]'
             }`}
           >
             <ArrowLeft size={16} strokeWidth={2.5} />
           </button>
           <div>
-            <h2 className="font-extrabold text-base text-slate-800 dark:text-slate-100 flex items-center gap-2">
-              📢 Society Bulletin
+            <h2 className={`font-black text-base flex items-center gap-1.5 ${isDark ? 'text-slate-100' : 'text-slate-850'}`}>
+              <Megaphone size={16} className="text-indigo-500 animate-pulse" />
+              <span>Society Bulletin</span>
             </h2>
-            <p className={`text-[10px] ${subtext} font-semibold`}>
-              Official notices & management announcements
+            <p className={`text-[10px] ${subtext} font-semibold mt-0.5`}>
+              Official updates & board announcements
             </p>
           </div>
         </div>
 
-        {/* Premium search bar with frosted glass look */}
-        <div className="relative">
-          <Search size={14} className="absolute left-3.5 top-3.5 text-slate-400" />
+        {/* Premium search bar with interactive focus ring */}
+        <div className="relative rounded-[20px] overflow-hidden">
+          <Search size={14} className="absolute left-3.5 top-[15px] text-slate-400" />
           <input 
             type="text" 
             placeholder="Search notices, updates or titles..."
             value={noticeSearch}
             onChange={e => setNoticeSearch(e.target.value)}
-            className={`w-full rounded-2xl border pl-10 pr-4 py-3 text-xs outline-none transition-all focus:ring-1 focus:ring-indigo-500/50 ${
+            className={`w-full rounded-[20px] border pl-10 pr-10 py-3.5 text-xs outline-none transition-all focus:ring-2 focus:ring-indigo-500/10 ${
               isDark 
                 ? 'bg-slate-900 border-slate-800 text-white focus:border-indigo-500/50' 
-                : 'bg-white border-slate-200 text-slate-800 focus:border-indigo-100 shadow-sm'
+                : 'bg-white border-slate-150 text-slate-800 focus:border-indigo-300 shadow-sm shadow-slate-100/50'
             }`}
           />
           {noticeSearch && (
             <button 
               onClick={() => setNoticeSearch('')}
-              className="absolute right-3 top-3 text-slate-400 hover:text-slate-250 p-0.5 rounded-full"
+              className="absolute right-3 top-[11px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
             >
-              <X size={12} />
+              <X size={12} strokeWidth={2.5} />
             </button>
           )}
         </div>
 
         {/* Categories Horizontal Scroll Bar */}
-        <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex gap-2 overflow-x-auto pb-2.5 scrollbar-none">
           {categories.map(c => {
             const active = noticeFilter === c;
             const count = c === 'All' ? realNotices.length : realNotices.filter(n => n.category === c).length;
+            const CategoryIcon = categoryIcons[c] || Megaphone;
             return (
               <button 
                 key={c} 
                 onClick={() => setNoticeFilter(c)}
-                className={`px-3.5 py-2 rounded-2xl text-[10px] font-black whitespace-nowrap transition-all border flex items-center gap-1.5 active:scale-95 ${
+                className={`px-3.5 py-2.5 rounded-2xl text-[10px] font-black whitespace-nowrap transition-all border flex items-center gap-2 active:scale-95 ${
                   active
-                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/10'
+                    ? 'bg-indigo-600 text-white border-indigo-600 shadow-md shadow-indigo-500/15'
                     : isDark 
-                      ? 'border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-200' 
-                      : 'border-slate-200 bg-white text-slate-600 hover:text-slate-800 shadow-sm'
+                      ? 'border-slate-800 bg-slate-900/40 text-slate-400 hover:text-slate-200 hover:border-slate-700' 
+                      : 'border-slate-150 bg-white text-slate-600 hover:text-slate-800 hover:border-slate-250 shadow-sm'
                 }`}
               >
-                <span>{categoryEmojis[c]} {c}</span>
-                <span className={`text-[8px] font-bold px-1.5 py-0.2 rounded-full ${
-                  active ? 'bg-indigo-700 text-indigo-100' : isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'
+                <CategoryIcon size={11} strokeWidth={active ? 3 : 2} className={active ? 'animate-pulse' : ''} />
+                <span>{c}</span>
+                <span className={`text-[8.5px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                  active ? 'bg-indigo-800/60 text-indigo-100' : isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-100 text-slate-500'
                 }`}>
                   {count}
                 </span>
@@ -656,18 +722,22 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
         {/* Notices list container */}
         <div className="space-y-4">
           {filteredNotices.length === 0 ? (
-            <div className={`border rounded-[32px] p-12 text-center backdrop-blur-xl ${
-              isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'
+            <div className={`border rounded-[32px] p-12 text-center shadow-sm ${
+              isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-150'
             }`}>
-              <Megaphone size={36} className="mx-auto opacity-20 mb-3 text-slate-400" />
+              <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4 ${
+                isDark ? 'bg-slate-800 text-slate-500' : 'bg-slate-50 text-slate-400'
+              }`}>
+                <Megaphone size={24} className="opacity-30" />
+              </div>
               <h4 className="text-xs font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">No Notices Found</h4>
-              <p className={`text-[10px] mt-1 max-w-xs mx-auto ${subtext}`}>
-                Aapki search query ya selected category "<b>{noticeFilter}</b>" ke liye koi notices nahi mile. Try searching for something else.
+              <p className={`text-[10.5px] mt-1.5 max-w-xs mx-auto leading-relaxed ${subtext}`}>
+                Aapki search query ya category <b>"{noticeFilter}"</b> ke liye koi bulletin notices nahi mile. Try searching with different keywords.
               </p>
               {(noticeSearch || noticeFilter !== 'All') && (
                 <button
                   onClick={() => { setNoticeSearch(''); setNoticeFilter('All'); }}
-                  className="mt-4 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold shadow-sm transition-all"
+                  className="mt-5 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-750 hover:from-indigo-700 hover:to-indigo-800 text-white text-[10px] font-black uppercase tracking-wider shadow-md shadow-indigo-500/10 transition-all active:scale-95"
                 >
                   Clear Filters 🔄
                 </button>
@@ -689,35 +759,80 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
     const commentText = newCommentTexts[post.id] || '';
 
     return (
-      <div key={post.id} className={`rounded-[30px] border shadow-md overflow-hidden backdrop-blur-xl animate-fade-in ${cardBg}`}>
-        {/* Header */}
-        <div className="p-4.5 flex items-center justify-between border-b border-slate-100 dark:border-slate-800/40">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-violet-600 to-indigo-600 text-white font-extrabold flex items-center justify-center text-xs shadow-md">
-              {(post.author_name || 'U').substring(0, 2).toUpperCase()}
+      <div key={post.id} className={`rounded-[24px] border overflow-hidden animate-fade-in transition-all ${
+        isDark ? 'bg-slate-900/70 border-slate-800/60 shadow-[0_4px_24px_rgba(0,0,0,0.3)]' : 'bg-white border-slate-100 shadow-[0_2px_16px_rgba(0,0,0,0.06)]'
+      }`}>
+
+
+        {/* ── Header ── */}
+        <div className="px-4 pt-4 pb-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {/* Avatar with gradient + type indicator */}
+            <div className="relative">
+              <div className={`w-10 h-10 rounded-2xl flex items-center justify-center text-white font-black text-sm shadow-lg ${
+                isPoll
+                  ? 'bg-gradient-to-br from-indigo-500 to-violet-600 shadow-indigo-500/25'
+                  : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/25'
+              }`}>
+                {(post.author_name || 'U').substring(0, 2).toUpperCase()}
+              </div>
+              <div className={`absolute -bottom-0.5 -right-0.5 w-4 h-4 rounded-full border-2 flex items-center justify-center text-[7px] ${
+                isDark ? 'border-slate-900' : 'border-white'
+              } ${isPoll ? 'bg-indigo-500' : 'bg-emerald-500'}`}>
+                {isPoll ? '📊' : '📝'}
+              </div>
             </div>
+
             <div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-black text-slate-800 dark:text-slate-200 leading-none">{post.author_name}</p>
-                <span className={`text-[8px] border font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className={`text-[13px] font-black leading-none ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                  {post.author_name}
+                </p>
+                <span className={`text-[7.5px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider border ${
                   post.author_role === 'admin' || post.author_role === 'manager'
-                    ? 'bg-sky-500/15 border-sky-500/20 text-sky-400'
-                    : 'bg-emerald-500/15 border-emerald-500/20 text-emerald-400'
+                    ? 'bg-sky-500/15 border-sky-500/25 text-sky-500'
+                    : 'bg-emerald-500/12 border-emerald-500/20 text-emerald-500'
                 }`}>
                   {post.author_role}
                 </span>
               </div>
-              <p className={`text-[9px] font-semibold mt-1 ${subtext}`}>
-                {post.author_flat ? `Flat ${post.author_tower ? post.author_tower + '-' : ''}${post.author_flat} ` : ''}&bull; {post.timeAgo} &bull; 👥 Public
+              <p className={`text-[10px] mt-0.5 flex items-center gap-1.5 ${subtext}`}>
+                {post.author_flat && (
+                  <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[8px] font-black ${
+                    isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    🏠 {post.author_tower ? `${post.author_tower}-` : ''}{post.author_flat}
+                  </span>
+                )}
+                <span>{post.timeAgo}</span>
+                <span className={`w-1 h-1 rounded-full inline-block ${isDark ? 'bg-slate-700' : 'bg-slate-300'}`} />
+                <span className={`inline-flex items-center gap-0.5 text-[8px] font-bold ${isDark ? 'text-indigo-400' : 'text-indigo-500'}`}>
+                  👥 Public
+                </span>
               </p>
             </div>
           </div>
-          <button className="text-slate-400 hover:text-slate-250"><MoreVertical size={16} /></button>
+
+          <div className="flex items-center gap-2">
+            <span className={`text-[8px] font-black px-2.5 py-1 rounded-full border uppercase tracking-wider ${
+              isPoll
+                ? isDark ? 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400' : 'bg-indigo-50 border-indigo-100 text-indigo-600'
+                : isDark ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-emerald-50 border-emerald-100 text-emerald-600'
+            }`}>
+              {isPoll ? 'Poll' : 'Post'}
+            </span>
+            <button className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+              isDark ? 'text-slate-600 hover:text-slate-400 hover:bg-slate-800' : 'text-slate-300 hover:text-slate-500 hover:bg-slate-100'
+            }`}><MoreVertical size={14} /></button>
+          </div>
         </div>
 
-        {/* Body */}
-        <div className="p-4.5 space-y-3 bg-slate-100/10 dark:bg-slate-900/30 border-b border-slate-100 dark:border-slate-800/40">
-          <h3 className="text-xs font-bold leading-relaxed text-slate-900 dark:text-slate-100">
+        {/* ── Divider ── */}
+        <div className={`mx-4 h-px ${isDark ? 'bg-slate-800/60' : 'bg-slate-100'}`} />
+
+        {/* ── Body ── */}
+        <div className="px-4 pt-3.5 pb-3 space-y-3">
+          <h3 className={`text-[13px] font-black leading-snug ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
             {post.title}
           </h3>
           {post.body && (
@@ -726,111 +841,151 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
             </p>
           )}
 
-          {/* If it's a poll, render options list */}
+          {/* ── Premium Poll Options ── */}
           {isPoll && post.pollData && (
-            <div className="space-y-2.5">
-              {post.pollData.options.map((opt) => {
+            <div className="space-y-2 pt-1">
+              {post.pollData.options.map((opt, optIdx) => {
                 const isSelected = post.pollData.votedOption === opt;
                 const pct = post.pollData.percentages[opt] || 0;
                 const hasVoted = post.pollData.votedOption !== null;
+                const barColors = ['bg-indigo-500', 'bg-violet-500', 'bg-purple-500', 'bg-fuchsia-500'];
+                const barColor = barColors[optIdx % barColors.length];
 
                 return (
-                  <button 
+                  <button
                     key={opt}
                     onClick={() => handleVote(post.id, opt)}
                     disabled={hasVoted}
-                    className={`w-full relative rounded-2xl p-3 flex items-center justify-between overflow-hidden border text-left transition-all ${
-                      hasVoted 
-                        ? isSelected ? 'border-indigo-500/60 bg-indigo-500/5' : 'border-slate-200 dark:border-slate-800/60' 
-                        : 'border-slate-200 dark:border-slate-800/60 hover:border-indigo-400 dark:hover:border-slate-700 bg-white/40 dark:bg-slate-800/40'
+                    className={`w-full relative rounded-2xl overflow-hidden text-left transition-all duration-200 ${
+                      hasVoted
+                        ? isSelected
+                          ? isDark ? 'border border-indigo-500/40 bg-indigo-500/8' : 'border border-indigo-200 bg-indigo-50'
+                          : isDark ? 'border border-slate-800/60 bg-slate-800/30' : 'border border-slate-100 bg-slate-50'
+                        : isDark
+                          ? 'border border-slate-800 bg-slate-800/40 hover:border-indigo-500/40 hover:bg-indigo-500/5 active:scale-[0.98]'
+                          : 'border border-slate-200 bg-white hover:border-indigo-200 hover:bg-indigo-50/40 active:scale-[0.98]'
                     }`}
                   >
                     {hasVoted && (
-                      <div 
-                        className="absolute left-0 top-0 bottom-0 bg-indigo-500/10 transition-all duration-1000 ease-out"
+                      <div
+                        className={`absolute left-0 top-0 bottom-0 opacity-[0.12] transition-all duration-1000 ease-out ${barColor}`}
                         style={{ width: `${pct}%` }}
                       />
                     )}
-                    <span className="text-xs font-bold z-10 text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                      {opt}
-                      {isSelected && <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full inline-block animate-ping" />}
-                    </span>
-                    <div className="flex items-center gap-1.5 z-10 text-xs font-black text-slate-700 dark:text-indigo-400">
-                      {isSelected && <Check size={12} className="text-indigo-500 font-bold" />}
-                      <span>{pct}%</span>
+                    <div className="relative flex items-center justify-between px-3.5 py-2.5">
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center text-[9px] font-black shrink-0 ${
+                          isSelected ? `${barColor} text-white` : isDark ? 'bg-slate-700 text-slate-400' : 'bg-slate-100 text-slate-500'
+                        }`}>
+                          {isSelected ? <Check size={10} strokeWidth={3} /> : optIdx + 1}
+                        </div>
+                        <span className={`text-[12px] font-bold truncate ${
+                          isSelected
+                            ? isDark ? 'text-indigo-300' : 'text-indigo-700'
+                            : isDark ? 'text-slate-200' : 'text-slate-700'
+                        }`}>{opt}</span>
+                      </div>
+                      {hasVoted && (
+                        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+                          {isSelected && <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-ping" />}
+                          <span className={`text-[11px] font-black tabular-nums ${
+                            isSelected ? isDark ? 'text-indigo-400' : 'text-indigo-600' : isDark ? 'text-slate-400' : 'text-slate-500'
+                          }`}>{pct}%</span>
+                        </div>
+                      )}
                     </div>
                   </button>
                 );
               })}
 
-              <div className={`flex items-center justify-between text-[8px] pt-1 font-bold uppercase tracking-wider ${subtext}`}>
-                <span className="flex items-center gap-1">🗳️ {post.pollData.totalVotes || 0} Votes</span>
-                <span>1 Vote per flat</span>
+              <div className={`flex items-center justify-between text-[9px] pt-0.5 font-bold ${subtext}`}>
+                <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-[8px] ${
+                  isDark ? 'bg-slate-800 text-slate-400' : 'bg-slate-100 text-slate-500'
+                }`}>🗳️ {post.pollData.totalVotes || 0} votes</span>
+                <span className={`text-[8px] uppercase tracking-wider ${isDark ? 'text-indigo-500/60' : 'text-indigo-400'}`}>1 vote / flat</span>
               </div>
             </div>
           )}
         </div>
 
-        {/* Feed Card Footer Actions */}
-        <div className="px-4 py-2.5 flex items-center justify-between text-xs border-b border-slate-100 dark:border-slate-800/40">
-          <button 
+        {/* ── Action Row ── */}
+        <div className={`mx-4 h-px ${isDark ? 'bg-slate-800/60' : 'bg-slate-100'}`} />
+        <div className="px-4 py-2.5 flex items-center gap-1">
+          <button
             onClick={() => handleLike(post.id)}
-            className={`flex items-center gap-1.5 py-1 ${liked ? 'text-indigo-400 font-black' : 'text-slate-400 hover:text-slate-300'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${
+              liked
+                ? isDark ? 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/20' : 'bg-indigo-50 text-indigo-600 border border-indigo-100'
+                : isDark ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/60' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+            }`}
           >
-            <ThumbsUp size={13} strokeWidth={liked ? 2.5 : 1.5} />
-            <span>{likes} Likes</span>
+            <ThumbsUp size={13} strokeWidth={liked ? 2.5 : 1.8} />
+            <span>{likes || 0}</span>
           </button>
-          <button 
+
+          <button
             onClick={() => toggleCommentsVisibility(post.id)}
-            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-300"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ${
+              hasComments
+                ? isDark ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/20' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                : isDark ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/60' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+            }`}
           >
-            <MessageSquare size={13} />
-            <span>{(post.comments || []).length} Comments</span>
+            <MessageSquare size={13} strokeWidth={1.8} />
+            <span>{(post.comments || []).length}</span>
           </button>
-          <button 
-            onClick={() => {
-              copyToClipboard(post.title);
-            }}
-            className="flex items-center gap-1.5 text-slate-400 hover:text-slate-300"
+
+          <button
+            onClick={() => copyToClipboard(post.title)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-black transition-all ml-auto ${
+              isDark ? 'text-slate-500 hover:text-slate-300 hover:bg-slate-800/60' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'
+            }`}
           >
-            <Share2 size={13} />
-            <span>Share</span>
+            <Share2 size={13} strokeWidth={1.8} />
           </button>
         </div>
 
-        {/* Poll Comment Threads */}
+        {/* ── Comment Thread ── */}
         {hasComments && (
-          <div className="px-4 pb-4 pt-3 border-t border-slate-100 dark:border-slate-800/40 bg-slate-50/50 dark:bg-slate-900/10">
-            <div className="space-y-3 mb-3.5 max-h-48 overflow-y-auto pr-1 scrollbar-thin">
+          <div className={`border-t px-4 pb-4 pt-3 ${isDark ? 'border-slate-800/60 bg-slate-950/40' : 'border-slate-100 bg-slate-50/70'}`}>
+            <div className="space-y-2.5 mb-3 max-h-52 overflow-y-auto scrollbar-none">
               {(post.comments || []).map((c, i) => (
-                <div key={i} className="flex gap-2.5 items-start text-[11px] leading-relaxed animate-fade-in">
-                  <div className="w-5 h-5 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white font-bold flex items-center justify-center text-[8px] uppercase">
-                    {(c.author || 'U').charAt(0)}
+                <div key={i} className="flex gap-2.5 items-start animate-fade-in">
+                  <div className="w-6 h-6 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white font-black flex items-center justify-center text-[8px] shrink-0 mt-0.5 shadow-md shadow-indigo-500/20">
+                    {(c.author || 'U').charAt(0).toUpperCase()}
                   </div>
-                  <div className="flex-1 bg-slate-100/60 dark:bg-slate-850/80 p-2.5 rounded-2xl border border-slate-200/30 dark:border-slate-800/40">
-                    <p className="font-extrabold text-slate-800 dark:text-slate-200 flex justify-between items-center">
-                      <span>{c.author}</span>
-                      <span className={`text-[8px] font-normal ${subtext}`}>{c.time}</span>
-                    </p>
-                    <p className="text-slate-600 dark:text-slate-300 mt-0.5">{c.text}</p>
+                  <div className={`flex-1 px-3 py-2 rounded-2xl rounded-tl-md text-[11px] border ${
+                    isDark ? 'bg-slate-800/60 border-slate-700/40' : 'bg-white border-slate-200/80'
+                  }`}>
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className={`font-extrabold text-[10px] ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{c.author}</span>
+                      <span className={`text-[8px] ${subtext}`}>{c.time}</span>
+                    </div>
+                    <p className={`leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>{c.text}</p>
                   </div>
                 </div>
               ))}
               {(post.comments || []).length === 0 && (
-                <p className={`text-[9px] text-center ${subtext} py-2`}>No comments yet. Start the conversation!</p>
+                <div className={`text-center py-3 text-[10px] ${subtext}`}>No comments yet — be first! 💬</div>
               )}
             </div>
+
             <form onSubmit={(e) => handleAddComment(e, post.id)} className="flex gap-2">
-              <input 
-                type="text" 
-                placeholder="Add community thoughts..." 
-                value={commentText} 
+              <input
+                type="text"
+                placeholder="Write a comment..."
+                value={commentText}
                 onChange={e => handleCommentChange(post.id, e.target.value)}
-                className={`flex-1 border rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-500/60 ${
-                  isDark ? 'bg-slate-800 border-slate-700/60 text-white' : 'bg-white border-slate-200 text-gray-800'
+                className={`flex-1 border rounded-2xl px-4 py-2.5 text-xs outline-none transition-all focus:ring-2 ${
+                  isDark
+                    ? 'bg-slate-800 border-slate-700/60 text-white placeholder-slate-500 focus:border-indigo-500/40 focus:ring-indigo-500/10'
+                    : 'bg-white border-slate-200 text-gray-800 placeholder-slate-400 focus:border-indigo-300 focus:ring-indigo-100'
                 }`}
               />
-              <button type="submit" className="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shrink-0 shadow-md transition-all">
+              <button
+                type="submit"
+                className="w-9 h-9 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-90 text-white flex items-center justify-center shrink-0 shadow-md shadow-indigo-500/20 transition-all"
+              >
                 <Send size={13} />
               </button>
             </form>
@@ -1023,8 +1178,13 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
             {/* ── Recent Flat Visitors ── */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between px-0.5">
-                <p className={`text-[10px] font-black tracking-widest uppercase ${subtext}`}>Recent Visitors & Pre-Approvals</p>
-                <button onClick={() => setActiveTab('logs')} className="text-[9px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors">See All →</button>
+                <div className="flex items-center gap-2">
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+                    <UserPlus size={11} className="text-indigo-500" />
+                  </div>
+                  <p className={`text-[11px] font-black tracking-widest uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Recent Visitors</p>
+                </div>
+                <button onClick={() => { setAccessSubTab('logs'); setActiveTab('access'); }} className="text-[9px] font-extrabold text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-0.5">See All <ChevronRight size={10} /></button>
               </div>
 
               {recentFlatVisitors.length === 0 && !dataLoading ? (
@@ -1093,232 +1253,291 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                       </div>
                     );
                   })}
-
-                  {/* View all button */}
-                  <button
-                    onClick={() => setActiveTab('logs')}
-                    className={`shrink-0 w-[90px] rounded-2xl border flex flex-col items-center justify-center gap-2 py-3.5 transition-all hover:scale-105 ${
-                      isDark ? 'bg-indigo-500/5 border-indigo-500/10 hover:bg-indigo-500/10' : 'bg-indigo-50/30 border-indigo-100/50 hover:bg-indigo-50 shadow-sm shadow-slate-100/50'
-                    }`}
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center">
-                      <ChevronRight size={16} className="text-indigo-400" />
-                    </div>
-                    <span className="text-[9px] font-black text-indigo-400">View Logs</span>
-                  </button>
                 </div>
               )}
             </div>
 
-            {/* ── Premium Quick Actions Grid Redesign ── */}
-            <div className="grid grid-cols-4 gap-y-5 gap-x-3 p-1.5">
-              {[
-                { 
-                  label: 'Planner', 
-                  icon: Calendar, 
-                  bgClass: 'from-rose-500/20 to-pink-500/10 dark:from-rose-500/25 dark:to-pink-500/10',
-                  borderClass: 'border-rose-500/20 dark:border-rose-500/30',
-                  textClass: 'text-rose-600 dark:text-rose-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(244,63,94,0.4)]',
-                  badge: null,
-                  action: () => setShowPlannerModal(true) 
-                },
-                { 
-                  label: 'Helpdesk', 
-                  icon: Wrench, 
-                  bgClass: 'from-amber-500/20 to-orange-500/10 dark:from-amber-500/25 dark:to-orange-500/10',
-                  borderClass: 'border-amber-500/20 dark:border-amber-500/30',
-                  textClass: 'text-amber-600 dark:text-amber-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(245,158,11,0.4)]',
-                  badge: openServiceCount > 0 ? openServiceCount : null,
-                  action: () => setActiveTab('service') 
-                },
-                { 
-                  label: 'Garage', 
-                  icon: Car, 
-                  bgClass: 'from-sky-500/20 to-blue-500/10 dark:from-sky-500/25 dark:to-blue-500/10',
-                  borderClass: 'border-sky-500/20 dark:border-sky-500/30',
-                  textClass: 'text-sky-600 dark:text-sky-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(14,165,233,0.4)]',
-                  badge: null,
-                  action: () => setActiveTab('garage') 
-                },
-                { 
-                  label: 'Pre-Approve', 
-                  icon: ShieldCheck, 
-                  bgClass: 'from-violet-500/20 to-indigo-500/10 dark:from-violet-500/25 dark:to-indigo-500/10',
-                  borderClass: 'border-violet-500/20 dark:border-violet-500/30',
-                  textClass: 'text-violet-600 dark:text-violet-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(139,92,246,0.4)]',
-                  badge: null,
-                  action: () => setShowPreapproveModal(true) 
-                },
-                { 
-                  label: 'Directory', 
-                  icon: Search, 
-                  bgClass: 'from-indigo-500/20 to-blue-500/10 dark:from-indigo-500/25 dark:to-indigo-500/10',
-                  borderClass: 'border-indigo-500/20 dark:border-indigo-500/30',
-                  textClass: 'text-indigo-600 dark:text-indigo-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(99,102,241,0.4)]',
-                  badge: null,
-                  action: () => setShowDirectoryModal(true) 
-                },
-                { 
-                  label: 'Notices', 
-                  icon: Megaphone, 
-                  bgClass: 'from-fuchsia-500/20 to-pink-500/10 dark:from-fuchsia-500/25 dark:to-pink-500/10',
-                  borderClass: 'border-fuchsia-500/20 dark:border-fuchsia-500/30',
-                  textClass: 'text-fuchsia-600 dark:text-fuchsia-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(217,70,239,0.4)]',
-                  badge: unreadNoticeCount > 0 ? unreadNoticeCount : null,
-                  action: () => {
-                    setActiveTab('all-notices');
-                    localStorage.setItem('notices_last_seen', String(Date.now()));
-                    setUnreadNoticeCount(0);
-                  } 
-                },
-                { 
-                  label: 'Community', 
-                  icon: Users, 
-                  bgClass: 'from-emerald-500/20 to-teal-500/10 dark:from-emerald-500/25 dark:to-emerald-500/10',
-                  borderClass: 'border-emerald-500/20 dark:border-emerald-500/30',
-                  textClass: 'text-emerald-600 dark:text-emerald-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(16,185,129,0.4)]',
-                  badge: null,
-                  action: () => setActiveTab('community') 
-                },
-                { 
-                  label: 'My Flat', 
-                  icon: Home, 
-                  bgClass: 'from-purple-500/20 to-indigo-500/10 dark:from-purple-500/25 dark:to-indigo-500/10',
-                  borderClass: 'border-purple-500/20 dark:border-purple-500/30',
-                  textClass: 'text-purple-600 dark:text-purple-400',
-                  shadowClass: 'group-hover:shadow-[0_0_15px_rgba(168,85,247,0.4)]',
-                  badge: null,
-                  action: () => setActiveTab('flat') 
-                },
-              ].map((item, idx) => (
-                <button
-                  key={idx}
-                  onClick={item.action}
-                  className="flex flex-col items-center gap-2 group relative active:scale-95 transition-all duration-300"
-                >
-                  <div className={`w-14 h-14 rounded-2xl border flex items-center justify-center transition-all duration-300 relative overflow-hidden backdrop-blur-md
-                    ${isDark 
-                      ? 'bg-slate-900/65 hover:bg-slate-900/90 border-slate-800 hover:border-indigo-500/30' 
-                      : 'bg-white hover:bg-slate-50 border-slate-200/80 shadow-[0_4px_12px_rgba(0,0,0,0.02)] hover:border-indigo-500/20'
-                    } ${item.shadowClass}`}
-                  >
-                    {/* Inner glowing hover effect background */}
-                    <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-gradient-to-br ${item.bgClass}`} />
-                    
-                    {/* Icon container */}
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center transition-all duration-500 z-10 
-                      ${item.bgClass} ${item.borderClass} border group-hover:scale-110 group-hover:rotate-3`}
+            {/* ── Redesigned Quick Actions — 2 rows of 4 ── */}
+            <div className={`rounded-[24px] border p-4 ${isDark ? 'bg-slate-900/50 border-slate-800/60' : 'bg-white border-slate-100 shadow-sm shadow-slate-100/80'}`}>
+              <div className="flex items-center gap-2 mb-4">
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${isDark ? 'bg-violet-500/15' : 'bg-violet-50'}`}>
+                  <CheckCircle size={11} className="text-violet-500" />
+                </div>
+                <p className={`text-[11px] font-black tracking-widest uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Quick Actions</p>
+              </div>
+              <div className="grid grid-cols-4 gap-y-4 gap-x-2">
+                {[
+                  { 
+                    label: 'Planner', 
+                    icon: Calendar, 
+                    color: 'rose',
+                    action: () => setShowPlannerModal(true) 
+                  },
+                  { 
+                    label: 'Helpdesk', 
+                    icon: Wrench, 
+                    color: 'amber',
+                    badge: openServiceCount > 0 ? openServiceCount : null,
+                    action: () => setActiveTab('service') 
+                  },
+                  { 
+                    label: 'Garage', 
+                    icon: Car, 
+                    color: 'sky',
+                    action: () => setActiveTab('garage') 
+                  },
+                  { 
+                    label: 'Pre-Approve', 
+                    icon: ShieldCheck, 
+                    color: 'violet',
+                    action: () => { setAccessSubTab('preapprove'); setActiveTab('access'); }
+                  },
+                  { 
+                    label: 'Directory', 
+                    icon: Search, 
+                    color: 'indigo',
+                    action: () => setShowDirectoryModal(true) 
+                  },
+                  { 
+                    label: 'Notices', 
+                    icon: Megaphone, 
+                    color: 'fuchsia',
+                    badge: unreadNoticeCount > 0 ? unreadNoticeCount : null,
+                    action: () => {
+                      setActiveTab('all-notices');
+                      localStorage.setItem('notices_last_seen', String(Date.now()));
+                      setUnreadNoticeCount(0);
+                    } 
+                  },
+                  { 
+                    label: 'Community', 
+                    icon: Users, 
+                    color: 'emerald',
+                    action: () => setActiveTab('community') 
+                  },
+                  { 
+                    label: 'My Flat', 
+                    icon: Home, 
+                    color: 'purple',
+                    action: () => setActiveTab('flat') 
+                  },
+                ].map((item, idx) => {
+                  const colorMap = {
+                    rose: { bg: isDark ? 'bg-rose-500/15' : 'bg-rose-50', icon: 'text-rose-500', border: isDark ? 'border-rose-500/20' : 'border-rose-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(244,63,94,0.35)]' },
+                    amber: { bg: isDark ? 'bg-amber-500/15' : 'bg-amber-50', icon: 'text-amber-500', border: isDark ? 'border-amber-500/20' : 'border-amber-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(245,158,11,0.35)]' },
+                    sky: { bg: isDark ? 'bg-sky-500/15' : 'bg-sky-50', icon: 'text-sky-500', border: isDark ? 'border-sky-500/20' : 'border-sky-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(14,165,233,0.35)]' },
+                    violet: { bg: isDark ? 'bg-violet-500/15' : 'bg-violet-50', icon: 'text-violet-500', border: isDark ? 'border-violet-500/20' : 'border-violet-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(139,92,246,0.35)]' },
+                    indigo: { bg: isDark ? 'bg-indigo-500/15' : 'bg-indigo-50', icon: 'text-indigo-500', border: isDark ? 'border-indigo-500/20' : 'border-indigo-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(99,102,241,0.35)]' },
+                    fuchsia: { bg: isDark ? 'bg-fuchsia-500/15' : 'bg-fuchsia-50', icon: 'text-fuchsia-500', border: isDark ? 'border-fuchsia-500/20' : 'border-fuchsia-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(217,70,239,0.35)]' },
+                    emerald: { bg: isDark ? 'bg-emerald-500/15' : 'bg-emerald-50', icon: 'text-emerald-500', border: isDark ? 'border-emerald-500/20' : 'border-emerald-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(16,185,129,0.35)]' },
+                    purple: { bg: isDark ? 'bg-purple-500/15' : 'bg-purple-50', icon: 'text-purple-500', border: isDark ? 'border-purple-500/20' : 'border-purple-100', glow: 'group-hover:shadow-[0_4px_14px_rgba(168,85,247,0.35)]' },
+                  };
+                  const c = colorMap[item.color];
+                  return (
+                    <button
+                      key={idx}
+                      onClick={item.action}
+                      className="flex flex-col items-center gap-2 group relative active:scale-90 transition-all duration-200"
                     >
-                      <item.icon size={18} strokeWidth={2.2} className={`drop-shadow-sm ${item.textClass}`} />
-                    </div>
-
-                    {/* Numeric status badge */}
-                    {item.badge !== null && (
-                      <span className="absolute -top-1 -right-1 min-w-[16px] h-4 rounded-full bg-rose-500 text-white text-[8px] font-black flex items-center justify-center px-1 border border-white dark:border-slate-950 shadow-sm z-20 animate-bounce-slow">
-                        {item.badge}
+                      <div className={`relative w-14 h-14 rounded-[18px] border flex items-center justify-center transition-all duration-300 ${c.bg} ${c.border} ${c.glow} group-hover:scale-105`}>
+                        <item.icon size={20} strokeWidth={2} className={`${c.icon} transition-transform duration-300 group-hover:scale-110`} />
+                        {item.badge && (
+                          <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-rose-500 text-white text-[8px] font-black flex items-center justify-center px-1 border-2 border-white dark:border-slate-900 shadow-sm z-20">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                      <span className={`text-[9.5px] font-extrabold tracking-tight text-center leading-tight transition-colors duration-200 ${
+                        isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-500 group-hover:text-slate-800'
+                      }`}>
+                        {item.label}
                       </span>
-                    )}
-                  </div>
-                  <span className={`text-[10px] font-extrabold tracking-tight text-center leading-tight transition-colors duration-300
-                    ${isDark ? 'text-slate-400 group-hover:text-slate-200' : 'text-slate-650 group-hover:text-slate-800'}`}
-                  >
-                    {item.label}
-                  </span>
-                </button>
-              ))}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Create Post capsule Panel (Frosted Look) */}
-            <div className={`p-4 rounded-[26px] border backdrop-blur-xl shadow-sm ${cardBg}`}>
-              <p className={`text-[10px] font-bold uppercase tracking-wider mb-3 px-1 ${subtext}`}>Create community updates</p>
-              <div className="flex gap-3">
+            {/* ── Create Community Update ── */}
+            <div className={`rounded-[22px] border overflow-hidden ${isDark ? 'bg-slate-900/50 border-slate-800/60' : 'bg-white border-slate-100 shadow-sm'}`}>
+              <div className={`px-4 pt-3.5 pb-2 flex items-center gap-2 border-b ${isDark ? 'border-slate-800/50' : 'border-slate-50'}`}>
+                <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
+                  <Megaphone size={11} className="text-emerald-500" />
+                </div>
+                <p className={`text-[11px] font-black tracking-widest uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Share with Society</p>
+              </div>
+              <div className="p-3 flex gap-2.5">
                 <button
                   onClick={() => { setCreatorTab('feed_post'); setShowPostModal(true); }}
-                  className="flex-1 px-4 py-3 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black tracking-wider uppercase active:scale-98 transition-all bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15"
+                  className={`flex-1 px-3 py-3 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center transition-all active:scale-95 group border ${
+                    isDark 
+                      ? 'bg-emerald-500/8 hover:bg-emerald-500/15 border-emerald-500/15 hover:border-emerald-500/25' 
+                      : 'bg-emerald-50/80 hover:bg-emerald-50 border-emerald-100 hover:border-emerald-200'
+                  }`}
                 >
-                  <Megaphone size={12} strokeWidth={2.5} />
-                  Create Post
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-0.5 transition-transform group-hover:scale-110 ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-100/80'}`}>
+                    <Megaphone size={14} className="text-emerald-500" strokeWidth={2.2} />
+                  </div>
+                  <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 tracking-tight">Create Post</span>
+                  <span className={`text-[8px] font-semibold ${subtext}`}>Share updates</span>
                 </button>
                 <button
                   onClick={() => { setCreatorTab('poll'); setShowPostModal(true); }}
-                  className="flex-1 px-4 py-3 rounded-2xl flex items-center justify-center gap-2 text-[10px] font-black tracking-wider uppercase active:scale-98 transition-all bg-indigo-500/10 hover:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/15"
+                  className={`flex-1 px-3 py-3 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center transition-all active:scale-95 group border ${
+                    isDark 
+                      ? 'bg-indigo-500/8 hover:bg-indigo-500/15 border-indigo-500/15 hover:border-indigo-500/25' 
+                      : 'bg-indigo-50/80 hover:bg-indigo-50 border-indigo-100 hover:border-indigo-200'
+                  }`}
                 >
-                  <CheckCircle size={12} strokeWidth={2.5} />
-                  Start Poll
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-0.5 transition-transform group-hover:scale-110 ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-100/80'}`}>
+                    <CheckCircle size={14} className="text-indigo-500" strokeWidth={2.2} />
+                  </div>
+                  <span className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 tracking-tight">Start Poll</span>
+                  <span className={`text-[8px] font-semibold ${subtext}`}>Get opinions</span>
+                </button>
+                <button
+                  onClick={() => setShowPlannerModal(true)}
+                  className={`flex-1 px-3 py-3 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center transition-all active:scale-95 group border ${
+                    isDark 
+                      ? 'bg-rose-500/8 hover:bg-rose-500/15 border-rose-500/15 hover:border-rose-500/25' 
+                      : 'bg-rose-50/80 hover:bg-rose-50 border-rose-100 hover:border-rose-200'
+                  }`}
+                >
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center mb-0.5 transition-transform group-hover:scale-110 ${isDark ? 'bg-rose-500/15' : 'bg-rose-100/80'}`}>
+                    <List size={14} className="text-rose-500" strokeWidth={2.2} />
+                  </div>
+                  <span className="text-[10px] font-black text-rose-600 dark:text-rose-400 tracking-tight">My Chores</span>
+                  <span className={`text-[8px] font-semibold ${subtext}`}>Task planner</span>
                 </button>
               </div>
             </div>
 
-            {/* Community Feed Posts & Polls */}
-            {dataLoading ? (
-              <div className={`p-8 rounded-[30px] border text-center ${cardBg}`}>
-                <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                <p className={`text-xs ${subtext}`}>Loading community feed...</p>
-              </div>
-            ) : posts.length === 0 ? (
-              <div className={`p-8 rounded-[30px] border text-center ${cardBg}`}>
-                <HeartHandshake size={32} className="mx-auto opacity-20 mb-3 text-indigo-500" />
-                <p className={`text-xs ${subtext}`}>No community posts or polls yet. Start the conversation!</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {posts.slice(0, 2).map((post) => renderFeedPostCard(post))}
-                
+            {/* ── Community Feed Posts & Polls ── */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-0.5">
+                <div className="flex items-center gap-2">
+                  <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${isDark ? 'bg-emerald-500/15' : 'bg-emerald-50'}`}>
+                    <MessageSquare size={11} className="text-emerald-500" />
+                  </div>
+                  <p className={`text-[11px] font-black tracking-widest uppercase ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Community Feed</p>
+                </div>
                 {posts.length > 0 && (
-                  <button
-                    onClick={() => setActiveTab('all-posts')}
-                    className={`w-full py-3.5 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                      isDark 
-                        ? 'border-emerald-500/20 bg-emerald-50/5 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.03)]' 
-                        : 'border-emerald-100 bg-emerald-50/50 text-emerald-650 hover:bg-emerald-50 hover:border-emerald-300 shadow-sm shadow-emerald-500/5'
-                    }`}
-                  >
-                    <span>View All {posts.length} Posts & Polls</span>
-                    <ChevronRight size={14} className="animate-pulse" />
+                  <button onClick={() => setActiveTab('all-posts')} className="text-[9px] font-extrabold text-emerald-500 hover:text-emerald-400 transition-colors flex items-center gap-0.5">
+                    See All <ChevronRight size={10} />
                   </button>
                 )}
               </div>
-            )}
 
-            {/* 2. REAL NOTICES Board Redesign */}
-            <div ref={noticesRef} className="space-y-3" onClick={() => {
+              {dataLoading ? (
+                <div className={`p-8 rounded-[26px] border text-center ${cardBg}`}>
+                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                  <p className={`text-xs ${subtext}`}>Loading community feed...</p>
+                </div>
+              ) : posts.length === 0 ? (
+                <div className={`p-8 rounded-[26px] border text-center ${cardBg}`}>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 ${isDark ? 'bg-indigo-500/10' : 'bg-indigo-50'}`}>
+                    <HeartHandshake size={24} className="text-indigo-400 opacity-60" />
+                  </div>
+                  <p className={`text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>No posts yet</p>
+                  <p className={`text-[10px] mt-1 ${subtext}`}>Start the conversation!</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {posts.slice(0, 2).map((post) => renderFeedPostCard(post))}
+                  
+                  {posts.length > 0 && (
+                    <button
+                      onClick={() => setActiveTab('all-posts')}
+                      className={`w-full py-3.5 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                        isDark 
+                          ? 'border-emerald-500/20 bg-emerald-50/5 text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.03)]' 
+                          : 'border-emerald-100 bg-emerald-50/50 text-emerald-650 hover:bg-emerald-50 hover:border-emerald-300 shadow-sm shadow-emerald-500/5'
+                      }`}
+                    >
+                      <span>View All {posts.length} Posts & Polls</span>
+                      <ChevronRight size={14} className="animate-pulse" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* ── Society Notices Board ── */}
+            <div ref={noticesRef} className="space-y-4" onClick={() => {
                 localStorage.setItem('notices_last_seen', String(Date.now()));
                 setUnreadNoticeCount(0);
               }}>
-              <p className={`text-[10px] font-bold uppercase tracking-wider px-1 ${subtext}`}>📢 Society Notices</p>
+              <div className="flex items-center justify-between px-0.5">
+                <div className="flex items-center gap-2.5">
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center border transition-all ${
+                    isDark 
+                      ? 'bg-fuchsia-950/20 text-fuchsia-400 border-fuchsia-900/30' 
+                      : 'bg-gradient-to-tr from-fuchsia-50 to-pink-50 text-fuchsia-600 border border-fuchsia-100/40 shadow-sm'
+                  } relative`}>
+                    <Megaphone size={13} className="text-fuchsia-500 animate-pulse" />
+                    {unreadNoticeCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-white dark:border-slate-900" />
+                    )}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <p className={`text-xs font-black tracking-wider uppercase ${isDark ? 'text-slate-200' : 'text-slate-800'}`}>Society Notices</p>
+                      {unreadNoticeCount > 0 && (
+                        <span className="text-[8px] font-black bg-rose-500 text-white px-2 py-0.5 rounded-full shadow-sm shadow-rose-500/20 animate-pulse">{unreadNoticeCount} new</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                {realNotices.length > 0 && (
+                  <button 
+                    onClick={() => setActiveTab('all-notices')} 
+                    className={`text-[10px] font-black text-fuchsia-600 dark:text-fuchsia-400 hover:text-fuchsia-700 dark:hover:text-fuchsia-350 transition-all flex items-center gap-0.5 px-3 py-1 rounded-xl border ${
+                      isDark 
+                        ? 'bg-fuchsia-950/15 border-fuchsia-900/20' 
+                        : 'bg-fuchsia-50/50 border-fuchsia-100/30'
+                    }`}
+                  >
+                    See All <ChevronRight size={11} strokeWidth={2.5} />
+                  </button>
+                )}
+              </div>
+
               {dataLoading ? (
-                <div className={`p-6 rounded-[28px] border text-center ${cardBg}`}>
-                  <div className="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" />
+                <div className={`p-8 rounded-[28px] border text-center ${
+                  isDark ? 'bg-slate-900/60 border-slate-800/80' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgba(0,0,0,0.015)]'
+                }`}>
+                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500">Notices load ho rahe hain...</p>
                 </div>
               ) : realNotices.length === 0 ? (
-                <div className={`p-6 rounded-[28px] border text-center ${cardBg}`}>
-                  <Megaphone size={28} className="mx-auto opacity-20 mb-2" />
-                  <p className={`text-xs ${subtext}`}>Abhi koi notice nahi hai</p>
+                <div className={`p-8 rounded-[28px] border text-center ${
+                  isDark ? 'bg-slate-900/60 border-slate-800/80 shadow-md' : 'bg-white border-slate-100 shadow-sm'
+                }`}>
+                  <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner ${
+                    isDark ? 'bg-fuchsia-500/10' : 'bg-fuchsia-50'
+                  }`}>
+                    <Megaphone size={24} className="text-fuchsia-500 opacity-60 animate-bounce" />
+                  </div>
+                  <h4 className={`text-xs font-black uppercase tracking-wider ${isDark ? 'text-slate-300' : 'text-slate-700'}`}>Bulletins are Clear</h4>
+                  <p className={`text-[10px] mt-1 max-w-[200px] mx-auto leading-relaxed ${subtext}`}>Koi naya notice nahi hai. Check back later for updates.</p>
                 </div>
               ) : (
                 <div className="space-y-4">
                   {realNotices.slice(0, 3).map((notice) => renderNoticeCard(notice))}
+                  {realNotices.length > 0 && (
+                    <button
+                      onClick={() => setActiveTab('all-notices')}
+                      className={`w-full py-3.5 rounded-2xl border text-[10.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                        isDark 
+                          ? 'border-indigo-900/40 bg-gradient-to-r from-indigo-950/20 to-violet-950/20 text-indigo-400 hover:from-indigo-950/45 hover:to-violet-950/45 shadow-[0_4px_20px_rgba(99,102,241,0.15)]' 
+                          : 'border-indigo-100 bg-gradient-to-r from-indigo-50/70 to-violet-50/70 text-indigo-700 hover:from-indigo-100 hover:to-violet-100 shadow-[0_4px_16px_rgba(99,102,241,0.05)]'
+                      }`}
+                    >
+                      <span>View All {realNotices.length} Notices</span>
+                      <ChevronRight size={14} className="animate-pulse" />
+                    </button>
+                  )}
                 </div>
-              )}
-              {realNotices.length > 0 && (
-                <button
-                  onClick={() => setActiveTab('all-notices')}
-                  className={`w-full py-3.5 rounded-2xl border text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-                    isDark 
-                      ? 'border-indigo-500/20 bg-indigo-50/5 text-indigo-400 hover:bg-indigo-500/10 hover:border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.03)]' 
-                      : 'border-indigo-100 bg-indigo-50/50 text-indigo-650 hover:bg-indigo-50 hover:border-indigo-300 shadow-sm shadow-indigo-500/5'
-                  }`}
-                >
-                  <span>View All {realNotices.length} Notices</span>
-                  <ChevronRight size={14} className="animate-pulse" />
-                </button>
               )}
             </div>
             
@@ -1328,8 +1547,57 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
       case 'flat': return <MyFlat user={user} sharedSocket={sharedSocket} />;
       case 'garage': return <ResidentGarage />;
       case 'service': return <ServiceRequest user={user} />;
-      case 'preapprove': return <PreApprove user={user} />;
-      case 'logs': return <ResidentLogs user={user} sharedSocket={sharedSocket} />;
+      case 'preapprove': // fallthrough
+      case 'logs':      // fallthrough  
+      case 'access': return (
+        <div className="space-y-0 animate-slide-up">
+          {/* Section Switcher Header */}
+          <div className={`rounded-[24px] border overflow-hidden mb-4 ${isDark ? 'bg-slate-900/60 border-slate-800/60' : 'bg-white border-slate-100 shadow-sm'}`}>
+            <div className={`px-4 pt-4 pb-3 border-b ${isDark ? 'border-slate-800/50' : 'border-slate-50'}`}>
+              <div className="flex items-center gap-2 mb-3">
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isDark ? 'bg-indigo-500/15' : 'bg-indigo-50'}`}>
+                  <KeyRound size={15} className="text-indigo-500" />
+                </div>
+                <div>
+                  <p className={`text-[13px] font-black tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Gate Access</p>
+                  <p className={`text-[9px] font-semibold ${subtext}`}>Pre-approvals & visitor history</p>
+                </div>
+              </div>
+              {/* Internal tab switcher */}
+              <div className={`flex gap-1.5 p-1 rounded-2xl ${isDark ? 'bg-slate-800/60' : 'bg-slate-100'}`}>
+                <button
+                  onClick={() => setAccessSubTab('preapprove')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black transition-all ${
+                    accessSubTab === 'preapprove'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <ShieldCheck size={12} />
+                  <span>Pre-Approve</span>
+                </button>
+                <button
+                  onClick={() => setAccessSubTab('logs')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-[10px] font-black transition-all ${
+                    accessSubTab === 'logs'
+                      ? 'bg-slate-700 text-white shadow-md'
+                      : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <History size={12} />
+                  <span>Visitor Logs</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Content based on sub-tab */}
+          {accessSubTab === 'preapprove'
+            ? <PreApprove user={user} />
+            : <ResidentLogs user={user} sharedSocket={sharedSocket} />
+          }
+        </div>
+      );
       default: return null;
     }
   };
@@ -1782,99 +2050,131 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
         </div>
       )}
 
-      {/* 5. CREATE COMMUNITY POST MODAL */}
+      {/* 5. CREATE COMMUNITY POST MODAL — Premium Redesign */}
       {showPostModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
-          <div className={`w-full max-w-sm p-6 border animate-scale-up ${isDark ? 'glass-panel border-slate-800/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)]' : 'glass-card-light border-white/60 shadow-[0_20px_50px_rgba(31,38,135,0.08)]'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-extrabold text-sm flex items-center gap-1.5">
-                {creatorTab === 'notice' && <Megaphone size={16} className="text-pink-500" />}
-                {creatorTab === 'feed_post' && <Megaphone size={16} className="text-emerald-500" />}
-                {creatorTab === 'poll' && <CheckCircle size={16} className="text-indigo-500" />}
-                <span>
-                  {creatorTab === 'notice' && 'Post Society Notice'}
-                  {creatorTab === 'feed_post' && 'Create Community Post'}
-                  {creatorTab === 'poll' && 'Start Society Poll'}
-                </span>
-              </h3>
-              <button 
-                onClick={() => { 
-                  setShowPostModal(false); 
-                  setFeedPostTitle(''); 
-                  setFeedPostBody(''); 
-                  setPollQuestion(''); 
-                  setPollOpts(['', '', '']);
-                  setPostText(''); 
-                }} 
-                className="text-slate-400 hover:text-slate-600"
-              >
-                <X size={18} />
-              </button>
+        <div className="fixed inset-0 z-50 flex flex-col justify-end sm:justify-center sm:items-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+          <div className={`w-full sm:max-w-sm rounded-t-[32px] sm:rounded-[28px] overflow-hidden animate-slide-up sm:animate-scale-up ${
+            isDark ? 'bg-slate-900 border border-slate-800/80 shadow-[0_-20px_60px_rgba(0,0,0,0.6)]' : 'bg-white border border-slate-100 shadow-[0_-10px_60px_rgba(0,0,0,0.12)]'
+          }`}>
+            {/* Drag Handle */}
+            <div className="flex justify-center pt-3 pb-1 sm:hidden">
+              <div className={`w-10 h-1 rounded-full ${isDark ? 'bg-slate-700' : 'bg-slate-200'}`} />
             </div>
 
-            {/* Frosted Tabs */}
-            <div className="flex border-b border-slate-100 dark:border-slate-800/40 mb-4 text-[10px] font-black uppercase tracking-wider">
-              <button
-                onClick={() => setCreatorTab('feed_post')}
-                className={`flex-1 pb-2 border-b-2 text-center transition-all ${
-                  creatorTab === 'feed_post' 
-                    ? 'border-emerald-500 text-emerald-500 dark:text-emerald-400' 
-                    : 'border-transparent text-slate-400 hover:text-slate-355 dark:hover:text-slate-300'
-                }`}
-              >
-                Feed Post
-              </button>
-              <button
-                onClick={() => setCreatorTab('poll')}
-                className={`flex-1 pb-2 border-b-2 text-center transition-all ${
-                  creatorTab === 'poll' 
-                    ? 'border-indigo-500 text-indigo-500 dark:text-indigo-400' 
-                    : 'border-transparent text-slate-400 hover:text-slate-355 dark:hover:text-slate-300'
-                }`}
-              >
-                Start Poll
-              </button>
-              <button
-                onClick={() => setCreatorTab('notice')}
-                className={`flex-1 pb-2 border-b-2 text-center transition-all ${
-                  creatorTab === 'notice' 
-                    ? 'border-pink-500 text-pink-500 dark:text-pink-400' 
-                    : 'border-transparent text-slate-400 hover:text-slate-355 dark:hover:text-slate-300'
-                }`}
-              >
-                Official Notice
-              </button>
+            {/* Header */}
+            <div className={`px-5 pt-3 pb-4 border-b ${isDark ? 'border-slate-800/60' : 'border-slate-100'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  {/* Animated icon */}
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${
+                    creatorTab === 'feed_post' ? (isDark ? 'bg-emerald-500/15' : 'bg-emerald-50') :
+                    creatorTab === 'poll' ? (isDark ? 'bg-indigo-500/15' : 'bg-indigo-50') :
+                    (isDark ? 'bg-pink-500/15' : 'bg-pink-50')
+                  }`}>
+                    {creatorTab === 'feed_post' && <PenLine size={18} className="text-emerald-500" />}
+                    {creatorTab === 'poll' && <BarChart2 size={18} className="text-indigo-500" />}
+                    {creatorTab === 'notice' && <Megaphone size={18} className="text-pink-500" />}
+                  </div>
+                  <div>
+                    <h3 className={`font-black text-sm tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>
+                      {creatorTab === 'feed_post' && 'Community Post'}
+                      {creatorTab === 'poll' && 'Society Poll'}
+                      {creatorTab === 'notice' && 'Official Notice'}
+                    </h3>
+                    <p className={`text-[9px] font-semibold mt-0.5 ${subtext}`}>
+                      {creatorTab === 'feed_post' && 'Share with your society'}
+                      {creatorTab === 'poll' && '1 vote per flat'}
+                      {creatorTab === 'notice' && 'Management board only'}
+                    </p>
+                  </div>
+                </div>
+                <button 
+                  onClick={() => { 
+                    setShowPostModal(false); 
+                    setFeedPostTitle(''); 
+                    setFeedPostBody(''); 
+                    setPollQuestion(''); 
+                    setPollOpts(['', '', '']);
+                    setPostText(''); 
+                  }} 
+                  className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                    isDark ? 'bg-slate-800 text-slate-400 hover:text-slate-200' : 'bg-slate-100 text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  <X size={15} />
+                </button>
+              </div>
+
+              {/* Premium Tab Row */}
+              <div className={`flex gap-1.5 mt-4 p-1 rounded-2xl ${isDark ? 'bg-slate-800/60' : 'bg-slate-100'}`}>
+                {[
+                  { key: 'feed_post', label: 'Post', icon: PenLine, color: 'emerald' },
+                  { key: 'poll', label: 'Poll', icon: BarChart2, color: 'indigo' },
+                  { key: 'notice', label: 'Notice', icon: Megaphone, color: 'pink' },
+                ].map(t => {
+                  const active = creatorTab === t.key;
+                  const colorActive = t.color === 'emerald' ? 'bg-emerald-600' : t.color === 'indigo' ? 'bg-indigo-600' : 'bg-pink-600';
+                  return (
+                    <button
+                      key={t.key}
+                      onClick={() => setCreatorTab(t.key)}
+                      className={`flex-1 flex items-center justify-center gap-1 py-2 rounded-xl text-[10px] font-black transition-all ${
+                        active
+                          ? `${colorActive} text-white shadow-md`
+                          : isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <t.icon size={11} />
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Content Area */}
+            <div className="px-5 py-4 space-y-3 max-h-[65vh] overflow-y-auto scrollbar-none">
               {/* Tab 1: Feed Post Form */}
               {creatorTab === 'feed_post' && (
                 <div className="space-y-3">
-                  <p className={`text-[10px] ${subtext} leading-relaxed`}>Share a thought, announcement, or discuss anything with the society feed instantly!</p>
+                  <div className={`flex items-start gap-2.5 p-3 rounded-2xl border ${
+                    isDark ? 'bg-emerald-500/5 border-emerald-500/15' : 'bg-emerald-50/60 border-emerald-100'
+                  }`}>
+                    <div className="w-7 h-7 rounded-xl bg-emerald-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                      <PenLine size={12} className="text-emerald-500" />
+                    </div>
+                    <p className={`text-[10px] leading-relaxed ${subtext}`}>Share a thought, announcement, or discuss anything with the society feed instantly!</p>
+                  </div>
                   <div>
-                    <label className={`text-[9px] font-black uppercase tracking-wider mb-1 block ${subtext}`}>Post Topic / Title</label>
+                    <label className={`text-[9px] font-black uppercase tracking-wider mb-1.5 block ${subtext}`}>Post Title *</label>
                     <input 
                       type="text" 
                       placeholder="e.g. Lost keys in block H garden..." 
                       value={feedPostTitle}
                       onChange={e => setFeedPostTitle(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                      className={`w-full rounded-2xl border px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                        isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500/40' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-emerald-300'
+                      }`}
                     />
                   </div>
                   <div>
-                    <label className={`text-[9px] font-black uppercase tracking-wider mb-1 block ${subtext}`}>Description (Optional)</label>
+                    <label className={`text-[9px] font-black uppercase tracking-wider mb-1.5 block ${subtext}`}>Details (Optional)</label>
                     <textarea 
-                      placeholder="Add more context, details, or contact information..."
+                      placeholder="Add more context, details, or contact info..."
                       rows={3}
                       value={feedPostBody}
                       onChange={e => setFeedPostBody(e.target.value)}
-                      className={`w-full border rounded-2xl p-3 text-xs outline-none resize-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                      className={`w-full border rounded-2xl p-3 text-xs outline-none resize-none focus:ring-2 focus:ring-emerald-500/20 transition-all ${
+                        isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-emerald-500/40' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-emerald-300'
+                      }`}
                     />
                   </div>
-                  <div className="flex gap-2 justify-end pt-2">
+                  <div className="flex gap-2 pt-1">
                     <button 
                       onClick={() => setShowPostModal(false)} 
-                      className={`px-4 py-2 border rounded-xl text-xs font-bold ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}
+                      className={`flex-1 py-3 border rounded-2xl text-xs font-bold transition-all ${
+                        isDark ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
                     >
                       Cancel
                     </button>
@@ -1884,26 +2184,18 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                         if (!feedPostTitle.trim()) return;
                         setPostLoading(true);
                         try {
-                          await communityAPI.createPost({
-                            type: 'post',
-                            title: feedPostTitle.trim(),
-                            body: feedPostBody.trim()
-                          });
-                          setFeedPostTitle('');
-                          setFeedPostBody('');
+                          await communityAPI.createPost({ type: 'post', title: feedPostTitle.trim(), body: feedPostBody.trim() });
+                          setFeedPostTitle(''); setFeedPostBody('');
                           setShowPostModal(false);
                           await fetchPosts();
                           alert('✅ Post created successfully!');
-                        } catch (err) {
-                          alert('Post submit nahi hui. Please try again.');
-                        } finally {
-                          setPostLoading(false);
-                        }
+                        } catch (err) { alert('Post submit nahi hui. Please try again.'); }
+                        finally { setPostLoading(false); }
                       }}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5 transition-all"
+                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all"
                     >
-                      {postLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : null}
-                      Post Update
+                      {postLoading ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <PenLine size={13} />}
+                      Publish Post
                     </button>
                   </div>
                 </div>
@@ -1912,40 +2204,51 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
               {/* Tab 2: Start Poll Form */}
               {creatorTab === 'poll' && (
                 <div className="space-y-3">
-                  <p className={`text-[10px] ${subtext} leading-relaxed`}>Start a dynamic 1-vote-per-flat society poll. Get community opinions instantly!</p>
+                  <div className={`flex items-start gap-2.5 p-3 rounded-2xl border ${
+                    isDark ? 'bg-indigo-500/5 border-indigo-500/15' : 'bg-indigo-50/60 border-indigo-100'
+                  }`}>
+                    <div className="w-7 h-7 rounded-xl bg-indigo-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                      <BarChart2 size={12} className="text-indigo-500" />
+                    </div>
+                    <p className={`text-[10px] leading-relaxed ${subtext}`}>1 vote per flat — get instant community opinions!</p>
+                  </div>
                   <div>
-                    <label className={`text-[9px] font-black uppercase tracking-wider mb-1 block ${subtext}`}>Poll Question</label>
+                    <label className={`text-[9px] font-black uppercase tracking-wider mb-1.5 block ${subtext}`}>Poll Question *</label>
                     <input 
                       type="text" 
                       placeholder="e.g. Paint color choice for clubhouse?" 
                       value={pollQuestion}
                       onChange={e => setPollQuestion(e.target.value)}
-                      className={`w-full rounded-xl border px-3 py-2 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                      className={`w-full rounded-2xl border px-4 py-3 text-xs outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all ${
+                        isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500/40' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-indigo-300'
+                      }`}
                     />
                   </div>
-                  
                   <div className="space-y-2">
-                    <label className={`text-[9px] font-black uppercase tracking-wider block ${subtext}`}>Poll Options</label>
+                    <label className={`text-[9px] font-black uppercase tracking-wider block ${subtext}`}>Options (min 2)</label>
                     {pollOpts.map((opt, i) => (
-                      <input 
-                        key={i}
-                        type="text" 
-                        placeholder={`Option ${i + 1}`}
-                        value={opt}
-                        onChange={e => {
-                          const updated = [...pollOpts];
-                          updated[i] = e.target.value;
-                          setPollOpts(updated);
-                        }}
-                        className={`w-full rounded-xl border px-3 py-2 text-xs outline-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                      />
+                      <div key={i} className="flex items-center gap-2">
+                        <div className={`w-5 h-5 rounded-lg flex items-center justify-center shrink-0 text-[9px] font-black ${
+                          isDark ? 'bg-indigo-500/15 text-indigo-400' : 'bg-indigo-100 text-indigo-600'
+                        }`}>{i + 1}</div>
+                        <input 
+                          type="text" 
+                          placeholder={`Option ${i + 1}`}
+                          value={opt}
+                          onChange={e => { const u = [...pollOpts]; u[i] = e.target.value; setPollOpts(u); }}
+                          className={`flex-1 rounded-2xl border px-3 py-2.5 text-xs outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all ${
+                            isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-indigo-500/40' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-indigo-300'
+                          }`}
+                        />
+                      </div>
                     ))}
                   </div>
-
-                  <div className="flex gap-2 justify-end pt-2">
+                  <div className="flex gap-2 pt-1">
                     <button 
                       onClick={() => setShowPostModal(false)} 
-                      className={`px-4 py-2 border rounded-xl text-xs font-bold ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}
+                      className={`flex-1 py-3 border rounded-2xl text-xs font-bold transition-all ${
+                        isDark ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                      }`}
                     >
                       Cancel
                     </button>
@@ -1957,47 +2260,50 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                         if (filteredOpts.length < 2) return alert('Minimum 2 options are required!');
                         setPostLoading(true);
                         try {
-                          await communityAPI.createPost({
-                            type: 'poll',
-                            title: pollQuestion.trim(),
-                            poll_options: filteredOpts
-                          });
-                          setPollQuestion('');
-                          setPollOpts(['', '', '']);
+                          await communityAPI.createPost({ type: 'poll', title: pollQuestion.trim(), poll_options: filteredOpts });
+                          setPollQuestion(''); setPollOpts(['', '', '']);
                           setShowPostModal(false);
                           await fetchPosts();
                           alert('✅ Poll started successfully!');
-                        } catch (err) {
-                          alert('Poll submit nahi hui. Please try again.');
-                        } finally {
-                          setPostLoading(false);
-                        }
+                        } catch (err) { alert('Poll submit nahi hui. Please try again.'); }
+                        finally { setPostLoading(false); }
                       }}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5 transition-all"
+                      className="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition-all"
                     >
-                      {postLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : null}
+                      {postLoading ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <BarChart2 size={13} />}
                       Launch Poll
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Tab 3: Notice Form (Manager Approved or Restricted to Management) */}
+              {/* Tab 3: Notice Form */}
               {creatorTab === 'notice' && (
                 (user?.role === 'manager' || user?.role === 'admin' || user?.role === 'super_admin') ? (
                   <div className="space-y-3 animate-slide-up">
-                    <p className={`text-[10px] ${subtext} leading-relaxed`}>Aapki notice society members ko dikhegi. Manager se approval ke baad publish hogi.</p>
+                    <div className={`flex items-start gap-2.5 p-3 rounded-2xl border ${
+                      isDark ? 'bg-pink-500/5 border-pink-500/15' : 'bg-pink-50/60 border-pink-100'
+                    }`}>
+                      <div className="w-7 h-7 rounded-xl bg-pink-500/15 flex items-center justify-center shrink-0 mt-0.5">
+                        <Megaphone size={12} className="text-pink-500" />
+                      </div>
+                      <p className={`text-[10px] leading-relaxed ${subtext}`}>Society notice — manager ke approval ke baad publish hogi.</p>
+                    </div>
                     <textarea 
-                      placeholder="Kya share karna chahte hain? e.g. Water cut on Thursday 10AM–2PM..."
+                      placeholder="e.g. Water cut on Thursday 10AM–2PM..."
                       rows={4}
                       value={postText}
                       onChange={e => setPostText(e.target.value)}
-                      className={`w-full border rounded-2xl p-3 text-xs outline-none resize-none ${isDark ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                      className={`w-full border rounded-2xl p-3 text-xs outline-none resize-none focus:ring-2 focus:ring-pink-500/20 transition-all ${
+                        isDark ? 'bg-slate-800 border-slate-700 text-white focus:border-pink-500/40' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-pink-300'
+                      }`}
                     />
-                    <div className="flex gap-2 justify-end">
+                    <div className="flex gap-2 pt-1">
                       <button 
                         onClick={() => { setShowPostModal(false); setPostText(''); }} 
-                        className={`px-4 py-2 border rounded-xl text-xs font-bold ${isDark ? 'border-slate-700 text-slate-400' : 'border-slate-200 text-slate-500'}`}
+                        className={`flex-1 py-3 border rounded-2xl text-xs font-bold ${
+                          isDark ? 'border-slate-700 text-slate-400 hover:bg-slate-800' : 'border-slate-200 text-slate-500 hover:bg-slate-50'
+                        }`}
                       >
                         Cancel
                       </button>
@@ -2008,53 +2314,41 @@ const ResidentDashboard = ({ user, onLogout, sharedSocket }) => {
                           setPostLoading(true);
                           try {
                             await announcementAPI.create({ title: postText.trim().slice(0, 80), body: postText.trim(), category: 'General' });
-                            setPostText('');
-                            setShowPostModal(false);
-                            alert('✅ Notice submit ho gayi! Manager approve karega.');
-                          } catch (err) {
-                            alert('Post submit nahi hui. Please try again.');
-                          } finally {
-                            setPostLoading(false);
-                          }
+                            setPostText(''); setShowPostModal(false);
+                            alert('✅ Notice submit ho gayi!');
+                          } catch (err) { alert('Post submit nahi hui. Please try again.'); }
+                          finally { setPostLoading(false); }
                         }}
-                        className="px-4 py-2 bg-pink-600 hover:bg-pink-700 disabled:opacity-60 text-white rounded-xl text-xs font-bold shadow-md flex items-center gap-1.5 transition-all"
+                        className="flex-1 py-3 bg-pink-600 hover:bg-pink-700 disabled:opacity-50 text-white rounded-2xl text-xs font-black shadow-lg shadow-pink-500/20 flex items-center justify-center gap-2 transition-all"
                       >
-                        {postLoading ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" /> : null}
+                        {postLoading ? <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Megaphone size={13} />}
                         Submit Notice
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4 text-center py-4 px-1 animate-slide-up">
-                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto text-xl border border-amber-500/25 shadow-sm animate-glow-pulse">
-                      🔒
+                  <div className="space-y-4 text-center py-6 px-2 animate-slide-up">
+                    <div className={`w-16 h-16 rounded-3xl flex items-center justify-center mx-auto border ${
+                      isDark ? 'bg-amber-500/10 border-amber-500/20' : 'bg-amber-50 border-amber-100'
+                    }`}>
+                      <span className="text-2xl">🔒</span>
                     </div>
-                    <div className="space-y-1.5">
-                      <h4 className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide">Management Only</h4>
-                      <p className={`text-[10px] leading-relaxed max-w-xs mx-auto ${subtext}`}>
-                        Official Society Notices can only be created by the Management Board & Administrators to maintain clean, verified updates.
+                    <div>
+                      <h4 className={`text-xs font-black uppercase tracking-wide mb-1 ${isDark ? 'text-slate-100' : 'text-slate-800'}`}>Management Only</h4>
+                      <p className={`text-[10px] leading-relaxed max-w-[220px] mx-auto ${subtext}`}>
+                        Official notices are posted by Management Board & Administrators only.
                       </p>
                     </div>
-                    <div className={`p-3.5 rounded-2xl border text-left ${isDark ? 'bg-slate-800/60 border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
-                      <p className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 flex items-center gap-1">💡 Pro-Tip for Residents</p>
-                      <p className={`text-[9px] font-medium leading-relaxed mt-1 ${subtext}`}>
-                        Apne updates, notices ya discussion topics ko pure society ke sath share karne ke liye **Feed Post** ya **Start Poll** tabs ka use karein! Wo bina validation ke direct community feed par publish ho jate hain.
-                      </p>
+                    <div className={`p-3 rounded-2xl border text-left ${isDark ? 'bg-slate-800/50 border-slate-700/40' : 'bg-slate-50 border-slate-200'}`}>
+                      <p className="text-[10px] font-bold text-indigo-500 flex items-center gap-1 mb-1">💡 Instead, try:</p>
+                      <p className={`text-[9px] leading-relaxed ${subtext}`}>Use Feed Post or Start Poll to share updates with the society instantly!</p>
                     </div>
-                    <div className="flex gap-2 justify-center pt-2">
-                      <button 
-                        onClick={() => setCreatorTab('feed_post')}
-                        className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-md transition-all active:scale-95"
-                      >
-                        Write Feed Post ✍️
-                      </button>
-                      <button 
-                        onClick={() => setShowPostModal(false)}
-                        className={`px-4 py-2.5 border rounded-xl text-xs font-bold transition-all active:scale-95 ${isDark ? 'border-slate-700 text-slate-400 hover:bg-slate-850' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}
-                      >
-                        Close
-                      </button>
-                    </div>
+                    <button 
+                      onClick={() => setCreatorTab('feed_post')}
+                      className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl text-xs font-black shadow-lg transition-all active:scale-95"
+                    >
+                      Write Feed Post ✍️
+                    </button>
                   </div>
                 )
               )}

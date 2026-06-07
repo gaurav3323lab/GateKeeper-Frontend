@@ -214,8 +214,7 @@ const SuperAdminDashboard = ({ user, onLogout }) => {
           <header className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-4 backdrop-blur-md sticky top-0 z-40 ${header}`}>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
-                <span className="text-xs font-black tracking-tighter text-blue-500 dark:text-blue-400 font-sans uppercase">Cloud<span className="text-red-500 font-black italic">4</span></span>
-                <span className="text-xs font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase">Things</span>
+                <span className="text-xs font-black tracking-tighter text-indigo-500 dark:text-indigo-400 font-sans uppercase">Gate<span className="text-emerald-500 font-black italic">Keeper</span></span>
                 <span className="text-[8px] bg-indigo-500/10 text-indigo-500 font-black px-1.5 py-0.5 rounded-md ml-1.5">GLOBAL</span>
               </div>
             </div>

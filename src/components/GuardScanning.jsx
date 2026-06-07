@@ -131,6 +131,30 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
   const [preapprovedSearch, setPreapprovedSearch] = useState('');
   const [preapprovedFilter, setPreapprovedFilter] = useState('all');
 
+  // Client-side vehicle detection using TensorFlow.js COCO-SSD model (Option A)
+  const [net, setNet] = useState(null);
+  const [detectedVehicle, setDetectedVehicle] = useState(null);
+  const detectionLoopRef = useRef(null);
+
+  // Client-side COCO-SSD model disabled to improve performance, eliminate memory lag,
+  // and reduce server load by ensuring 100% predictable guide-box cropping.
+  useEffect(() => {
+    console.log('[ANPR] Client-side COCO-SSD vehicle detection disabled for optimization.');
+  }, []);
+
+  // Bounding box detection loop bypassed.
+  const startDetectionLoop = useCallback((model) => {}, []);
+
+  // Watch camera state and model to manage detection loop lifecycle (bypassed)
+  useEffect(() => {
+    return () => {
+      if (detectionLoopRef.current) {
+        cancelAnimationFrame(detectionLoopRef.current);
+        detectionLoopRef.current = null;
+      }
+    };
+  }, [cameraActive, overlayCameraActive, net, startDetectionLoop]);
+
   const fetchPreApproved = useCallback(async () => {
     setPreApprovedLoading(true);
     try {
@@ -426,7 +450,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     }
   }, []);
 
-  // ANPR: Capture frame → pre-process → send to backend
+  // ANPR: Capture frame -> pre-proc
   const captureAndScanPlate = useCallback(async () => {
     if (!videoRef.current || !canvasRef.current) return;
     setProcessing(true);
@@ -442,14 +466,31 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    // Crop center-horizontal strip where plate typically appears
-    const cropX = Math.round(videoWidth * 0.05);
-    const cropY = Math.round(videoHeight * 0.30);
-    const cropWidth = Math.round(videoWidth * 0.90);
-    const cropHeight = Math.round(videoHeight * 0.35);
+    // Crop region: use detected vehicle bounding box if available, otherwise fallback to center-horizontal strip
+    let cropX, cropY, cropWidth, cropHeight;
+    if (detectedVehicle && detectedVehicle.bbox) {
+      const [vx, vy, vw, vh] = detectedVehicle.bbox;
+      // Heuristic: License plate is usually in the lower 40% height of the vehicle and centered horizontally
+      cropX = vx + vw * 0.15;
+      cropY = vy + vh * 0.55;
+      cropWidth = vw * 0.70;
+      cropHeight = vh * 0.30;
+      
+      // Keep boundaries within actual video dimensions
+      cropX = Math.max(0, Math.min(cropX, videoWidth - 10));
+      cropY = Math.max(0, Math.min(cropY, videoHeight - 10));
+      cropWidth = Math.max(10, Math.min(cropWidth, videoWidth - cropX));
+      cropHeight = Math.max(10, Math.min(cropHeight, videoHeight - cropY));
+    } else {
+      // Fallback center crop (35% to 60% height)
+      cropX = Math.round(videoWidth * 0.08);
+      cropY = Math.round(videoHeight * 0.35);
+      cropWidth = Math.round(videoWidth * 0.84);
+      cropHeight = Math.round(videoHeight * 0.25);
+    }
     
-    // 2x upscale for richer pixel data for OCR
-    const upscaleScale = 2.0;
+    // 3x upscale for richer pixel data for OCR
+    const upscaleScale = 3.0;
     const drawWidth = Math.round(cropWidth * upscaleScale);
     const drawHeight = Math.round(cropHeight * upscaleScale);
     
@@ -472,11 +513,22 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     
     // Step 2: Min-Max contrast stretch (normalize full range to 0–255)
     let minG = 255, maxG = 0;
-    for (let j = 0; j < len; j++) { if (grays[j] < minG) minG = grays[j]; if (grays[j] > maxG) maxG = grays[j]; }
+    for (let j = 0; j < len; j++) { 
+      if (grays[j] < minG) minG = grays[j]; 
+      if (grays[j] > maxG) maxG = grays[j]; 
+    }
     const rangeG = maxG - minG || 1;
-    for (let j = 0; j < len; j++) { grays[j] = ((grays[j] - minG) / rangeG) * 255; }
+    for (let j = 0; j < len; j++) { 
+      grays[j] = ((grays[j] - minG) / rangeG) * 255; 
+    }
     
-    // Step 3: Otsu-style binarization threshold computation on the stretched gray
+    // Step 3: Apply gamma correction (γ = 0.7) to boost mid-tones
+    const gamma = 0.7;
+    for (let j = 0; j < len; j++) {
+      grays[j] = Math.pow(grays[j] / 255, gamma) * 255;
+    }
+    
+    // Step 4: Otsu-style threshold computation on the stretched/gamma corrected gray
     const hist = new Int32Array(256);
     for (let j = 0; j < len; j++) hist[Math.round(grays[j])]++;
     let sum = 0;
@@ -494,27 +546,50 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       if (betweenVar > maxVar) { maxVar = betweenVar; threshold = t; }
     }
     
-    // Step 4: Apply threshold — white background, black text (standard plate look)
+    // Step 5: Soft threshold rather than hard black/white to preserve strokes
+    const transitionRange = 20;
+    const lowerBound = threshold - transitionRange / 2;
+    const upperBound = threshold + transitionRange / 2;
+    
     for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
-      const v = grays[j] > threshold ? 255 : 0;
+      let v;
+      if (grays[j] <= lowerBound) {
+        v = 0;
+      } else if (grays[j] >= upperBound) {
+        v = 255;
+      } else {
+        v = Math.round(((grays[j] - lowerBound) / transitionRange) * 255);
+      }
       pixels[i] = pixels[i + 1] = pixels[i + 2] = v;
       pixels[i + 3] = 255;
     }
     ctx.putImageData(imgData, 0, 0);
     
-    const imageBase64 = canvas.toDataURL('image/png');
+    // Step 6: Send as JPEG at 95% quality
+    const imageBase64 = canvas.toDataURL('image/jpeg', 0.95);
     setOcrLog('Running OCR...');
-
+ 
     try {
       const res = await entryAPI.scanPlate({ imageBase64 });
       const data = res.data;
       const plate = data.text?.trim()?.toUpperCase()?.replace(/[^A-Z0-9 ]/g, '');
-
+      const confidence = data.confidence;
+      const lowConfidence = data.low_confidence;
+ 
       if (plate && plate.length >= 4) {
-        setOcrLog('Plate recognized!');
+        setOcrLog(`Plate recognized (Confidence: ${confidence}%)`);
         stopCamera();
         setScannedPlate(plate);
         await handleVerifyPlateInDatabase(plate);
+        
+        if (lowConfidence) {
+          setScanResult({ 
+            type: 'unknown', 
+            title: `⚠️ Low Confidence Scan (${confidence}%)`, 
+            detail: `Plate scanned as "${plate}". Please check and correct if necessary before proceeding.`, 
+            time: nowIST() 
+          });
+        }
       } else {
         stopCamera();
         setOcrLog('Plate not clear — please retry');
@@ -527,7 +602,7 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       setScanResult({ type: 'unknown', title: '❌ Scan Failed', detail: 'Network error ya camera issue. Dubara try karein.', time: nowIST() });
     }
     setProcessing(false);
-  }, [stopCamera, handleVerifyPlateInDatabase]);
+  }, [stopCamera, handleVerifyPlateInDatabase, detectedVehicle]);
 
   const handleLogVehicleMovement = async (action) => {
     if (!verifiedVehicle) return;
@@ -644,12 +719,31 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     const videoWidth = video.videoWidth;
     const videoHeight = video.videoHeight;
     
-    const cropX = Math.round(videoWidth * 0.05);
-    const cropY = Math.round(videoHeight * 0.30);
-    const cropWidth = Math.round(videoWidth * 0.90);
-    const cropHeight = Math.round(videoHeight * 0.35);
+    // Crop region: use detected vehicle bounding box if available, otherwise fallback to center-horizontal strip
+    let cropX, cropY, cropWidth, cropHeight;
+    if (detectedVehicle && detectedVehicle.bbox) {
+      const [vx, vy, vw, vh] = detectedVehicle.bbox;
+      // Heuristic: License plate is usually in the lower 40% height of the vehicle and centered horizontally
+      cropX = vx + vw * 0.15;
+      cropY = vy + vh * 0.55;
+      cropWidth = vw * 0.70;
+      cropHeight = vh * 0.30;
+      
+      // Keep boundaries within actual video dimensions
+      cropX = Math.max(0, Math.min(cropX, videoWidth - 10));
+      cropY = Math.max(0, Math.min(cropY, videoHeight - 10));
+      cropWidth = Math.max(10, Math.min(cropWidth, videoWidth - cropX));
+      cropHeight = Math.max(10, Math.min(cropHeight, videoHeight - cropY));
+    } else {
+      // Fallback center crop (35% to 60% height)
+      cropX = Math.round(videoWidth * 0.08);
+      cropY = Math.round(videoHeight * 0.35);
+      cropWidth = Math.round(videoWidth * 0.84);
+      cropHeight = Math.round(videoHeight * 0.25);
+    }
     
-    const upscaleScale = 2.0;
+    // 3x upscale for richer pixel data for OCR
+    const upscaleScale = 3.0;
     const drawWidth = Math.round(cropWidth * upscaleScale);
     const drawHeight = Math.round(cropHeight * upscaleScale);
     
@@ -663,16 +757,30 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
     const pixels = imgData.data;
     const len = pixels.length / 4;
     
+    // Step 1: Convert to grayscale
     const grays = new Float32Array(len);
     for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
       grays[j] = 0.299 * pixels[i] + 0.587 * pixels[i + 1] + 0.114 * pixels[i + 2];
     }
     
+    // Step 2: Min-Max contrast stretch (normalize full range to 0–255)
     let minG = 255, maxG = 0;
-    for (let j = 0; j < len; j++) { if (grays[j] < minG) minG = grays[j]; if (grays[j] > maxG) maxG = grays[j]; }
+    for (let j = 0; j < len; j++) { 
+      if (grays[j] < minG) minG = grays[j]; 
+      if (grays[j] > maxG) maxG = grays[j]; 
+    }
     const rangeG = maxG - minG || 1;
-    for (let j = 0; j < len; j++) { grays[j] = ((grays[j] - minG) / rangeG) * 255; }
+    for (let j = 0; j < len; j++) { 
+      grays[j] = ((grays[j] - minG) / rangeG) * 255; 
+    }
     
+    // Step 3: Apply gamma correction (γ = 0.7) to boost mid-tones
+    const gamma = 0.7;
+    for (let j = 0; j < len; j++) {
+      grays[j] = Math.pow(grays[j] / 255, gamma) * 255;
+    }
+    
+    // Step 4: Otsu-style threshold computation on the stretched/gamma corrected gray
     const hist = new Int32Array(256);
     for (let j = 0; j < len; j++) hist[Math.round(grays[j])]++;
     let sum = 0;
@@ -688,23 +796,37 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
       if (betweenVar > maxVar) { maxVar = betweenVar; threshold = t; }
     }
     
+    // Step 5: Soft threshold rather than hard black/white to preserve strokes
+    const transitionRange = 20;
+    const lowerBound = threshold - transitionRange / 2;
+    const upperBound = threshold + transitionRange / 2;
+    
     for (let i = 0, j = 0; i < pixels.length; i += 4, j++) {
-      const v = grays[j] > threshold ? 255 : 0;
+      let v;
+      if (grays[j] <= lowerBound) {
+        v = 0;
+      } else if (grays[j] >= upperBound) {
+        v = 255;
+      } else {
+        v = Math.round(((grays[j] - lowerBound) / transitionRange) * 255);
+      }
       pixels[i] = pixels[i + 1] = pixels[i + 2] = v;
       pixels[i + 3] = 255;
     }
     ctx.putImageData(imgData, 0, 0);
     
-    const imageBase64 = canvas.toDataURL('image/png');
+    // Step 6: Send as JPEG at 95% quality
+    const imageBase64 = canvas.toDataURL('image/jpeg', 0.95);
     setOcrLog('Running OCR...');
-
+ 
     try {
       const res = await entryAPI.scanPlate({ imageBase64 });
       const data = res.data;
       const plate = data.text?.trim()?.toUpperCase()?.replace(/[^A-Z0-9 ]/g, '');
-
+      const confidence = data.confidence;
+ 
       if (plate && plate.length >= 4) {
-        setOcrLog('Plate recognized!');
+        setOcrLog(`Plate recognized (Confidence: ${confidence}%)`);
         if (streamRef.current) streamRef.current.getTracks().forEach(t => t.stop());
         streamRef.current = null;
         setOverlayCameraActive(false);
@@ -1062,20 +1184,63 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
                       </div>
                     )}
 
-                    {cameraActive && (
+                    {cameraActive && detectedVehicle && (
+                      (() => {
+                        const video = videoRef.current;
+                        if (!video) return null;
+                        const videoWidth = video.videoWidth || 1280;
+                        const videoHeight = video.videoHeight || 720;
+                        
+                        const [vx, vy, vw, vh] = detectedVehicle.bbox;
+                        const pctX = (vx / videoWidth) * 100;
+                        const pctY = (vy / videoHeight) * 100;
+                        const pctW = (vw / videoWidth) * 100;
+                        const pctH = (vh / videoHeight) * 100;
+                        
+                        // License Plate Region (relative within the vehicle)
+                        const pctPlateX = pctX + pctW * 0.15;
+                        const pctPlateY = pctY + pctH * 0.55;
+                        const pctPlateW = pctW * 0.70;
+                        const pctPlateH = pctH * 0.30;
+                        
+                        return (
+                          <>
+                            {/* Vehicle Box (Green) */}
+                            <div 
+                              className="absolute border-2 border-emerald-500/60 rounded-lg pointer-events-none transition-all duration-75"
+                              style={{ left: `${pctX}%`, top: `${pctY}%`, width: `${pctW}%`, height: `${pctH}%` }}
+                            >
+                              <span className="absolute -top-5 left-0 bg-emerald-500/90 text-slate-950 font-black text-[8px] uppercase px-1.5 py-0.5 rounded shadow">
+                                {detectedVehicle.class} ({detectedVehicle.score}%)
+                              </span>
+                            </div>
+                            
+                            {/* Predicted License Plate region box (Cyan) */}
+                            <div 
+                              className="absolute border border-cyan-400 rounded-lg pointer-events-none shadow-[0_0_10px_rgba(34,211,238,0.4)] animate-pulse"
+                              style={{ left: `${pctPlateX}%`, top: `${pctPlateY}%`, width: `${pctPlateW}%`, height: `${pctPlateH}%` }}
+                            >
+                              <span className="absolute -top-4 left-0 bg-cyan-500 text-slate-950 font-black text-[7px] uppercase px-1 rounded shadow">
+                                License Plate
+                              </span>
+                            </div>
+                          </>
+                        );
+                      })()
+                    )}
+
+                    {cameraActive && !detectedVehicle && (
                       <>
-                        {/* High-tech matrix targeting overlay */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <div className="w-[85%] h-20 border border-yellow-400/40 rounded-xl relative shadow-[0_0_15px_rgba(234,179,8,0.15)] bg-yellow-500/[0.02]">
-                            <span className="absolute -top-5 left-1 text-yellow-400 text-[9px] font-black uppercase tracking-wider">T-Plate Aligner [Center Area]</span>
-                            <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-yellow-400" />
-                            <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-yellow-400" />
-                            <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-yellow-400" />
-                            <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-yellow-400" />
-                          </div>
+                        {/* High-tech matrix targeting overlay (Cyan theme matching crop boundaries) */}
+                        <div className="absolute top-[35%] bottom-[40%] left-[8%] right-[8%] border border-cyan-450/40 rounded-xl relative shadow-[0_0_15px_rgba(34,211,238,0.15)] bg-cyan-500/[0.02]">
+                          <span className="absolute -top-5 left-1 text-cyan-400 text-[9px] font-black uppercase tracking-wider">T-Plate Aligner [Center Area]</span>
+                          <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-cyan-400" />
+                          <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-cyan-400" />
+                          <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-cyan-400" />
+                          <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-cyan-400" />
                         </div>
                         {/* High fidelity sweeping green laser lines */}
-                        <div className="absolute left-[8%] right-[8%] h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-90 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" style={{ top: '48%' }} />
+                        <div className="absolute left-[8%] right-[8%] h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-90 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" style={{ top: '47.5%' }} />
                       </>
                     )}
 
@@ -1900,16 +2065,62 @@ const GuardScanning = ({ user, onLogout, sharedSocket }) => {
               <div className="relative w-full rounded-2xl overflow-hidden bg-black mb-4 border border-slate-800 shadow-2xl" style={{ aspectRatio: '16/9' }}>
                 <video ref={videoRef} className="w-full h-full object-cover" playsInline muted />
                 
-                {/* Viewport Laser Sweep Line */}
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-[85%] h-14 border border-yellow-400/40 rounded-lg relative bg-yellow-500/[0.02]">
-                    <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-yellow-400" />
-                    <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-yellow-400" />
-                    <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-yellow-400" />
-                    <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-yellow-400" />
-                  </div>
-                </div>
-                <div className="absolute left-[8%] right-[8%] h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-95 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" style={{ top: '48%' }} />
+                {detectedVehicle && detectedVehicle.bbox && (
+                  (() => {
+                    const video = videoRef.current;
+                    if (!video) return null;
+                    const videoWidth = video.videoWidth || 1280;
+                    const videoHeight = video.videoHeight || 720;
+                    
+                    const [vx, vy, vw, vh] = detectedVehicle.bbox;
+                    const pctX = (vx / videoWidth) * 100;
+                    const pctY = (vy / videoHeight) * 100;
+                    const pctW = (vw / videoWidth) * 100;
+                    const pctH = (vh / videoHeight) * 100;
+                    
+                    const pctPlateX = pctX + pctW * 0.15;
+                    const pctPlateY = pctY + pctH * 0.55;
+                    const pctPlateW = pctW * 0.70;
+                    const pctPlateH = pctH * 0.30;
+                    
+                    return (
+                      <>
+                        {/* Vehicle Box (Green) */}
+                        <div 
+                          className="absolute border-2 border-emerald-500/60 rounded-lg pointer-events-none transition-all duration-75"
+                          style={{ left: `${pctX}%`, top: `${pctY}%`, width: `${pctW}%`, height: `${pctH}%` }}
+                        >
+                          <span className="absolute -top-5 left-0 bg-emerald-500/90 text-slate-950 font-black text-[8px] uppercase px-1.5 py-0.5 rounded shadow">
+                            {detectedVehicle.class} ({detectedVehicle.score}%)
+                          </span>
+                        </div>
+                        
+                        {/* Predicted License Plate region box (Cyan) */}
+                        <div 
+                          className="absolute border border-cyan-400 rounded-lg pointer-events-none shadow-[0_0_10px_rgba(34,211,238,0.4)] animate-pulse"
+                          style={{ left: `${pctPlateX}%`, top: `${pctPlateY}%`, width: `${pctPlateW}%`, height: `${pctPlateH}%` }}
+                        >
+                          <span className="absolute -top-4 left-0 bg-cyan-500 text-slate-950 font-black text-[7px] uppercase px-1 rounded shadow">
+                            License Plate
+                          </span>
+                        </div>
+                      </>
+                    );
+                  })()
+                )}
+
+                {!detectedVehicle && (
+                  <>
+                    {/* Viewport Laser Sweep Line (Cyan theme matching crop boundaries) */}
+                    <div className="absolute top-[35%] bottom-[40%] left-[8%] right-[8%] border border-cyan-450/40 rounded-xl relative shadow-[0_0_15px_rgba(34,211,238,0.15)] bg-cyan-500/[0.02]">
+                      <div className="absolute top-0 left-0 w-3 h-3 border-t-2 border-l-2 border-cyan-400" />
+                      <div className="absolute top-0 right-0 w-3 h-3 border-t-2 border-r-2 border-cyan-400" />
+                      <div className="absolute bottom-0 left-0 w-3 h-3 border-b-2 border-l-2 border-cyan-400" />
+                      <div className="absolute bottom-0 right-0 w-3 h-3 border-b-2 border-r-2 border-cyan-400" />
+                    </div>
+                    <div className="absolute left-[8%] right-[8%] h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent opacity-95 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" style={{ top: '47.5%' }} />
+                  </>
+                )}
                 
                 {/* Realtime processing logs */}
                 {processing && (

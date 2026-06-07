@@ -202,8 +202,7 @@ const AdminDashboard = ({ user, onLogout }) => {
           <header className={`px-4 py-3 border-b flex flex-wrap items-center justify-between gap-4 backdrop-blur-md sticky top-0 z-40 ${hdr}`}>
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-1">
-                <span className="text-xs font-black tracking-tighter text-blue-500 dark:text-blue-400 uppercase">Cloud<span className="text-red-500 italic">4</span></span>
-                <span className="text-xs font-black tracking-tighter text-slate-800 dark:text-slate-200 uppercase">Things</span>
+                <span className="text-xs font-black tracking-tighter text-indigo-500 dark:text-indigo-400 uppercase">Gate<span className="text-emerald-500 italic">Keeper</span></span>
                 <span className="text-[8px] bg-violet-500/10 text-violet-500 font-black px-1.5 py-0.5 rounded-md ml-1.5">ADMIN</span>
               </div>
               {/* Society selector chip */}

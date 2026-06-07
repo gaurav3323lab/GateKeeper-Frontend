@@ -803,6 +803,14 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
       // Other types: toast + sound
       await PushNotifications.addListener('pushNotificationReceived', (notification) => {
         console.log('[Push] Foreground notification:', notification);
+        
+        // Suppress foreground push notifications if a live WebSocket connection is active,
+        // as the socket listeners already handle all real-time events natively.
+        if (internalSocketRef.current?.connected) {
+          console.log('[Push] Suppressing foreground push duplicate because WebSocket is connected.');
+          return;
+        }
+
         const type = notification.data?.type;
         const guestId = notification.data?.guest_id;
         const visitorName = notification.data?.visitor_name || notification.title?.replace('🚪 Visitor Aaya!', '').trim() || 'Visitor';
@@ -849,6 +857,13 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
 
   const checkOverlayPermission = async () => {
     if (!Capacitor.isNativePlatform()) return;
+    
+    // Suppress repeated prompts if the user has already actioned it in this installation
+    if (localStorage.getItem('overlay_prompt_dismissed') === 'true') {
+      console.log('[OverlayPermission] Bypass prompt check: already actioned by user.');
+      return;
+    }
+
     try {
       const { SystemAlertWindowPermission } = Capacitor.Plugins;
       if (SystemAlertWindowPermission) {
@@ -864,6 +879,7 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
 
   const requestOverlayPermission = async () => {
     setShowOverlayPrompt(false);
+    localStorage.setItem('overlay_prompt_dismissed', 'true');
     try {
       const { SystemAlertWindowPermission } = Capacitor.Plugins;
       if (SystemAlertWindowPermission) {
@@ -1057,10 +1073,11 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
     //    DISPLAY: notification bar toast only
     // ─────────────────────────────────────────────────────────────
     socket.on('new_notification', (data) => {
-      if (data.type === 'sos') {
-        playSound('sos');
-      } else if (data.type === 'visitor' || data.type === 'approval') {
-        playSound('calling', false); // single play for generic
+      // Suppress duplicate sound for types that already have their own dedicated socket handlers
+      // (sos_alert -> playSound('sos'), visitor_notification -> playSound('calling', true), etc.)
+      const socketManagedTypes = ['sos', 'visitor', 'approval', 'entry', 'exit', 'announcement', 'account_status_update'];
+      if (socketManagedTypes.includes(data.type)) {
+        // Suppress sound to avoid duplicate overlapping chimes/ringtones
       } else {
         playSound('message');
       }
@@ -1192,37 +1209,47 @@ const NotificationManager = ({ user, onSOS, setSocket, globalSOS }) => {
 
       {/* Premium Draw Over Other Apps Overlay permission warning card */}
       {showOverlayPrompt && (
-        <div className="fixed inset-0 z-[10000] flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
-            <div className="flex justify-center mb-4">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-sm bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800/80 rounded-3xl p-6 shadow-2xl relative overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Glow effect */}
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-48 h-48 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+            
+            <div className="flex justify-center mb-5">
               <div className="relative">
-                <div className="absolute inset-0 rounded-full bg-rose-500/20 animate-ping" />
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center shadow-lg shadow-rose-500/30">
+                <div className="absolute inset-0 rounded-full bg-indigo-500/20 animate-ping duration-1000" />
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/30">
                   <ShieldAlert size={28} className="text-white" />
                 </div>
               </div>
             </div>
 
-            <h2 className="text-center text-base font-extrabold text-white mb-2 leading-snug">
-              Lock Screen Par Call Dikhao! 🚪📞
-            </h2>
-            <p className="text-center text-xs text-slate-400 leading-relaxed mb-6">
-              Lock screen aur background call popup features tabhi kaam karenge jab aap app ko{' '}
-              <span className="text-white font-black">"Draw over other apps"</span> keyguard overlay permission grant karenge.
-            </p>
+            <div className="text-center mb-6">
+              <span className="inline-block px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-[8px] font-black tracking-widest uppercase mb-2">
+                Permission Required
+              </span>
+              <h2 className="text-base font-extrabold text-white mb-2 leading-snug">
+                Enable Lock Screen Call Alerts
+              </h2>
+              <p className="text-[11px] text-slate-400 leading-relaxed px-1">
+                Jab bhi security guard gate se visitor entry request karega, toh NoBrokerHood ki tarah call screen directly lock screen par show karne ke liye <span className="text-white font-semibold">"Draw over other apps"</span> setting enable karna zaroori hai. Iske bina background call alerts display nahi ho payenge.
+              </p>
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <button
-                onClick={() => setShowOverlayPrompt(false)}
-                className="py-3 rounded-2xl border border-slate-650 text-slate-400 font-semibold text-xs hover:bg-slate-800 transition-all"
+                onClick={() => {
+                  setShowOverlayPrompt(false);
+                  localStorage.setItem('overlay_prompt_dismissed', 'true');
+                }}
+                className="py-3 rounded-2xl border border-slate-800 text-slate-400 font-bold text-xs hover:bg-slate-900/60 hover:text-white transition-all active:scale-[0.98]"
               >
-                Skip
+                Later
               </button>
               <button
                 onClick={requestOverlayPermission}
-                className="py-3 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 text-white font-bold text-xs shadow-lg shadow-rose-500/30 hover:opacity-90 active:scale-95 transition-all"
+                className="py-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-extrabold text-xs shadow-lg shadow-indigo-500/20 hover:opacity-95 active:scale-[0.98] transition-all"
               >
-                Allow Now ✓
+                Enable Now →
               </button>
             </div>
           </div>

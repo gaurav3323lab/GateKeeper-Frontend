@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useTheme } from '../context/ThemeContext';
-import { Wrench, Camera, Plus, Clock, CheckCircle, AlertCircle, ChevronDown, Loader2, PenLine, Trash2 } from 'lucide-react';
+import { Wrench, Camera, Plus, Clock, CheckCircle, AlertCircle, ChevronDown, Loader2, PenLine, Trash2, X } from 'lucide-react';
 import { serviceAPI } from '../services/api';
 
 const CATEGORIES = ['Plumber', 'Electrician', 'Carpenter', 'Cleaning', 'Pest Control', 'Other'];
